@@ -20,6 +20,50 @@ spring:
       username: ${SPRING_DATA_REDIS_USERNAME}
       password: ${SPRING_DATA_REDIS_PASSWORD}
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - profile
+              - email
+          naver:
+            client-id: ${NAVER_CLIENT_ID}
+            client-secret: ${NAVER_CLIENT_SECRET}
+            client-name: Naver
+            authorization-grant-type: authorization_code
+            redirect-uri: '{baseUrl}/login/oauth2/code/naver'
+            scope:
+              - name
+              - email
+            provider: naver
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-name: Kakao
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: '{baseUrl}/login/oauth2/code/kakao'
+            scope:
+              - profile_nickname
+              - account_email
+            provider: kakao
+        provider:
+          naver:
+            authorization-uri: https://nid.naver.com/oauth2.0/authorize
+            token-uri: https://nid.naver.com/oauth2.0/token
+            user-info-uri: https://openapi.naver.com/v1/nid/me
+            user-name-attribute: response
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
 supabase:
   url: ${SUPABASE_URL}
   key: ${SUPABASE_KEY}
@@ -28,8 +72,9 @@ supabase:
   docs-bucket: ${SUPABASE_DOCS_BUCKET}
 
 jwt:
-  secret: ${JWT_SECRET_KEY}
-  expiration: ${JWT_EXPIRATION_MS}
+  secret: ${JWT_SECRET} # openssl rand -base64 32
+  access-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:600000}
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:86400000}
 
 aws:
   sqs:

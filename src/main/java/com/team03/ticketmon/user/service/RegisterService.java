@@ -1,9 +1,9 @@
 package com.team03.ticketmon.user.service;
 
 import com.team03.ticketmon.user.dto.RegisterResponseDTO;
-import com.team03.ticketmon.user.dto.UserDTO;
+import com.team03.ticketmon.user.dto.UserEntityDTO;
 
 public interface RegisterService {
-    void createUser(UserDTO dto);
-    RegisterResponseDTO validCheck(UserDTO dto);
+    void createUser(UserEntityDTO dto);
+    RegisterResponseDTO validCheck(UserEntityDTO dto);
 }

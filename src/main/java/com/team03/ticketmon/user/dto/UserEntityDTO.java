@@ -1,6 +1,6 @@
 package com.team03.ticketmon.user.dto;
 
-public record UserDTO(
+public record UserEntityDTO(
         String email,
         String username,
         String password,

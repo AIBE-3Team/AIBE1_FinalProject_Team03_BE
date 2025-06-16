@@ -1,7 +1,7 @@
 package com.team03.ticketmon.user.controller;
 
 import com.team03.ticketmon.user.dto.RegisterResponseDTO;
-import com.team03.ticketmon.user.dto.UserDTO;
+import com.team03.ticketmon.user.dto.UserEntityDTO;
 import com.team03.ticketmon.user.service.RegisterService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -26,7 +26,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerProcess(@RequestBody UserDTO dto) {
+    public ResponseEntity<?> registerProcess(@RequestBody UserEntityDTO dto) {
         RegisterResponseDTO validation = registerService.validCheck(dto);
 
         if(!validation.isSuccess())

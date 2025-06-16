@@ -6,10 +6,12 @@ import com.team03.ticketmon.user.dto.UserEntityDTO;
 import com.team03.ticketmon.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
 @Service
+@Transactional
 public class RegisterServiceImpl implements RegisterService {
 
     private final UserRepository userRepository;

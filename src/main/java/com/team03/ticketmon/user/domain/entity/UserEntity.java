@@ -1,10 +1,9 @@
 package com.team03.ticketmon.user.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -13,6 +12,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = "password")
 public class UserEntity {
 
     @Id
@@ -25,6 +25,7 @@ public class UserEntity {
     @Column(nullable = false, unique = true, length = 20)
     private String username;
 
+    @JsonIgnore // API 응답(JSON)에 password 포함되지 않음
     @Column(nullable = false)
     private String password;
 

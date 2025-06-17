@@ -1,6 +1,7 @@
 // src/main/java/com/team03/ticketmon/_global/config/RedissonConfig.java
 package com.team03.ticketmon._global.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
@@ -13,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
  * - Redis 분산 락, Pub/Sub, 캐시 기능을 위한 RedissonClient 설정
  * - Aiven Redis 서버 연결 설정
  */
+@Slf4j
 @Configuration
 public class RedissonConfig {
 
@@ -22,10 +24,10 @@ public class RedissonConfig {
     @Value("${spring.data.redis.port}")
     private int redisPort;
 
-    @Value("${spring.data.redis.username}")
+    @Value("${spring.data.redis.username:#{null}}")
     private String redisUsername;
 
-    @Value("${spring.data.redis.password}")
+    @Value("${spring.data.redis.password:#{null}}")
     private String redisPassword;
 
     /**
@@ -38,14 +40,20 @@ public class RedissonConfig {
         Config config = new Config();
 
         // Redis 연결 URL 구성
-        // rediss://${USERNAME}:${PASSWORD}@${HOST}:${PORT}
-        String redisUrl = "rediss://%s:%s@%s:%d".formatted(redisUsername, redisPassword, redisHost, redisPort);
+        // rediss://${HOST}:${PORT} - SSL/TLS 암호화 연결
+        // redis://${HOST}:${PORT} - 일반 연결, 로컬이나 테스트 환경
+        String redisUrl = "%s://%s:%d".formatted(
+                redisPassword != null ? "rediss" : "redis",
+                redisHost,
+                redisPort
+        );
+        log.info("Redisson Client를 생성합니다. Address: {}", redisUrl);
 
         // 단일 서버 모드 설정
         config.useSingleServer()
                 .setAddress(redisUrl)
-                .setUsername(redisUsername.isEmpty() ? null : redisUsername)
-                .setPassword(redisPassword.isEmpty() ? null : redisPassword)
+                .setUsername(redisUsername)
+                .setPassword(redisPassword)
                 .setConnectionMinimumIdleSize(1)    // 최소 유휴 연결 수
                 .setConnectionPoolSize(10)          // 연결 풀 크기
                 .setRetryAttempts(3)                // 재시도 횟수

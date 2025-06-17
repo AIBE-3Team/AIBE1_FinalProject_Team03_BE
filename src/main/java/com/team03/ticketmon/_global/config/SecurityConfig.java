@@ -1,8 +1,16 @@
 package com.team03.ticketmon._global.config;
 
+import com.team03.ticketmon.auth.jwt.JwtAuthenticationFilter;
+import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
+import com.team03.ticketmon.auth.jwt.LoginFilter;
+import com.team03.ticketmon.auth.service.RefreshTokenService;
+import com.team03.ticketmon.auth.service.ReissueService;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,11 +33,21 @@ import java.util.Arrays;
         prePostEnabled = true,
         jsr250Enabled = true
 )
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     // 🔐 JWT 필터 자리 확보 (JWT 인증 필터는 로그인/토큰 담당자가 구현 예정)
     // 구현 후 아래 필터 삽입 코드의 주석을 해제하면 Security와 연동됩니다.
-    // private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthenticationConfiguration authenticationConfiguration;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final ReissueService reissueService;
+    private final RefreshTokenService refreshTokenService;
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+
+        return configuration.getAuthenticationManager();
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -61,6 +79,10 @@ public class SecurityConfig {
                         // 나머지 모든 요청은 인증만 되면 접근 허용 (추후 JWT 완성 시 주석 제거)
 //                        .anyRequest().authenticated()
                 )
+
+                // Login Filter 적용
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, reissueService), LoginFilter.class)
+                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtTokenProvider, refreshTokenService), UsernamePasswordAuthenticationFilter.class)
 
                 // 인증/인가 실패(인증 실패(401), 권한 부족(403)) 시 반환되는 예외 응답 설정
                 .exceptionHandling(exception -> exception

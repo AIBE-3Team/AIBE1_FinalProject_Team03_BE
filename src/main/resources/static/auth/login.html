@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>로그인</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .login-container {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 300px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #0069d9;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        .error {
+            color: red;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <h2>로그인</h2>
+    <form id="loginForm">
+        <input type="text" id="username" name="username" placeholder="아이디" required />
+        <input type="password" id="password" name="password" placeholder="비밀번호" required />
+        <button type="submit">로그인</button>
+    </form>
+    <div id="message"></div>
+
+</div>
+
+<script>
+    document.getElementById("loginForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const formData = new URLSearchParams();
+        formData.append("username", document.getElementById("username").value);
+        formData.append("password", document.getElementById("password").value);
+
+        fetch("/auth/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded", // Spring Security 기본 형식
+            },
+            body: formData,
+            credentials: "include" // 쿠키를 주고받기 위해 필요
+        })
+            .then(res => {
+                if (res.ok) {
+                    window.location.href = "/";
+                } else {
+                    return res.text().then(text => { throw new Error(text); });
+                }
+            })
+            .catch(err => {
+                document.getElementById("message").textContent = "로그인 실패: " + err.message;
+            });
+    });
+</script>
+
+</body>
+</html>

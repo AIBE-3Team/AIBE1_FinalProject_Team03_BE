@@ -1,24 +1,71 @@
 spring:
+  # Spring Boot 자동 설정을 제외할 항목을 명시
+  # AWS S3 자동 설정은 's3' 프로필에서 관리되므로, prod 환경에서 기본적으로 제외
+  autoconfigure:
+    exclude:
+      - io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration
+
+  # 'prod' 프로필이 활성화될 때 's3' 프로필도 함께 포함
+  # 이를 통해 운영 환경에서는 S3 관련 빈만 로드됨
+  profiles:
+    include: s3
+
+  # 운영 데이터베이스 연결 설정
+  # 모든 값은 환경 변수로부터 주입 (보안상 민감 정보 직접 노출 금지)
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  # JPA (Hibernate) 관련 설정
   jpa:
     hibernate:
-      ddl-auto: validate             # 운영은 반드시 validate (자동 변경 금지)
-    show-sql: false                  # 운영에서는 SQL 출력 비활성화
-  #    properties:
-  #      hibernate:
-  #        format_sql: true
+      ddl-auto: validate             # 운영 환경에서는 DDL 자동 변경을 금지하고 스키마 유효성만 검사
+    show-sql: false                  # 운영 환경에서는 SQL 쿼리 출력을 비활성화하여 성능 및 보안을 강화
+#    properties:
+#     hibernate:
+#       format_sql: false # 운영 환경에서는 쿼리 포맷팅도 성능에 영향을 줄 수 있으므로 비활성화가 권장
+    # 이 설정이 필요하다면 주석을 해제하고 'false'로 명시해주세요.
 
+  # Redis 연결 설정
+  # 모든 값은 환경 변수로부터 주입
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST}
       port: ${SPRING_DATA_REDIS_PORT}
       username: ${SPRING_DATA_REDIS_USERNAME}
       password: ${SPRING_DATA_REDIS_PASSWORD}
+
+# Supabase 관련 설정
+# 's3' 프로필을 포함하고 있으므로, Supabase 관련 빈은 운영 환경에서 로드되지 않습니다.
+# 따라서 이 설정 블록은 운영 환경에서는 불필요하며, 제거하거나 주석 처리하는 것이 명확합니다.
+# supabase:
+#   url: ${SUPABASE_URL}
+#   key: ${SUPABASE_KEY}
+#   profile-bucket: ${SUPABASE_PROFILE_BUCKET}
+#   poster-bucket: ${SUPABASE_POSTER_BUCKET}
+#   docs-bucket: ${SUPABASE_DOCS_BUCKET}
+
+# AWS S3 관련 설정:
+# 's3' 프로필이 활성화될 때 이 설정이 로드
+# 실제 AWS Access Key, Secret Key는 환경 변수 또는 보안 저장소에서 주입받아야 함
+cloud:
+  aws:
+    credentials:
+      # 액세스 키와 시크릿 키는 환경 변수 (예: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY) 또는 보안 저장소에서 주입
+      access-key: ${AWS_ACCESS_KEY_ID}         # 🔒 AWS IAM 사용자 Access Key
+      secret-key: ${AWS_SECRET_ACCESS_KEY}     # 🔒 AWS IAM 사용자 Secret Key
+    region:
+      static: ap-northeast-2                     # 예시: 서울 리전 (실제 운영 환경에 맞게 변경)
+    s3:
+      bucket: ticketmon-prod-assets         # [권장] 운영 환경용 S3 버킷 이름 (개발 환경과 다르게 설정)
+      # prefix(폴더) 기준 관리, supabase → s3 마이그레이션에 최적화
+      profile-prefix: profile-imgs/        # 프로필 이미지 저장 경로 접두사 (예: profile-imgs/{userId}.jpg)
+      poster-prefix: poster-imgs/          # 포스터 이미지 저장 경로 접두사 (예: poster-imgs/{posterId}.jpg)
+      seller-docs-prefix: seller-docs/     # 판매자 서류 저장 경로 접두사 (예: seller-docs/{docId}.pdf)
+      # 실제 Key: {prefix}{파일명}
+      # 운영 배포시 prod-assets, dev는 dev-assets 등 환경 분리   # S3 버킷 이름 (개발/운영 구분 가능)
 
   security:
     oauth2:
@@ -64,30 +111,29 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
-supabase:
-  url: ${SUPABASE_URL}
-  key: ${SUPABASE_KEY}
-  profile-bucket: ${SUPABASE_PROFILE_BUCKET}
-  poster-bucket: ${SUPABASE_POSTER_BUCKET}
-  docs-bucket: ${SUPABASE_DOCS_BUCKET}
-
+# JWT (JSON Web Token) 관련 설정
+# 모든 값은 환경 변수로부터 주입
 jwt:
   secret: ${JWT_SECRET} # openssl rand -base64 32
   access-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:600000}
   refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:86400000}
 
+# AWS SQS (Simple Queue Service) 관련 설정
+# 모든 값은 환경 변수로부터 주입
 aws:
   sqs:
     endpoint: ${SQS_ENDPOINT}
     access-key: ${AWS_ACCESS_KEY}
     secret-key: ${AWS_SECRET_KEY}
 
+# 로깅 레벨 설정
+# 운영 환경에서는 불필요한 로그 생성을 줄이기 위해 로그 레벨을 높게 설정
 logging:
   level:
-    root: WARN
-    #    com.team03: INFO              # 운영 로그는 최소한만 출력
-    com.team03: WARN              # INFO보다 더 낮춰도 괜찮음
-    # -> 실시간 모니터링 툴이 있지 않다면, 불필요한 로그까지 나오는 걸 방지할 수 있음
+    root: WARN  # 기본 로그 레벨을 WARN으로 설정
+    com.team03: INFO  # 팀 패키지의 로그 레벨을 INFO로 설정합니다. (필요시 WARN 또는 ERROR로 더 제한 가능)
+    # WARN -> 실시간 모니터링 툴이 있지 않다면, 불필요한 로그까지 나오는 걸 방지할 수 있음
 
+# Swagger API 문서 설정
 swagger:
-  enabled: false                    # 운영에서는 Swagger 비공개
+  enabled: false  # 운영 환경에서는 보안을 위해 Swagger 문서를 비활성화

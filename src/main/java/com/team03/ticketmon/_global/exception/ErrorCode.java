@@ -37,9 +37,16 @@ public enum ErrorCode {
     // Permission & Admin (권한 및 관리자)
     ADMIN_ACCESS_DENIED(403, "P001", "관리자만 접근할 수 있습니다."),
 
-    // Ticket & Concert (티켓 및 콘서트)
+    // Ticket & Concert (티켓 및 콘서트) - 확장됨
     SEARCH_BAD_REQUEST(400, "T001", "콘서트 검색어는 2글자 이상 입력해주세요."),
     INVALID_DATE_RANGE(400, "T002", "조회 가능한 날짜 범위를 벗어났습니다."),
+    CONCERT_NOT_FOUND(404, "T003", "콘서트를 찾을 수 없습니다."), // 추가: 콘서트 특화 에러
+    INVALID_SEARCH_KEYWORD(400, "T004", "검색 키워드를 입력해주세요."), // 추가: 검색 키워드 검증
+    INVALID_DATE_ORDER(400, "T005", "시작일은 종료일보다 이전이어야 합니다."), // 추가: 날짜 순서 검증
+    INVALID_PRICE_RANGE(400, "T006", "가격 범위가 유효하지 않습니다."), // 추가: 가격 범위 검증
+    INVALID_CONCERT_ID(400, "T007", "유효하지 않은 콘서트 ID입니다."), // 추가: 콘서트 ID 검증
+    CONCERT_DATE_REQUIRED(400, "T008", "조회할 날짜를 입력해주세요."), // 추가: 날짜 필수 입력
+    SEARCH_CONDITION_REQUIRED(400, "T009", "검색 조건을 입력해주세요."), // 추가: 검색 조건 필수
 
     // Booking & Seat (예매 및 좌석)
     BOOKING_NOT_AVAILABLE(403, "B001", "예매가 가능한 상태가 아닙니다."),
@@ -47,6 +54,21 @@ public enum ErrorCode {
     SEAT_ALREADY_TAKEN(409, "B003", "이미 선택된 좌석입니다."),
     LOCK_ACQUISITION_FAILED(503, "B004", "좌석 선점에 실패했습니다. (락 획득 실패)"),
     BOOKING_TIMEOUT(408, "B005", "좌석 선점 시간이 만료되었습니다."),
+    SEAT_NOT_FOUND(404, "B006", "좌석을 찾을 수 없습니다."),
+    INVALID_SEAT_SELECTION(400, "B007", "선택한 좌석 중 일부를 찾을 수 없습니다."),
+
+    // Review & Expectation (후기 및 기대평) - 새롭게 추가된 도메인
+    REVIEW_ALREADY_EXISTS(409, "R001", "이미 후기를 작성했습니다."), // 추가: 중복 후기 방지
+    REVIEW_NOT_FOUND(404, "R002", "후기를 찾을 수 없습니다."), // 추가: 후기 조회 실패
+    EXPECTATION_REVIEW_NOT_FOUND(404, "R003", "기대평을 찾을 수 없습니다."), // 추가: 기대평 조회 실패
+    INVALID_REVIEW_DATA(400, "R004", "후기 작성 정보가 유효하지 않습니다."), // 추가: 후기 데이터 검증
+
+    // Seller & Concert Management (판매자 및 콘서트 관리) - 새롭게 추가된 도메인
+    INVALID_SELLER_ID(400, "S001", "유효하지 않은 판매자 ID입니다."), // 추가: 판매자 ID 검증
+    SELLER_PERMISSION_DENIED(403, "S002", "해당 콘서트를 관리할 권한이 없습니다."), // 추가: 판매자 권한 검증
+    CONCERT_CREATION_FAILED(400, "S003", "콘서트 생성 정보가 유효하지 않습니다."), // 추가: 콘서트 생성 검증
+    CONCERT_UPDATE_FAILED(400, "S004", "콘서트 수정 정보가 유효하지 않습니다."), // 추가: 콘서트 수정 검증
+    INVALID_POSTER_URL(400, "S005", "포스터 이미지 URL을 입력해주세요."), // 추가: 포스터 URL 검증
 
     // Payment (결제)
     PAYMENT_AMOUNT_MISMATCH(400, "M001", "주문 금액이 일치하지 않습니다."),

@@ -65,3 +65,8 @@ target/
 
 # IDE 설정 (이미 포함되어 있지만 재확인)
 .idea/
+
+
+# Supabase Token
+# 시크릿 키 숨김
+gradle.properties

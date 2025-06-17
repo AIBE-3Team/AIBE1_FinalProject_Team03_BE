@@ -8,10 +8,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("/user")
 public class UserController {
 
     private final RegisterService registerService;
@@ -20,12 +18,12 @@ public class UserController {
         this.registerService = registerService;
     }
 
-    @GetMapping("/register")
+    @GetMapping("/auth/register")
     public String register() {
         return "register";
     }
 
-    @PostMapping("/register")
+    @PostMapping("/auth/register")
     public ResponseEntity<?> registerProcess(@RequestBody UserEntityDTO dto) {
         RegisterResponseDTO validation = registerService.validCheck(dto);
 
@@ -33,8 +31,6 @@ public class UserController {
             return ResponseEntity.badRequest().body(validation);
 
         registerService.createUser(dto);
-
         return ResponseEntity.ok().body(validation);
     }
-
 }

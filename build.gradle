@@ -35,10 +35,18 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    runtimeOnly 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // ✅ Redisson, WebSocket 의존성 추가
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.redisson:redisson-spring-boot-starter:3.40.0'
+
+    // Testcontainers를 JUnit5 환경에서 사용하기 위한 라이브러리
+    testImplementation 'org.testcontainers:junit-jupiter'
+    // Testcontainers로 Redis 컨테이너를 쉽게 띄우기 위한 라이브러리
+    testImplementation 'com.redis:testcontainers-redis:2.2.4'
+    // 비동기 테스트(Pub/Sub 등)에서 특정 조건이 만족될 때까지 기다리게 해주는 유틸리티
+    testImplementation 'org.awaitility:awaitility'
 }
 
 tasks.named('test') {

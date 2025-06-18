@@ -71,7 +71,9 @@ public class ConcertService {
 		if (status == null) {
 			throw new BusinessException(ErrorCode.INVALID_INPUT);
 		}
-
+		if (pageable == null) {
+			throw new BusinessException(ErrorCode.INVALID_PAGE_REQUEST);
+		}
 		Page<Concert> concertPage = concertRepository
 			.findByStatusOrderByConcertDateAsc(status, pageable);
 

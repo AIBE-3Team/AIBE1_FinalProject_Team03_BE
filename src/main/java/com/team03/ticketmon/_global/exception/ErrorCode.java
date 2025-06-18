@@ -28,6 +28,7 @@ public enum ErrorCode {
     SERVER_ERROR(500, "C003", "서버에 오류가 발생했습니다."),
     INVALID_PAGE_NUMBER(400, "C004", "페이지 번호는 0 이상이어야 합니다."), // 추가: 페이징 검증
     INVALID_PAGE_SIZE(400, "C005", "페이지 크기는 1-100 사이여야 합니다."), // 추가: 페이징 검증
+    INVALID_PAGE_REQUEST(400, "C006", "페이징 요청 정보가 유효하지 않습니다."), // 추가: Pageable 검증
 
     // Auth & User (인증 및 사용자 관련)
     LOGIN_FAILED(401, "A001", "아이디 또는 비밀번호가 일치하지 않습니다."),

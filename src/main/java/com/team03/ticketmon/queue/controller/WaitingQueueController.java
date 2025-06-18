@@ -3,6 +3,7 @@ package com.team03.ticketmon.queue.controller;
 import com.team03.ticketmon.queue.dto.EnterRequest;
 import com.team03.ticketmon.queue.dto.EnterResponse;
 import com.team03.ticketmon.queue.service.WaitingQueueService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +33,7 @@ public class WaitingQueueController {
      * @return HTTP 200 OK와 함께 대기열 상태 정보(userId, rank, status)를 담은 응답
      */
     @PostMapping("/enter")
-    public ResponseEntity<EnterResponse> enterQueue(@RequestBody EnterRequest request) {
+    public ResponseEntity<EnterResponse> enterQueue(@Valid @RequestBody EnterRequest request) {
         // TODO: [보안] 현재는 요청 본문(request body)에서 userId를 직접 받지만, 이는 매우 위험합니다.
         // 실제 운영 환경에서는 반드시 Spring Security의 Authentication 객체(예: @AuthenticationPrincipal)에서
         // 인증된 사용자 정보를 가져와 사용해야 합니다.

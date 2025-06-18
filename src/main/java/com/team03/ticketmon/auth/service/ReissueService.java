@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 public interface ReissueService {
-    String reissueAccessToken(String refreshToken);
-    String reissueRefreshToken(String refreshToken);
+    String reissueToken(String refreshToken, String reissueCategory);
     void handleReissueToken(HttpServletRequest request, HttpServletResponse response);
 }

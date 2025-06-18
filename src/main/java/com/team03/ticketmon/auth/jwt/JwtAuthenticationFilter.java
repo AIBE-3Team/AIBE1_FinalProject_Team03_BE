@@ -48,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Access Token이 만료되었고 Refresh Token 유효성 확인 후 재발급
         log.info("Access Token 만료됨 Refresh Token으로 재발급 시도");
-        String newAccessToken = reissueService.reissueAccessToken(refreshToken);
+        String newAccessToken = reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS);
         if (isEmpty(newAccessToken)) {
             log.warn("Refresh Token이 유효하지 않음 재로그인 필요");
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Refresh Token이 만료되었거나 유효하지 않습니다.");

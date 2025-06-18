@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ReissueServiceImpl implements ReissueService {
@@ -14,23 +16,13 @@ public class ReissueServiceImpl implements ReissueService {
     private final RefreshTokenService refreshTokenService;
 
     @Override
-    public String reissueAccessToken(String refreshToken) {
+    public String reissueToken(String refreshToken, String reissueCategory) {
         validateRefreshToken(refreshToken);
 
         Long userId = jwtTokenProvider.getUserId(refreshToken);
-        String role = jwtTokenProvider.getRoles(refreshToken).get(0);
+        String role = extractRole(refreshToken);
 
-        return jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_ACCESS, userId, role);
-    }
-
-    @Override
-    public String reissueRefreshToken(String refreshToken) {
-        validateRefreshToken(refreshToken);
-
-        Long userId = jwtTokenProvider.getUserId(refreshToken);
-        String role = jwtTokenProvider.getRoles(refreshToken).get(0);
-
-        return jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_REFRESH, userId, role);
+        return jwtTokenProvider.generateToken(reissueCategory, userId, role);
     }
 
     @Override
@@ -40,8 +32,8 @@ public class ReissueServiceImpl implements ReissueService {
             throw new IllegalArgumentException("Refresh Token이 존재하지 않습니다.");
 
         Long userId = jwtTokenProvider.getUserId(refreshToken);
-        String newAccessToken = reissueAccessToken(refreshToken);
-        String newRefreshToken = reissueRefreshToken(refreshToken);
+        String newAccessToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS);
+        String newRefreshToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH);
 
         // 기존 Refresh Token 삭제 후 New Refresh Token DB 저장
         refreshTokenService.deleteRefreshToken(userId);
@@ -59,5 +51,13 @@ public class ReissueServiceImpl implements ReissueService {
 
         if (jwtTokenProvider.isTokenExpired(refreshToken))
             throw new IllegalArgumentException("Refresh Token이 만료되었습니다.");
+    }
+
+    private String extractRole(String token) {
+        List<String> roles = jwtTokenProvider.getRoles(token);
+        if (roles == null || roles.isEmpty()) {
+            throw new IllegalArgumentException("역할(Role) 정보가 없습니다.");
+        }
+        return roles.get(0);
     }
 }

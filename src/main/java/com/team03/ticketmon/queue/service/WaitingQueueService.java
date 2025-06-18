@@ -1,5 +1,7 @@
 package com.team03.ticketmon.queue.service;
 
+import com.team03.ticketmon._global.exception.BusinessException;
+import com.team03.ticketmon._global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RAtomicLong;
@@ -26,9 +28,9 @@ public class WaitingQueueService {
     private static final String QUEUE_KEY_PREFIX = "waitqueue:";
     private static final String SEQUENCE_KEY_SUFFIX = ":seq:";
 
-    // 시퀀스를 저장할 비트 수 (22비트 = 약 420만)
-    private static final int SEQUENCE_BITS = 22;
-    // 시퀀스 최대값 (2^22 - 1)
+    // 시퀀스를 저장할 비트 수 (21비트 = 약 210만)
+    private static final int SEQUENCE_BITS = 21;
+    // 시퀀스 최대값 (2^21 - 1)
     private static final long MAX_SEQUENCE = (1L << SEQUENCE_BITS) - 1;
 
     /**
@@ -43,23 +45,26 @@ public class WaitingQueueService {
         String queueKey = generateKey(concertId);
         RScoredSortedSet<String> queue = redissonClient.getScoredSortedSet(queueKey);
 
-        // 이미 큐에 있는지 확인. 있다면 기존 순위 반환 (멱등성)
-        Integer existingRank = queue.rank(userId);
-        if (existingRank != null) {
-            log.info("사용자 {}는(은) 이미 대기열에 있습니다. 기존 순위: {}", userId, existingRank.longValue() + 1);
-            return existingRank.longValue() + 1;
-        }
-
         // [핵심] 유니크하고 순서가 보장되는 score 생성
         long uniqueScore = generateUniqueScore(concertId);
-        queue.add(uniqueScore, userId);
-        log.info("대기열 신규 신청. 사용자: {}, 대기열 키: {}, 부여된 점수: {}", userId, queueKey, uniqueScore);
 
+        // addIfAbsent를 사용하여 '추가'와 '존재 확인'을 원자적으로 실행
+        boolean isNewUser = queue.addIfAbsent(uniqueScore, userId);
+
+        // 만약 새로운 사용자가 아니라면 (이미 대기열에 존재했다면) 예외를 발생
+        if (!isNewUser) {
+            log.warn("사용자 {}는(은) 이미 대기열에 등록된 상태에서 중복 요청을 보냈습니다.", userId);
+            throw new BusinessException(ErrorCode.QUEUE_ALREADY_JOINED);
+        }
+
+        // 정상적으로 추가된 경우, 로그를 남기고 순위를 계산하여 반환
+        log.info("대기열 신규 신청. 사용자: {}, 대기열 키: {}, 부여된 점수: {}", userId, queueKey, uniqueScore);
         Integer rankIndex = queue.rank(userId);
 
         if (rankIndex == null) {
+            // 로직상 rankIndex가 null이 될 가능성 희박함, 안정성을 위해 방어적 코드를 유지
             log.error("대기열 순위 조회 실패! 사용자가 정상적으로 추가되지 않았을 수 있습니다. 사용자: {}, 대기열 키: {}", userId, queueKey);
-            throw new IllegalStateException("대기열 순위를 조회할 수 없습니다.");
+            throw new BusinessException(ErrorCode.SERVER_ERROR);
         }
 
         return rankIndex.longValue() + 1;
@@ -84,8 +89,8 @@ public class WaitingQueueService {
         long currentSequence = sequence.incrementAndGet();
 
         if (currentSequence > MAX_SEQUENCE) {
-            log.error("1ms 내 요청 한도 초과! ({}개 이상) 잠시 후 다시 시도해주세요.", MAX_SEQUENCE);
-            throw new IllegalStateException("요청이 너무 많습니다. 잠시 후 다시 시도해주세요.");
+            log.error("1ms 내 요청 한도 초과! ({}개 이상)", MAX_SEQUENCE);
+            throw new BusinessException(ErrorCode.QUEUE_TOO_MANY_REQUESTS);
         }
 
         // 타임스탬프를 왼쪽으로 22비트 이동시키고, 시퀀스 번호를 OR 연산으로 합침

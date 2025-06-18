@@ -51,6 +51,12 @@ public enum ErrorCode {
     CONCERT_DATE_REQUIRED(400, "T008", "조회할 날짜를 입력해주세요."), // 추가: 날짜 필수 입력
     SEARCH_CONDITION_REQUIRED(400, "T009", "검색 조건을 입력해주세요."), // 추가: 검색 조건 필수
 
+    // Queue & Access (대기열 및 입장)
+    QUEUE_ALREADY_JOINED(409, "Q001", "이미 대기열에 등록된 사용자입니다."),
+    INVALID_ACCESS_KEY(403, "Q002", "유효하지 않은 접근 키입니다."),
+    STILL_IN_QUEUE(403, "Q003", "아직 입장 순서가 아닙니다. 잠시만 더 기다려주세요."),
+    QUEUE_TOO_MANY_REQUESTS(503, "Q004", "접속 시도가 너무 많습니다. 잠시 후 다시 시도해주세요."),
+
     // Booking & Seat (예매 및 좌석)
     BOOKING_NOT_AVAILABLE(403, "B001", "예매가 가능한 상태가 아닙니다."),
     QUEUE_REQUIRED(429, "B002", "현재 접속자가 많아 대기열에 등록되었습니다."),

@@ -61,16 +61,6 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // 쿠키 생성
-    public Cookie createCookie(String key, String value) {
-        Cookie cookie = new Cookie(key, value);
-        cookie.setMaxAge((int) getExpirationMs(key));
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        return cookie;
-    }
-
     // JWT용 Secret Key 생성
     public SecretKey getSecretKey() {
         return this.jwtSecretKey;

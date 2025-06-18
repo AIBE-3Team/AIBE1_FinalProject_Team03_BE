@@ -1,8 +1,9 @@
 package com.team03.ticketmon.auth.service;
 
-import com.team03.ticketmon.user.domain.entity.UserEntity;
+import java.util.Optional;
 
 public interface RefreshTokenService {
     void deleteRefreshToken(Long userId);
     void saveRefreshToken(Long userId, String token);
+    Optional<String> findRefreshToken(Long userId, String token);
 }

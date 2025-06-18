@@ -1,5 +1,6 @@
 package com.team03.ticketmon._global.config;
 
+import com.team03.ticketmon.auth.Util.CookieUtil;
 import com.team03.ticketmon.auth.jwt.JwtAuthenticationFilter;
 import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
 import com.team03.ticketmon.auth.jwt.LoginFilter;
@@ -42,6 +43,7 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final ReissueService reissueService;
     private final RefreshTokenService refreshTokenService;
+    private final CookieUtil cookieUtil;
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
@@ -86,8 +88,8 @@ public class SecurityConfig {
                 )
 
                 // Login Filter 적용
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, reissueService), LoginFilter.class)
-                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtTokenProvider, refreshTokenService), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, reissueService, cookieUtil), LoginFilter.class)
+                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtTokenProvider, refreshTokenService, cookieUtil), UsernamePasswordAuthenticationFilter.class)
 
                 // 인증/인가 실패(인증 실패(401), 권한 부족(403)) 시 반환되는 예외 응답 설정
                 .exceptionHandling(exception -> exception

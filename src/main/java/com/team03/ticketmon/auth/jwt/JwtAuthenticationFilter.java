@@ -1,5 +1,6 @@
 package com.team03.ticketmon.auth.jwt;
 
+import com.team03.ticketmon.auth.Util.CookieUtil;
 import com.team03.ticketmon.auth.service.ReissueService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -7,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -18,20 +20,33 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final ReissueService reissueService;
+    private final CookieUtil cookieUtil;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String accessToken = jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_ACCESS, request);
         String refreshToken = jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_REFRESH, request);
 
-        if (isEmpty(accessToken) || isEmpty(refreshToken)) {
-            log.debug("Access 또는 Refresh Token이 존재하지 않음");
+        if (isEmpty(refreshToken)) {
+            if (!isEmpty(accessToken)) {
+                // Access Token이 쿠키에 남아있으면 삭제
+                ResponseCookie accessCookie = cookieUtil.deleteCookie(jwtTokenProvider.CATEGORY_ACCESS);
+                response.addHeader("Set-Cookie", accessCookie.toString());
+            }
+
             filterChain.doFilter(request, response);
             return;
         }
 
         // 만료 여부 확인 및 재발급
-        accessToken = handleTokenReissue(accessToken, refreshToken, response);
+        if (!isEmpty(accessToken) && !jwtTokenProvider.isTokenExpired(accessToken)) {
+            setAuthenticationContext(accessToken);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        accessToken = handleTokenReissue(refreshToken, response);
+
         if (isEmpty(accessToken))
             return;
 
@@ -42,9 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private String handleTokenReissue(String accessToken, String refreshToken, HttpServletResponse response) throws IOException {
-        if (!jwtTokenProvider.isTokenExpired(accessToken))
-            return accessToken;
+    private String handleTokenReissue(String refreshToken, HttpServletResponse response) throws IOException {
 
         // Access Token이 만료되었고 Refresh Token 유효성 확인 후 재발급
         log.info("Access Token 만료됨 Refresh Token으로 재발급 시도");
@@ -55,7 +68,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return null;
         }
 
-        response.addCookie(jwtTokenProvider.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken));
+        Long accessExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS) / 1000;
+        ResponseCookie accessCookie = cookieUtil.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken, accessExp);
+        response.addHeader("Set-Cookie", accessCookie.toString());
+
         return newAccessToken;
     }
 

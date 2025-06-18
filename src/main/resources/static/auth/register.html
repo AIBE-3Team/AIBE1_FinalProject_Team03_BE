@@ -74,18 +74,23 @@
             address: document.getElementById('address').value
         };
 
-        await fetch('/auth/register', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        })
-            .then(res => {
-                if (res.ok) {
-                    window.location.href = "login.html";
-                } else {
-                    document.getElementById('error-message').innerText = res.body();
-                }
-            })
+        try {
+            const res = await fetch('/auth/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                window.location.href = "/auth/login";
+                return;
+            }
+
+            const errText = await res.text();
+            document.getElementById('error-message').innerHTML = errText;
+        } catch (e) {
+            document.getElementById('error-message').innerHTML = '네트워크 오류가 발생했습니다.'
+        }
     });
 </script>
 

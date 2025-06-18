@@ -146,7 +146,7 @@ class ReissueServiceImplTest {
                 .anyMatch(c -> c.getName().equals(jwtTokenProvider.CATEGORY_REFRESH) && c.getValue().equals(newRefreshToken));
 
         verify(refreshTokenService).deleteRefreshToken(userId);
-        verify(refreshTokenService).saveRefreshToken(userId, refreshToken);
+        verify(refreshTokenService).saveRefreshToken(userId, newRefreshToken);
 
         assertTrue(hasAccess);
         assertTrue(hasRefresh);

@@ -37,12 +37,13 @@ public class ReissueServiceImpl implements ReissueService {
         String newAccessToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS);
         String newRefreshToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH);
 
-        if(newAccessToken == null || newRefreshToken == null)
+        if(newAccessToken == null || newAccessToken.isEmpty()
+                || newRefreshToken == null || newRefreshToken.isEmpty())
             throw new IllegalArgumentException("Token 재발급이 실패했습니다.");
 
         // 기존 Refresh Token 삭제 후 New Refresh Token DB 저장
         refreshTokenService.deleteRefreshToken(userId);
-        refreshTokenService.saveRefreshToken(userId, refreshToken);
+        refreshTokenService.saveRefreshToken(userId, newRefreshToken);
 
         // 새로운 토큰 쿠키에 추가
         response.addCookie(jwtTokenProvider.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken));

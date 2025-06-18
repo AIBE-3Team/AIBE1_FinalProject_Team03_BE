@@ -31,8 +31,7 @@ public class RefreshToken {
     @Column(nullable = false)
     private LocalDateTime created_at;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private UserEntity userEntity;
-
 }

@@ -1,7 +1,6 @@
 package com.team03.ticketmon.user.domain.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.team03.ticketmon.auth.domain.entity.RefreshToken;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -59,9 +58,6 @@ public class UserEntity {
     private LocalDateTime createdAt;
 
     private LocalDateTime deletedAt;
-
-    @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
-    private RefreshToken refreshToken;
 
     // Enum 정의
     public enum Role {

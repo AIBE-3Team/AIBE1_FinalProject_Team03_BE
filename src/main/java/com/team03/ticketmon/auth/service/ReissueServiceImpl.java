@@ -15,13 +15,7 @@ public class ReissueServiceImpl implements ReissueService {
 
     @Override
     public String reissueAccessToken(String refreshToken) {
-        String category = jwtTokenProvider.getCategory(refreshToken);
-        if (!jwtTokenProvider.CATEGORY_REFRESH.equals(category)) {
-            throw new IllegalArgumentException("유효하지 않은 카테고리 JWT 토큰입니다.");
-        }
-
-        if (!jwtTokenProvider.isTokenExpired(refreshToken))
-            return null;
+        validateRefreshToken(refreshToken);
 
         Long userId = jwtTokenProvider.getUserId(refreshToken);
         String role = jwtTokenProvider.getRoles(refreshToken).get(0);
@@ -31,8 +25,7 @@ public class ReissueServiceImpl implements ReissueService {
 
     @Override
     public String reissueRefreshToken(String refreshToken) {
-        if (!jwtTokenProvider.isTokenExpired(refreshToken))
-            return null;
+        validateRefreshToken(refreshToken);
 
         Long userId = jwtTokenProvider.getUserId(refreshToken);
         String role = jwtTokenProvider.getRoles(refreshToken).get(0);
@@ -50,9 +43,6 @@ public class ReissueServiceImpl implements ReissueService {
         String newAccessToken = reissueAccessToken(refreshToken);
         String newRefreshToken = reissueRefreshToken(refreshToken);
 
-        if (newAccessToken == null || newRefreshToken == null)
-            throw new IllegalArgumentException("Token 재발급이 실패했습니다.");
-
         // 기존 Refresh Token 삭제 후 New Refresh Token DB 저장
         refreshTokenService.deleteRefreshToken(userId);
         refreshTokenService.saveRefreshToken(userId, refreshToken);
@@ -60,5 +50,14 @@ public class ReissueServiceImpl implements ReissueService {
         // 새로운 토큰 쿠키에 추가
         response.addCookie(jwtTokenProvider.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken));
         response.addCookie(jwtTokenProvider.createCookie(jwtTokenProvider.CATEGORY_REFRESH, newRefreshToken));
+    }
+
+    private void validateRefreshToken(String refreshToken) {
+        String category = jwtTokenProvider.getCategory(refreshToken);
+        if (!jwtTokenProvider.CATEGORY_REFRESH.equals(category))
+            throw new IllegalArgumentException("유효하지 않은 카테고리 JWT 토큰입니다.");
+
+        if (jwtTokenProvider.isTokenExpired(refreshToken))
+            throw new IllegalArgumentException("Refresh Token이 만료되었습니다.");
     }
 }

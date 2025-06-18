@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * 주요 처리 방식:
  * <ul>
  *   <li>{@link BusinessException} : 비즈니스 로직 중 발생하는 커스텀 예외</li>
+ *   <li>{@link IllegalArgumentException} : 입력값 검증 예외</li> <!-- 추가됨 -->
  *   <li>{@link Exception} : 예상치 못한 모든 예외 (Fallback)</li>
  * </ul>
  * <br>
@@ -38,18 +39,52 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * ✅ IllegalArgumentException 처리 (새롭게 추가됨)
+     * <p>
+     * Service 계층에서 발생하는 입력값 검증 예외를 처리합니다.<br>
+     * 대부분의 검증 실패는 400 Bad Request로 처리됩니다.
+     *
+     * @param e IllegalArgumentException (입력값 검증 실패 예외)
+     * @return 400 에러 응답 (ResponseEntity<ErrorResponse>)
+     */
+    @ExceptionHandler(IllegalArgumentException.class) // 추가: IllegalArgumentException 전용 핸들러
+    protected ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
+        // 🔥 추가: IllegalArgumentException을 INVALID_INPUT 에러 코드로 매핑
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * ✅ NullPointerException 처리 (새롭게 추가됨)
+     * <p>
+     * 예상치 못한 null 참조로 인한 예외를 처리합니다.<br>
+     * 개발 단계에서 디버깅에 유용하며, 서버 내부 오류로 분류됩니다.
+     *
+     * @param e NullPointerException (null 참조 예외)
+     * @return 500 에러 응답 (ResponseEntity<ErrorResponse>)
+     */
+    @ExceptionHandler(NullPointerException.class) // 추가: NullPointerException 전용 핸들러
+    protected ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException e) {
+        // TODO: 로그 기록 추가 (개발 단계에서 디버깅용)
+        // 추가: NPE를 서버 에러로 분류하여 처리
+        ErrorResponse response = ErrorResponse.of(ErrorCode.SERVER_ERROR);
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    /**
      * ✅ 시스템 예외 등 모든 기타 예외 처리 (최후의 보루)
      * <p>
      * 개발자가 명시적으로 처리하지 않은 모든 예외는 이 블록에서 처리됩니다.<br>
      * 서버 내부 오류(500)로 간주하고 에러 메시지를 포함한 {@link ErrorResponse}를 반환합니다.
      *
-     * @param e 예상하지 못한 예외 (NullPointerException 등)
+     * @param e 예상하지 못한 예외 (기타 모든 예외)
      * @return 500 에러 응답 (ResponseEntity<ErrorResponse>)
      */
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<ErrorResponse> handleException(Exception e) {
         // TODO: 로그 기록 필요 시 아래에서 log.error 등 활용 가능
-        ErrorResponse response = ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, "서버에 오류가 발생했습니다.");
+        // 수정: 일반적인 예외도 ErrorCode.SERVER_ERROR를 사용하여 일관성 확보
+        ErrorResponse response = ErrorResponse.of(ErrorCode.SERVER_ERROR);
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

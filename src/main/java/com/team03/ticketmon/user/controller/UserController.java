@@ -27,7 +27,7 @@ public class UserController {
     public ResponseEntity<?> registerProcess(@RequestBody UserEntityDTO dto) {
         RegisterResponseDTO validation = registerService.validCheck(dto);
 
-        if(!validation.isSuccess())
+        if (!validation.isSuccess())
             return ResponseEntity.badRequest().body(validation);
 
         registerService.createUser(dto);

@@ -18,7 +18,7 @@ public class SwaggerTestController {
     }
 
     // 관리자 API 테스트
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')") // ← JWT 구현 완료 후 주석 해제 제안
     @GetMapping("/admin/test")
     public String adminTest() {
         return "관리자 API 테스트 성공!";

@@ -70,6 +70,11 @@ public class SecurityConfig {
                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                                 .requestMatchers("/api/auth/**").permitAll()
 
+                                // Supabase 업로드 테스트용 API 경로 허용 (개발 및 테스트 목적)
+                                // 실제 배포 시에는 적절한 인증/인가 로직 또는 제한된 IP 접근 등으로 보안 강화 필요
+                                .requestMatchers("/test/upload/**").permitAll()
+                                .requestMatchers("/profile/image/**").permitAll()
+
                                 // 관리자 전용 경로 (ADMIN 권한 필요)
                                 // 나중에 권한 로직 추가(JWT 구현) 후 권한이 부여되면 주석 해제
                                 // .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -103,9 +108,6 @@ public class SecurityConfig {
                         .deleteCookies("JSESSIONID", "jwt_token")   // 쿠키 삭제
                         .permitAll()
                 );
-
-        // 🔐 JWT 필터 삽입 위치 확보 (로그인/토큰 담당자가 JwtAuthenticationFilter 구현 완료 후 주석 해제)
-        // http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

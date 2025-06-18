@@ -1,7 +1,6 @@
 package com.team03.ticketmon.user.domain.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.team03.ticketmon.auth.domain.entity.RefreshToken;
 import jakarta.persistence.*;
 import lombok.*;

@@ -21,6 +21,14 @@ configurations {
 
 repositories {
     mavenCentral()
+    maven {
+        name = "SupabasePackages"
+        url = uri("https://maven.pkg.github.com/supabase-community/storage-java")
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_PACKAGES_USER")
+            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_PACKAGES_TOKEN")
+        }
+    }
 }
 
 dependencies {
@@ -28,6 +36,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'    // SpringDoc: Swagger UI 자동 문서화 도구 (OpenAPI 3 기반)
+    implementation "io.supabase:storage-java:1.1.0" // Supabase Storage 사용을 위한 Java SDK (파일 업로드/조회 등 API 지원)
+    // Spring Boot 3.x 환경에서 S3 자동 구성 사용
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.4.0'  // S3 마이그레이션 대비
+//    implementation 'software.amazon.awssdk:s3:2.31.63' // S3Config에서 직접 S3Client 쓸 때 명시적 추가 (IDE 인식 문제 방지)
+    // .env 파일 로드를 위한 의존성 추가
+    implementation 'io.github.cdimascio:dotenv-java:3.2.0' // 최신 버전을 확인하고 사용하세요.
 //    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -35,9 +49,25 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    runtimeOnly 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'    // ✅ Redis 추가
+    // ✅ Redisson, WebSocket 의존성 추가
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.redisson:redisson-spring-boot-starter:3.40.0'
 
-    // JWT 추가
+    // Testcontainers를 JUnit5 환경에서 사용하기 위한 라이브러리
+    testImplementation 'org.testcontainers:junit-jupiter'
+    // Testcontainers로 Redis 컨테이너를 쉽게 띄우기 위한 라이브러리
+    testImplementation 'com.redis:testcontainers-redis:2.2.4'
+    // 비동기 테스트(Pub/Sub 등)에서 특정 조건이 만족될 때까지 기다리게 해주는 유틸리티
+    testImplementation 'org.awaitility:awaitility'
+    // webclient 사용하여 비동기 처리
+    implementation 'org.springframework.boot:spring-boot-starter-webflux:3.4.5'
+
+
+    // JWT, OAuth2 추가
+    // implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
@@ -50,3 +80,11 @@ tasks.named('test') {
 jar {
     archiveFileName = 'app.jar'
 }
+
+//configurations.all {
+//    resolutionStrategy.eachDependency { details ->
+//        if (details.requested.group == 'io.supabase') {
+//            details.useVersion '1.1.0'
+//        }
+//    }
+//}

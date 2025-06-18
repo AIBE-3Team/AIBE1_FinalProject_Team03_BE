@@ -1,9 +1,16 @@
+app:
+  max-active-users: 5 # 예매 페이지에 동시 진입 가능한 최대 사용자 수
+  access-key-ttl-minutes: 1 # 예매 페이지 접근 키의 유효시간 (단위: 분)
+
 spring:
   application:
     name: ticketmon-go
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:prod}  # .env 값 우선 사용, 없으면 dev 기본값
-    # 🚨 기본값은 'prod'입니다. 로컬 개발 시에만 'dev'로 바꿔주세요.
+    active: ${SPRING_PROFILES_ACTIVE:dev}  # 환경 변수 'SPRING_PROFILES_ACTIVE' 값(.env) 사용, 없으면 'dev'를 기본값으로 설정
+    # 로컬 개발 시 'dev' 프로필이 기본으로 활성화됩니다. 배포 시에도 변경 X -> .env에서 SPRING_PROFILES_ACTIVE를 prod로 변경
+    include: supabase # 'supabase' 관련 빈(StorageUploader, StorageClient)을 활성화된 프로필과 함께 로드
+  config:
+    import: optional:application-${spring.profiles.active}.yml # 활성화된 프로필에 맞는 추가 설정 파일 로드
 
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration  # 임시로 DB 자동 설정 제외 (설정이 없을 경우 에러 방지)
@@ -19,3 +26,8 @@ server:
 logging:
   level:
     root: ${LOG_LEVEL:INFO}  # 로그 레벨 설정 (INFO / WARN / ERROR)
+
+toss:
+  api:
+    url: https://api.tosspayments.com/v1/payments/ # 토스페이먼츠 API의 기본 경로
+    confirm-url: ${toss.api.url}confirm # 결제 승인 API 엔드포인트 (${toss.api.url} 재사용)

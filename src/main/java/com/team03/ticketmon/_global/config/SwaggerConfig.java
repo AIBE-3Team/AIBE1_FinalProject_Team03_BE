@@ -13,8 +13,8 @@ import org.springframework.context.annotation.Configuration;
 public class SwaggerConfig {
 
     /**
-     * Swagger 전역 보안 설정
-     * - Bearer 방식의 JWT 인증을 테스트할 수 있도록 설정
+     * Swagger 전역 보안 설정<br>
+     * - Bearer 방식의 JWT 인증을 테스트할 수 있도록 설정<br>
      * - Swagger Authorize 버튼 클릭 후 "Bearer <토큰>" 입력 가능
      */
     @Bean

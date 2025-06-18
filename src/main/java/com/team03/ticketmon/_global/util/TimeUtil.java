@@ -26,100 +26,100 @@ import java.time.format.DateTimeFormatter;
  */
 public class TimeUtil {
 
-    private static final DateTimeFormatter ISO_8601_FORMATTER = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
-    private static final DateTimeFormatter DATE_ONLY_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final DateTimeFormatter DATETIME_KST_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+	private static final DateTimeFormatter ISO_8601_FORMATTER = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+	private static final DateTimeFormatter DATE_ONLY_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+	private static final DateTimeFormatter DATETIME_KST_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
+	private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
 
-    // ===================== 🇰🇷 KST (한국 시간 우선 사용) =====================
+	// ===================== 🇰🇷 KST (한국 시간 우선 사용) =====================
 
-    /**
-     * ZonedDateTime을 한국 시간(KST) 기준의 날짜 문자열로 변환합니다.
-     *
-     * @param dateTime 변환할 시간
-     * @return {@code yyyy-MM-dd} 형식의 문자열 (예: {@code "2025-06-14"})
-     */
-    public static String toKstDateString(ZonedDateTime dateTime) {
-        if (dateTime == null) return null;
-        return dateTime.withZoneSameInstant(KST_ZONE).format(DATE_ONLY_FORMATTER);
-    }
+	/**
+	 * ZonedDateTime을 한국 시간(KST) 기준의 날짜 문자열로 변환합니다.
+	 *
+	 * @param dateTime 변환할 시간
+	 * @return {@code yyyy-MM-dd} 형식의 문자열 (예: {@code "2025-06-14"})
+	 */
+	public static String toKstDateString(ZonedDateTime dateTime) {
+		if (dateTime == null) return null;
+		return dateTime.withZoneSameInstant(KST_ZONE).format(DATE_ONLY_FORMATTER);
+	}
 
-    /**
-     * ZonedDateTime을 한국 시간(KST) 기준의 날짜+시간 문자열로 변환합니다.
-     *
-     * @param dateTime 변환할 시간
-     * @return {@code yyyy-MM-dd HH:mm:ss} 형식의 문자열 (예: {@code "2025-06-14 00:00:00"})
-     */
-    public static String toKstDateTimeString(ZonedDateTime dateTime) {
-        if (dateTime == null) return null;
-        return dateTime.withZoneSameInstant(KST_ZONE).format(DATETIME_KST_FORMATTER);
-    }
+	/**
+	 * ZonedDateTime을 한국 시간(KST) 기준의 날짜+시간 문자열로 변환합니다.
+	 *
+	 * @param dateTime 변환할 시간
+	 * @return {@code yyyy-MM-dd HH:mm:ss} 형식의 문자열 (예: {@code "2025-06-14 00:00:00"})
+	 */
+	public static String toKstDateTimeString(ZonedDateTime dateTime) {
+		if (dateTime == null) return null;
+		return dateTime.withZoneSameInstant(KST_ZONE).format(DATETIME_KST_FORMATTER);
+	}
 
-    /**
-     * ZonedDateTime을 ISO-8601 문자열(KST 기준)로 변환합니다.
-     *
-     * @param dateTime 변환할 시간
-     * @return {@code ISO-8601} 포맷 문자열 (예: {@code "2025-06-14T00:00:00+09:00"})
-     */
-    public static String toIso8601KstString(ZonedDateTime dateTime) {
-        if (dateTime == null) return null;
-        return dateTime.withZoneSameInstant(KST_ZONE).format(ISO_8601_FORMATTER);
-    }
+	/**
+	 * ZonedDateTime을 ISO-8601 문자열(KST 기준)로 변환합니다.
+	 *
+	 * @param dateTime 변환할 시간
+	 * @return {@code ISO-8601} 포맷 문자열 (예: {@code "2025-06-14T00:00:00+09:00"})
+	 */
+	public static String toIso8601KstString(ZonedDateTime dateTime) {
+		if (dateTime == null) return null;
+		return dateTime.withZoneSameInstant(KST_ZONE).format(ISO_8601_FORMATTER);
+	}
 
-    /**
-     * ISO-8601 문자열을 한국 시간(KST) 기준의 {@code ZonedDateTime}으로 파싱합니다.
-     *
-     * @param iso8601String ISO-8601 형식의 문자열
-     * @return {@code ZonedDateTime} (KST 기준)
-     */
-    public static ZonedDateTime fromIso8601ToKst(String iso8601String) {
-        if (iso8601String == null || iso8601String.isBlank()) return null;
-        return ZonedDateTime.parse(iso8601String, ISO_8601_FORMATTER).withZoneSameInstant(KST_ZONE);
-    }
+	/**
+	 * ISO-8601 문자열을 한국 시간(KST) 기준의 {@code ZonedDateTime}으로 파싱합니다.
+	 *
+	 * @param iso8601String ISO-8601 형식의 문자열
+	 * @return {@code ZonedDateTime} (KST 기준)
+	 */
+	public static ZonedDateTime fromIso8601ToKst(String iso8601String) {
+		if (iso8601String == null || iso8601String.isBlank()) return null;
+		return ZonedDateTime.parse(iso8601String, ISO_8601_FORMATTER).withZoneSameInstant(KST_ZONE);
+	}
 
-    // ===================== 🌐 UTC + ISO-8601 (확장용) =====================
+	// ===================== 🌐 UTC + ISO-8601 (확장용) =====================
 
-    /**
-     * ZonedDateTime을 ISO-8601 문자열(UTC 기준)로 변환합니다.
-     *
-     * @param dateTime UTC 기준의 {@code ZonedDateTime}
-     * @return {@code ISO-8601} 포맷 문자열 (예: {@code "2025-06-13T15:00:00Z"})
-     */
-    public static String toIso8601String(ZonedDateTime dateTime) {
-        if (dateTime == null) return null;
-        return dateTime.withZoneSameInstant(ZoneOffset.UTC).format(ISO_8601_FORMATTER);
-    }
+	/**
+	 * ZonedDateTime을 ISO-8601 문자열(UTC 기준)로 변환합니다.
+	 *
+	 * @param dateTime UTC 기준의 {@code ZonedDateTime}
+	 * @return {@code ISO-8601} 포맷 문자열 (예: {@code "2025-06-13T15:00:00Z"})
+	 */
+	public static String toIso8601String(ZonedDateTime dateTime) {
+		if (dateTime == null) return null;
+		return dateTime.withZoneSameInstant(ZoneOffset.UTC).format(ISO_8601_FORMATTER);
+	}
 
-    /**
-     * ISO-8601 문자열을 UTC 기준의 {@code ZonedDateTime}으로 파싱합니다.
-     *
-     * @param iso8601String ISO-8601 형식의 문자열
-     * @return {@code ZonedDateTime} (UTC 기준)
-     */
-    public static ZonedDateTime fromIso8601String(String iso8601String) {
-        if (iso8601String == null || iso8601String.isBlank()) return null;
-        return ZonedDateTime.parse(iso8601String, ISO_8601_FORMATTER).withZoneSameInstant(ZoneOffset.UTC);
-    }
+	/**
+	 * ISO-8601 문자열을 UTC 기준의 {@code ZonedDateTime}으로 파싱합니다.
+	 *
+	 * @param iso8601String ISO-8601 형식의 문자열
+	 * @return {@code ZonedDateTime} (UTC 기준)
+	 */
+	public static ZonedDateTime fromIso8601String(String iso8601String) {
+		if (iso8601String == null || iso8601String.isBlank()) return null;
+		return ZonedDateTime.parse(iso8601String, ISO_8601_FORMATTER).withZoneSameInstant(ZoneOffset.UTC);
+	}
 
-    // ===================== 🧪 예제 실행 (선택) =====================
+	// ===================== 🧪 예제 실행 (선택) =====================
 
-    /**
-     * 콘솔에서 직접 실행하여 시간 포맷 변환 결과를 확인할 수 있는 main 메서드입니다.
-     *
-     * @param args 실행 인자 (사용하지 않음)
-     */
-    public static void main(String[] args) {
-        ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+	/**
+	 * 콘솔에서 직접 실행하여 시간 포맷 변환 결과를 확인할 수 있는 main 메서드입니다.
+	 *
+	 * @param args 실행 인자 (사용하지 않음)
+	 */
+	public static void main(String[] args) {
+		ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
 
-        // 팀 기준 사용
-        System.out.println("📅 [KST 날짜만] : " + toKstDateString(now));
-        System.out.println("⏰ [KST 날짜+시간] : " + toKstDateTimeString(now));
-        System.out.println("🇰🇷 [KST → ISO-8601] : " + toIso8601KstString(now));
-        System.out.println("🇰🇷 [ISO-8601 → KST ZonedDateTime] : " + fromIso8601ToKst("2025-06-13T15:00:00Z"));
+		// 팀 기준 사용
+		System.out.println("📅 [KST 날짜만] : " + toKstDateString(now));
+		System.out.println("⏰ [KST 날짜+시간] : " + toKstDateTimeString(now));
+		System.out.println("🇰🇷 [KST → ISO-8601] : " + toIso8601KstString(now));
+		System.out.println("🇰🇷 [ISO-8601 → KST ZonedDateTime] : " + fromIso8601ToKst("2025-06-13T15:00:00Z"));
 
-        // 국제화 대응용
-        System.out.println("🌐 [UTC → ISO-8601] : " + toIso8601String(now));
-        System.out.println("🌐 [ISO-8601 → UTC ZonedDateTime] : " + fromIso8601String("2025-06-13T15:00:00Z"));
-    }
+		// 국제화 대응용
+		System.out.println("🌐 [UTC → ISO-8601] : " + toIso8601String(now));
+		System.out.println("🌐 [ISO-8601 → UTC ZonedDateTime] : " + fromIso8601String("2025-06-13T15:00:00Z"));
+	}
 }

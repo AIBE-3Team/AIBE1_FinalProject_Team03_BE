@@ -41,3 +41,6 @@ Dockerfile*
 
 # Swagger 자동 생성 파일 (있는 경우)
 swagger-ui/
+
+# Supabase Token
+gradle.properties

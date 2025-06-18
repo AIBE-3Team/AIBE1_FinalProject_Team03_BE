@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
+import org.redisson.config.SingleServerConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,7 +50,7 @@ public class RedissonConfig {
         log.info("Redisson Client를 생성합니다. Address: {}", redisUrl);
 
         // 단일 서버 모드 설정
-        config.useSingleServer()
+        SingleServerConfig serverConfig = config.useSingleServer()
                 .setAddress(redisUrl)
                 .setConnectionMinimumIdleSize(1)    // 최소 유휴 연결 수
                 .setConnectionPoolSize(10)          // 연결 풀 크기
@@ -58,11 +59,12 @@ public class RedissonConfig {
                 .setTimeout(3000);                  // 타임아웃 (ms)
 
         if (StringUtils.hasText(redisUsername)) {
-            config.useSingleServer().setUsername(redisUsername);
+            serverConfig.setUsername(redisUsername);
         }
         if (StringUtils.hasText(redisPassword)) {
-            config.useSingleServer().setPassword(redisPassword);
+            serverConfig.setPassword(redisPassword);
         }
+
         return Redisson.create(config);
     }
 }

@@ -62,6 +62,9 @@ dependencies {
     testImplementation 'com.redis:testcontainers-redis:2.2.4'
     // 비동기 테스트(Pub/Sub 등)에서 특정 조건이 만족될 때까지 기다리게 해주는 유틸리티
     testImplementation 'org.awaitility:awaitility'
+    // webclient 사용하여 비동기 처리
+    implementation 'org.springframework.boot:spring-boot-starter-webflux:3.4.5'
+
 }
 
 tasks.named('test') {

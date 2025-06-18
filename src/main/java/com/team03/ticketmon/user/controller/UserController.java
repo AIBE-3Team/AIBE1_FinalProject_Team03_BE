@@ -20,7 +20,7 @@ public class UserController {
 
     @GetMapping("/auth/register")
     public String register() {
-        return "register";
+        return "register.html";
     }
 
     @PostMapping("/auth/register")

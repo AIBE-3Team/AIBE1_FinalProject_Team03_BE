@@ -2,8 +2,13 @@ package com.team03.ticketmon.concert.domain;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -13,8 +18,10 @@ import java.util.List;
  */
 
 @Entity
-@Table(name = "concert_seats")
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"concert", "seat", "tickets"})
+@EqualsAndHashCode(of = "concertSeatId")  // ID 기반으로 변경
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConcertSeat {

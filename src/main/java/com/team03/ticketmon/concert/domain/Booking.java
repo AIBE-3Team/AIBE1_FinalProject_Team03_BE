@@ -2,8 +2,13 @@ package com.team03.ticketmon.concert.domain;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -13,8 +18,10 @@ import java.util.List;
  */
 
 @Entity
-@Table(name = "bookings")
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"concert", "tickets"})
+@EqualsAndHashCode(of = "bookingId")
 @NoArgsConstructor
 @AllArgsConstructor
 public class Booking {
@@ -30,15 +37,23 @@ public class Booking {
 	@JoinColumn(name = "concert_id", nullable = false)
 	private Concert concert;
 
-	@Column(name = "booking_number", nullable = false)
+	@Column(name = "booking_number", nullable = false, unique = true)
 	private String bookingNumber;
 
 	@Column(name = "total_amount", precision = 12, scale = 2, nullable = false)
 	private BigDecimal totalAmount;
 
+	@Enumerated(EnumType.STRING)
 	@Column(length = 20, nullable = false)
-	private String status;
+	private BookingStatus status = BookingStatus.PENDING;
 
 	@OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	private List<Ticket> tickets;
+
+	public enum BookingStatus {
+		PENDING,     // 결제 대기중
+		CONFIRMED,   // 결제 완료/예약 확정
+		CANCELLED,   // 예약 취소
+		REFUNDED     // 환불 완료
+	}
 }

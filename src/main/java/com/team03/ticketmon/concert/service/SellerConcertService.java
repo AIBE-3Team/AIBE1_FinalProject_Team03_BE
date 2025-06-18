@@ -11,7 +11,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -65,7 +64,6 @@ public class SellerConcertService {
 	@Transactional
 	public SellerConcertDTO createConcert(Long sellerId, SellerConcertCreateDTO createDTO) {
 		validateSellerId(sellerId);
-		validateCreateDTO(createDTO);
 
 		Concert concert = convertToEntity(createDTO, sellerId);
 
@@ -81,7 +79,6 @@ public class SellerConcertService {
 	public SellerConcertDTO updateConcert(Long sellerId, Long concertId, SellerConcertUpdateDTO updateDTO) {
 		validateSellerId(sellerId);
 		validateConcertId(concertId);
-		validateUpdateDTO(updateDTO);
 
 		if (!sellerConcertRepository.existsByConcertIdAndSellerId(concertId, sellerId)) {
 			throw new BusinessException(ErrorCode.SELLER_PERMISSION_DENIED);
@@ -91,8 +88,6 @@ public class SellerConcertService {
 			.orElseThrow(() -> new BusinessException(ErrorCode.CONCERT_NOT_FOUND));
 
 		updateConcertEntity(concert, updateDTO);
-
-		concert.setUpdatedAt(LocalDateTime.now());
 
 		Concert updatedConcert = sellerConcertRepository.save(concert);
 		return convertToSellerDTO(updatedConcert);
@@ -122,7 +117,7 @@ public class SellerConcertService {
 	 * 콘서트 삭제 (취소 처리)
 	 */
 	@Transactional
-	public void deleteConcert(Long sellerId, Long concertId) {
+	public void cancleConcert(Long sellerId, Long concertId) {
 		validateSellerId(sellerId);
 		validateConcertId(concertId);
 
@@ -134,7 +129,6 @@ public class SellerConcertService {
 		}
 
 		concert.setStatus(ConcertStatus.CANCELLED);
-		concert.setUpdatedAt(LocalDateTime.now());
 
 		sellerConcertRepository.save(concert);
 	}
@@ -166,51 +160,6 @@ public class SellerConcertService {
 	}
 
 	/**
-	 * 콘서트 생성 DTO 유효성 검증
-	 */
-	private void validateCreateDTO(SellerConcertCreateDTO createDTO) {
-		if (createDTO == null) {
-			throw new BusinessException(ErrorCode.CONCERT_CREATION_FAILED);
-		}
-		if (createDTO.getTitle() == null || createDTO.getTitle().trim().isEmpty()) {
-			throw new BusinessException(ErrorCode.CONCERT_CREATION_FAILED);
-		}
-		if (createDTO.getArtist() == null || createDTO.getArtist().trim().isEmpty()) {
-			throw new BusinessException(ErrorCode.CONCERT_CREATION_FAILED);
-		}
-		if (createDTO.getVenueName() == null || createDTO.getVenueName().trim().isEmpty()) {
-			throw new BusinessException(ErrorCode.CONCERT_CREATION_FAILED);
-		}
-		if (createDTO.getConcertDate() == null) {
-			throw new BusinessException(ErrorCode.CONCERT_CREATION_FAILED);
-		}
-		if (createDTO.getStartTime() == null || createDTO.getEndTime() == null) {
-			throw new BusinessException(ErrorCode.CONCERT_CREATION_FAILED);
-		}
-		if (createDTO.getTotalSeats() == null || createDTO.getTotalSeats() <= 0) {
-			throw new BusinessException(ErrorCode.CONCERT_CREATION_FAILED);
-		}
-		if (createDTO.getBookingStartDate() == null || createDTO.getBookingEndDate() == null) {
-			throw new BusinessException(ErrorCode.CONCERT_CREATION_FAILED);
-		}
-	}
-
-	/**
-	 * 콘서트 수정 DTO 유효성 검증
-	 */
-	private void validateUpdateDTO(SellerConcertUpdateDTO updateDTO) {
-		if (updateDTO == null) {
-			throw new BusinessException(ErrorCode.CONCERT_UPDATE_FAILED);
-		}
-		if (updateDTO.getTitle() != null && updateDTO.getTitle().trim().isEmpty()) {
-			throw new BusinessException(ErrorCode.CONCERT_UPDATE_FAILED);
-		}
-		if (updateDTO.getTotalSeats() != null && updateDTO.getTotalSeats() <= 0) {
-			throw new BusinessException(ErrorCode.CONCERT_UPDATE_FAILED);
-		}
-	}
-
-	/**
 	 * 생성 DTO를 Entity로 변환
 	 */
 	private Concert convertToEntity(SellerConcertCreateDTO createDTO, Long sellerId) {
@@ -233,8 +182,6 @@ public class SellerConcertService {
 
 		concert.setSellerId(sellerId);
 		concert.setStatus(ConcertStatus.SCHEDULED);
-		concert.setCreatedAt(LocalDateTime.now());
-		concert.setUpdatedAt(LocalDateTime.now());
 
 		return concert;
 	}
@@ -251,9 +198,6 @@ public class SellerConcertService {
 		}
 		if (updateDTO.getDescription() != null) {
 			concert.setDescription(updateDTO.getDescription());
-		}
-		if (updateDTO.getSellerId() != null) {
-			concert.setSellerId(updateDTO.getSellerId());
 		}
 		if (updateDTO.getVenueName() != null) {
 			concert.setVenueName(updateDTO.getVenueName().trim());

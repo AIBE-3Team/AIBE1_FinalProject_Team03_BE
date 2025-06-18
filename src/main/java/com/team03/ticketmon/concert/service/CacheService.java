@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Cache Service (제네릭 개선 버전)
@@ -71,12 +72,16 @@ public class CacheService {
 	/**
 	 * 캐싱된 검색 결과 조회 (타입 안전)
 	 */
-	@SuppressWarnings("unchecked")
-	public <T> Optional<List<T>> getCachedSearchResults(String keyword) {
+	public <T> Optional<List<T>> getCachedSearchResults(String keyword, Class<T> elementType) {
 		String key = "search:" + keyword.toLowerCase();
 		Object cachedData = redisTemplate.opsForValue().get(key);
 		if (cachedData instanceof List<?>) {
-			return Optional.of((List<T>) cachedData);
+			List<?> list = (List<?>) cachedData;
+	        List<T> typedList = list.stream()
+	            .filter(elementType::isInstance)
+	            .map(elementType::cast)
+	            .collect(Collectors.toList());
+	        return Optional.of(typedList);
 		}
 		return Optional.empty();
 	}

@@ -8,12 +8,13 @@ import com.team03.ticketmon.concert.repository.ExpectationReviewRepository;
 import com.team03.ticketmon._global.exception.BusinessException;
 import com.team03.ticketmon._global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
-import java.util.List;
+
+import org.springframework.data.domain.Pageable;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /*
  * Expectation Review Service
@@ -32,11 +33,9 @@ public class ExpectationReviewService {
 	 * 콘서트 기대평 조회
 	 */
 	@Transactional(readOnly = true)
-	public List<ExpectationReviewDTO> getConcertExpectationReviews(Long concertId) {
-		return expectationReviewRepository.findByConcertConcertIdOrderByCreatedAtDesc(concertId)
-			.stream()
-			.map(this::convertToDTO)
-			.collect(Collectors.toList());
+	public Page<ExpectationReviewDTO> getConcertExpectationReviews(Long concertId, Pageable pageable) {
+		return expectationReviewRepository.findByConcertConcertIdOrderByCreatedAtDesc(concertId, pageable)
+			.map(this::convertToDTO);
 	}
 
 	/**
@@ -52,8 +51,6 @@ public class ExpectationReviewService {
 		review.setUserNickname(reviewDTO.getUserNickname());
 		review.setComment(reviewDTO.getComment());
 		review.setExpectationRating(reviewDTO.getExpectationRating());
-		review.setCreatedAt(LocalDateTime.now());
-		review.setUpdatedAt(LocalDateTime.now());
 
 		review = expectationReviewRepository.save(review);
 		return convertToDTO(review);
@@ -62,12 +59,11 @@ public class ExpectationReviewService {
 	/**
 	 * 기대평 수정
 	 */
-	public Optional<ExpectationReviewDTO> updateExpectationReview(Long reviewId, ExpectationReviewDTO reviewDTO) {
-		return expectationReviewRepository.findById(reviewId)
+	public Optional<ExpectationReviewDTO> updateExpectationReview(Long concertId, Long reviewId, ExpectationReviewDTO reviewDTO) {
+		return expectationReviewRepository.findByIdAndConcertId(reviewId, concertId)
 			.map(review -> {
 				review.setComment(reviewDTO.getComment());
 				review.setExpectationRating(reviewDTO.getExpectationRating());
-				review.setUpdatedAt(LocalDateTime.now());
 				return convertToDTO(expectationReviewRepository.save(review));
 			});
 	}
@@ -75,9 +71,10 @@ public class ExpectationReviewService {
 	/**
 	 * 기대평 삭제
 	 */
-	public boolean deleteExpectationReview(Long reviewId) {
-		if (expectationReviewRepository.existsById(reviewId)) {
-			expectationReviewRepository.deleteById(reviewId);
+	public boolean deleteExpectationReview(Long concertId, Long reviewId) {
+		Optional<ExpectationReview> review = expectationReviewRepository.findByIdAndConcertId(reviewId, concertId);
+		if (review.isPresent()) {
+			expectationReviewRepository.delete(review.get());
 			return true;
 		}
 		return false;

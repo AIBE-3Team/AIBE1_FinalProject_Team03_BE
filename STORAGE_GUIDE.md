@@ -7,7 +7,7 @@
 ### ✅ 공통 업로더 인터페이스
 ```java
 public interface StorageUploader {
-String uploadFile(MultipartFile file, String bucket, String path);
+	String uploadFile(MultipartFile file, String bucket, String path);
 }
 ```
 - Supabase / S3 공통 업로드 방식 추상화
@@ -115,7 +115,7 @@ spring:
 ```java
 // 예시
 if (file.getSize() > MAX_SIZE) {
-throw new IllegalArgumentException("파일 크기 제한 초과");
+	throw new IllegalArgumentException("파일 크기 제한 초과");
 }
 ```
 - ✅ 권장: 2MB 이하

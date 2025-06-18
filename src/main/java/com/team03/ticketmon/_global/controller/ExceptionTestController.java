@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/test")
 public class ExceptionTestController {
 
-    // 예외 발생 테스트용 API
-    @GetMapping("/error")
-    public ResponseEntity<Void> throwBusinessException() {
-        throw new BusinessException(ErrorCode.SEAT_ALREADY_TAKEN);
-    }
+	// 예외 발생 테스트용 API
+	@GetMapping("/error")
+	public ResponseEntity<Void> throwBusinessException() {
+		throw new BusinessException(ErrorCode.SEAT_ALREADY_TAKEN);
+	}
 }

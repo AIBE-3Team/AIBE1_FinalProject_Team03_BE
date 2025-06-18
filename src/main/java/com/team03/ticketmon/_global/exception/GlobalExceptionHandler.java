@@ -1,7 +1,9 @@
 package com.team03.ticketmon._global.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * <br>
  * 반환 형식은 모두 {@link ErrorResponse}를 사용하여 클라이언트에 통일된 구조로 전달됩니다.
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -34,8 +37,25 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     protected ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
         ErrorCode errorCode = e.getErrorCode();
+        log.warn("BusinessException 발생: {}", e.getMessage()); // 비즈니스 예외 로그 기록 (WARN 레벨)
         ErrorResponse response = ErrorResponse.of(errorCode);
         return new ResponseEntity<>(response, HttpStatus.valueOf(errorCode.getStatus()));
+    }
+
+    /**
+     * ✅ @Valid 애노테이션을 통한 유효성 검사 실패 시 발생하는 예외 처리
+     * <p>
+     * MethodArgumentNotValidException이 발생하면, 어떤 필드가 왜 유효성 검사에 실패했는지
+     * 상세한 정보를 담은 {@link ErrorResponse}를 생성하여 반환합니다.
+     *
+     * @param e MethodArgumentNotValidException
+     * @return 필드별 상세 오류 정보가 포함된 400 에러 응답
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    protected ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+        log.warn("MethodArgumentNotValidException 발생: {}", e.getMessage());
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT, e.getBindingResult());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     /**
@@ -82,8 +102,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<ErrorResponse> handleException(Exception e) {
-        // TODO: 로그 기록 필요 시 아래에서 log.error 등 활용 가능
-        // 수정: 일반적인 예외도 ErrorCode.SERVER_ERROR를 사용하여 일관성 확보
+        log.error("처리되지 않은 예외 발생!", e);
         ErrorResponse response = ErrorResponse.of(ErrorCode.SERVER_ERROR);
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }

@@ -1,5 +1,7 @@
 package com.team03.ticketmon.queue.scheduler;
 
+import com.team03.ticketmon._global.config.RedissonConfig;
+import com.team03.ticketmon.queue.service.NotificationService;
 import com.team03.ticketmon.queue.service.WaitingQueueService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -8,10 +10,12 @@ import org.redisson.api.RAtomicLong;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -29,8 +33,12 @@ import static org.awaitility.Awaitility.await;
  */
 @ActiveProfiles("test")
 @Testcontainers
-@SpringBootTest
+@DataRedisTest
+@Import({RedissonConfig.class, WaitingQueueService.class, WaitingQueueScheduler.class})
 class WaitingQueueSchedulerIntegrationTest {
+
+    @MockitoBean
+    private NotificationService notificationService;
 
     @Autowired
     private WaitingQueueScheduler waitingQueueScheduler;

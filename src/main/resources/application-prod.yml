@@ -23,9 +23,9 @@ spring:
     hibernate:
       ddl-auto: validate             # 운영 환경에서는 DDL 자동 변경을 금지하고 스키마 유효성만 검사
     show-sql: false                  # 운영 환경에서는 SQL 쿼리 출력을 비활성화하여 성능 및 보안을 강화
-#    properties:
-#     hibernate:
-#       format_sql: false # 운영 환경에서는 쿼리 포맷팅도 성능에 영향을 줄 수 있으므로 비활성화가 권장
+    #    properties:
+    #     hibernate:
+    #       format_sql: false # 운영 환경에서는 쿼리 포맷팅도 성능에 영향을 줄 수 있으므로 비활성화가 권장
     # 이 설정이 필요하다면 주석을 해제하고 'false'로 명시해주세요.
 
   # Redis 연결 설정
@@ -137,3 +137,12 @@ logging:
 # Swagger API 문서 설정
 swagger:
   enabled: false  # 운영 환경에서는 보안을 위해 Swagger 문서를 비활성화
+
+# 토스페이먼츠 환경변수 주입
+toss:
+  client-key: ${TOSS_CLIENT_KEY} # 환경 변수에서 주입
+  secret-key: ${TOSS_SECRET_KEY} # 환경 변수에서 주입
+
+#운영환경 도메인
+app:
+  base-url: ${BASE_URL} # 운영 환경 도메인

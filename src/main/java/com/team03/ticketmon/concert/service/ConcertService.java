@@ -76,7 +76,6 @@ public class ConcertService {
 		}
 		Page<Concert> concertPage = concertRepository
 			.findByStatusOrderByConcertDateAsc(status, pageable);
-
 		return concertPage.map(this::convertToDTO);
 	}
 

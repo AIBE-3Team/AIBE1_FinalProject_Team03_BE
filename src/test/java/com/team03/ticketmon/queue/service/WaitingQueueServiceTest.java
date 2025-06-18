@@ -1,11 +1,15 @@
 package com.team03.ticketmon.queue.service;
 
+import com.team03.ticketmon._global.config.RedissonConfig;
+import com.team03.ticketmon.queue.scheduler.WaitingQueueScheduler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -23,7 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @ActiveProfiles("test") // 테스트용 프로필 사용
 @Testcontainers
-@SpringBootTest
+@DataRedisTest
+@Import({RedissonConfig.class, WaitingQueueService.class})
 class WaitingQueueServiceTest {
 
     @Autowired

@@ -26,3 +26,8 @@ server:
 logging:
   level:
     root: ${LOG_LEVEL:INFO}  # 로그 레벨 설정 (INFO / WARN / ERROR)
+
+toss:
+  api:
+    url: https://api.tosspayments.com/v1/payments/ # 토스페이먼츠 API의 기본 경로
+    confirm-url: ${toss.api.url}confirm # 결제 승인 API 엔드포인트 (${toss.api.url} 재사용)

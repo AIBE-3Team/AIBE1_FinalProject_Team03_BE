@@ -55,9 +55,8 @@ class RefreshTokenServiceImplTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        // then
+        // when & then
         assertThrows(RuntimeException.class, () -> {
-            // when
             refreshTokenService.saveRefreshToken(userId, token);
         });
     }

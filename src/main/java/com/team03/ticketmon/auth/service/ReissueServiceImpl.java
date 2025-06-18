@@ -5,10 +5,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class ReissueServiceImpl implements ReissueService {
 
@@ -34,6 +36,9 @@ public class ReissueServiceImpl implements ReissueService {
         Long userId = jwtTokenProvider.getUserId(refreshToken);
         String newAccessToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS);
         String newRefreshToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH);
+
+        if(newAccessToken == null || newRefreshToken == null)
+            throw new IllegalArgumentException("Token 재발급이 실패했습니다.");
 
         // 기존 Refresh Token 삭제 후 New Refresh Token DB 저장
         refreshTokenService.deleteRefreshToken(userId);

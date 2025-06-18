@@ -58,7 +58,7 @@ public class RedissonConfig {
                 .setTimeout(3000);                  // 타임아웃 (ms)
 
         if (StringUtils.hasText(redisUsername)) {
-            config.useSingleServer().setPassword(redisUsername);
+            config.useSingleServer().setUsername(redisUsername);
         }
         if (StringUtils.hasText(redisPassword)) {
             config.useSingleServer().setPassword(redisPassword);

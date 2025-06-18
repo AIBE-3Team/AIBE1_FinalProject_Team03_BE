@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @ConfigurationPropertiesScan
 @SpringBootApplication
+@EnableJpaAuditing
 public class TicketmonGoApplication {
 
 	public static void main(String[] args) {

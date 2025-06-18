@@ -2,13 +2,19 @@ package com.team03.ticketmon.concert.domain;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.team03.ticketmon._global.entity.BaseTimeEntity;
 import com.team03.ticketmon.concert.domain.enums.ConcertStatus;
 
 /**
@@ -18,10 +24,13 @@ import com.team03.ticketmon.concert.domain.enums.ConcertStatus;
 
 @Entity
 @Table(name = "concerts")
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"concertSeats", "bookings", "reviews"})
+@EqualsAndHashCode(of = "concertId", callSuper = false)
 @NoArgsConstructor
 @AllArgsConstructor
-public class Concert {
+public class Concert extends BaseTimeEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "concert_id")
@@ -76,12 +85,6 @@ public class Concert {
 
 	@Column(name = "poster_image_url", columnDefinition = "TEXT")
 	private String posterImageUrl;
-
-	@Column(name = "created_at", nullable = false)
-	private LocalDateTime createdAt = LocalDateTime.now();
-
-	@Column(name = "updated_at", nullable = false)
-	private LocalDateTime updatedAt = LocalDateTime.now();
 
 	@Column(name = "ai_summary", columnDefinition = "TEXT")
 	private String aiSummary;

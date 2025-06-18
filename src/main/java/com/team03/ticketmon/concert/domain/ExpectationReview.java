@@ -1,10 +1,19 @@
 package com.team03.ticketmon.concert.domain;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.time.LocalDateTime;
+
+import com.team03.ticketmon._global.entity.BaseTimeEntity;
 
 /**
  * Expectation Review Entity
@@ -12,11 +21,13 @@ import java.time.LocalDateTime;
  */
 
 @Entity
-@Table(name = "expectation_reviews")
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"concert"})
+@EqualsAndHashCode(of = "id", callSuper = false)
 @NoArgsConstructor
 @AllArgsConstructor
-public class ExpectationReview {
+public class ExpectationReview extends BaseTimeEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -35,12 +46,8 @@ public class ExpectationReview {
 	private String comment;
 
 	// 1-5 기대 점수
-	@Column(name = "expectation_rating")
+	@Min(value = 1, message = "기대 점수는 1 이상이어야 합니다")
+	@Max(value = 5, message = "기대 점수는 5 이하여야 합니다")
+	@Column(name = "expectation_rating", nullable = false)
 	private Integer expectationRating;
-
-	@Column(name = "created_at", nullable = false)
-	private LocalDateTime createdAt = LocalDateTime.now();
-
-	@Column(name = "updated_at", nullable = false)
-	private LocalDateTime updatedAt = LocalDateTime.now();
 }

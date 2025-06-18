@@ -83,14 +83,21 @@ services:
   #   (중기 통합 테스트 ~ 후기 배포까지 사용)
   #   - LocalStack, Redis, Aiven DB 설정 확인 후 이 섹션의 주석을 해제
   app:
-    build: .    # 현재 디렉토리의 Dockerfile을 사용하여 이미지 빌드
+    build:
+      context: .  # 현재 디렉토리에서 Dockerfile을 찾음
+      dockerfile: Dockerfile  # 사용할 Dockerfile 명시 (생략 가능하지만 명확하게 표시)
+      args:     # Docker 빌드 시 전달할 환경변수 (Dockerfile의 ARG와 연결됨)
+        GITHUB_PACKAGES_USER: ${GITHUB_PACKAGES_USER} # GitHub Maven 인증용 사용자명
+        GITHUB_PACKAGES_TOKEN: ${GITHUB_PACKAGES_TOKEN} # GitHub Maven 인증용 PAT (repo + read:packages 권한 필요)
     ports:
       - "8080:8080"   # 호스트의 8080 포트를 컨테이너의 8080 포트에 연결 (개발용)
     env_file:
       - .env    # 로컬 환경 변수 파일 (.env) 로드
     environment:
-      - # .env 파일의 SPRING_PROFILES_ACTIVE 값을 사용하도록 설정
-      - # 로컬 개발 시에는 .env의 'dev'가, 운영 환경 배포 시에는 외부 주입된 'prod'가 적용됩니다.
+      - GITHUB_PACKAGES_USER=${GITHUB_PACKAGES_USER}  # 컨테이너 실행 시 내부 환경변수로 전달
+      - GITHUB_PACKAGES_TOKEN=${GITHUB_PACKAGES_TOKEN}  # (예: Spring 설정, 로그 출력용 등에서 사용 가능)
+      # - .env 파일의 SPRING_PROFILES_ACTIVE 값을 사용하도록 설정
+      # - 로컬 개발 시에는 .env의 'dev'가, 운영 환경 배포 시에는 외부 주입된 'prod'가 적용됩니다.
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}  # .env 파일에서 읽어온 값 사용
       - JAVA_OPTS=-Xmx512m -XX:MaxRAMPercentage=50.0   # JVM 메모리 제한 설정 (Docker 컨테이너 메모리 제약에 맞게 조절)
       # .env 파일에서 자동으로 읽어오는 변수들이므로, 여기에서 다시 명시적으로 선언할 필요는 없음

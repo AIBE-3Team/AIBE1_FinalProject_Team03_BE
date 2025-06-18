@@ -4,7 +4,6 @@ import com.team03.ticketmon.concert.dto.ConcertDTO;
 import com.team03.ticketmon.concert.dto.ConcertFilterDTO;
 import com.team03.ticketmon.concert.dto.ConcertSearchDTO;
 import com.team03.ticketmon.concert.domain.Concert;
-import com.team03.ticketmon.concert.domain.ConcertSeat;
 import com.team03.ticketmon.concert.domain.enums.ConcertStatus;
 import com.team03.ticketmon.concert.repository.ConcertRepository;
 import com.team03.ticketmon.concert.repository.ConcertSeatRepository;
@@ -12,6 +11,7 @@ import com.team03.ticketmon._global.exception.BusinessException;
 import com.team03.ticketmon._global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,17 +38,17 @@ public class ConcertService {
 	/**
 	 * 전체 콘서트 조회
 	 */
-	public List<ConcertDTO> getAllConcerts() {
+	public Page<ConcertDTO> getAllConcerts(int page, int size) {
 		List<ConcertStatus> activeStatuses = Arrays.asList(
 			ConcertStatus.SCHEDULED,
 			ConcertStatus.ON_SALE
 		);
 
-		return concertRepository
-			.findByStatusInOrderByConcertDateAsc(activeStatuses)
-			.stream()
-			.map(this::convertToDTO)
-			.collect(Collectors.toList());
+		Pageable pageable = PageRequest.of(page, size);
+
+		Page<Concert> concertPage = concertRepository.findByStatusInOrderByConcertDateAsc(activeStatuses, pageable);
+
+		return concertPage.map(this::convertToDTO);
 	}
 
 	/**
@@ -149,8 +149,24 @@ public class ConcertService {
 		} else if (hasPriceFilter) {
 			return filterByPriceRange(priceMin, priceMax);
 		} else {
-			return getAllConcerts();
+			return getAllConcertsWithoutPaging();
 		}
+	}
+
+	/**
+	 * 전체 콘서트 조회 (페이징 없음)
+	 */
+	public List<ConcertDTO> getAllConcertsWithoutPaging() {
+		List<ConcertStatus> activeStatuses = Arrays.asList(
+			ConcertStatus.SCHEDULED,
+			ConcertStatus.ON_SALE
+		);
+
+		return concertRepository
+			.findByStatusInOrderByConcertDateAsc(activeStatuses)
+			.stream()
+			.map(this::convertToDTO)
+			.collect(Collectors.toList());
 	}
 
 	/**
@@ -224,21 +240,6 @@ public class ConcertService {
 			.map(Concert::getAiSummary)
 			.filter(summary -> summary != null && !summary.trim().isEmpty())
 			.orElse("AI 요약 정보가 아직 생성되지 않았습니다.");
-	}
-
-	/**
-	 * 예약 가능한 좌석 조회
-	 */
-	public List<ConcertSeat> getAvailableSeats(Long concertId) {
-		if (concertId == null || concertId <= 0) {
-			throw new BusinessException(ErrorCode.INVALID_CONCERT_ID);
-		}
-
-		if (!concertRepository.existsById(concertId)) {
-			throw new BusinessException(ErrorCode.CONCERT_NOT_FOUND);
-		}
-
-		return concertSeatRepository.findAvailableSeatsByConcertId(concertId);
 	}
 
 	/**

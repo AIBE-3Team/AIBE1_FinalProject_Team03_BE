@@ -8,12 +8,12 @@ import com.team03.ticketmon.concert.repository.ReviewRepository;
 import com.team03.ticketmon._global.exception.BusinessException;
 import com.team03.ticketmon._global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /*
  * Review Service
@@ -29,14 +29,12 @@ public class ReviewService {
 	private final ConcertRepository concertRepository;
 
 	/**
-	 * 콘서트 후기 조회
+	 * 콘서트 후기 조회 (페이징 지원으로 수정)
 	 */
 	@Transactional(readOnly = true)
-	public List<ReviewDTO> getConcertReviews(Long concertId) {
-		return reviewRepository.findByConcertConcertIdOrderByCreatedAtDesc(concertId)
-			.stream()
-			.map(this::convertToDTO)
-			.collect(Collectors.toList());
+	public Page<ReviewDTO> getConcertReviews(Long concertId, Pageable pageable) {
+		return reviewRepository.findByConcertConcertIdOrderByCreatedAtDesc(concertId, pageable)
+			.map(this::convertToDTO);
 	}
 
 	/**
@@ -52,8 +50,7 @@ public class ReviewService {
 		review.setUserNickname(reviewDTO.getUserNickname());
 		review.setTitle(reviewDTO.getTitle());
 		review.setDescription(reviewDTO.getDescription());
-		review.setCreatedAt(LocalDateTime.now());
-		review.setUpdatedAt(LocalDateTime.now());
+		review.setRating(reviewDTO.getRating());
 
 		review = reviewRepository.save(review);
 		return convertToDTO(review);
@@ -62,12 +59,11 @@ public class ReviewService {
 	/**
 	 * 후기 수정
 	 */
-	public Optional<ReviewDTO> updateReview(Long reviewId, ReviewDTO reviewDTO) {
-		return reviewRepository.findById(reviewId)
+	public Optional<ReviewDTO> updateReview(Long reviewId, Long concertId, ReviewDTO reviewDTO) {
+		return reviewRepository.findByIdAndConcertConcertId(reviewId, concertId)
 			.map(review -> {
 				review.setTitle(reviewDTO.getTitle());
 				review.setDescription(reviewDTO.getDescription());
-				review.setUpdatedAt(LocalDateTime.now());
 				return convertToDTO(reviewRepository.save(review));
 			});
 	}
@@ -75,9 +71,10 @@ public class ReviewService {
 	/**
 	 * 후기 삭제
 	 */
-	public boolean deleteReview(Long reviewId) {
-		if (reviewRepository.existsById(reviewId)) {
-			reviewRepository.deleteById(reviewId);
+	public boolean deleteReview(Long reviewId, Long concertId) {
+		Optional<Review> review = reviewRepository.findByIdAndConcertConcertId(reviewId, concertId);
+		if (review.isPresent()) {
+			reviewRepository.delete(review.get());
 			return true;
 		}
 		return false;

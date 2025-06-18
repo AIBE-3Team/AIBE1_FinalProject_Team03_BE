@@ -68,7 +68,7 @@
 // .anyRequest().authenticated()
 
 // JWT 필터 자리만 확보 (구현 전)
- // http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+// http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 ```
 
 <br>
@@ -87,22 +87,22 @@
 **❗ 실패(Error) 응답 (`ErrorResponse`)**
 ```json
 {
-"success": false,
-"status": 400,
-"code": "C001",
-"message": "유효하지 않은 입력값입니다."
+  "success": false,
+  "status": 400,
+  "code": "C001",
+  "message": "유효하지 않은 입력값입니다."
 }
 ```
 
 **✅ 성공(Success) 응답 (`SuccessResponse`)**
 ```json
 {
-"success": true,
-"message": "조회 성공",
-"data": {
-"title": "콘서트 A",
-"date": "2025-12-01"
-}
+  "success": true,
+  "message": "조회 성공",
+  "data": {
+    "title": "콘서트 A",
+    "date": "2025-12-01"
+  }
 }
 ```
 
@@ -143,17 +143,17 @@ ErrorCode에 따라 ErrorResponse 생성
 **1. ❗ 비즈니스 예외 발생**
 ```java
    if (seat.isAlreadyBooked()) {
-   throw new BusinessException(ErrorCode.SEAT_ALREADY_TAKEN);
+        throw new BusinessException(ErrorCode.SEAT_ALREADY_TAKEN);
    }
 ```
 → 클라이언트에 아래처럼 반환됨:
 
 ```json
 {
-"success": false,
-"status": 409,
-"code": "B003",
-"message": "이미 선택된 좌석입니다."
+  "success": false,
+  "status": 409,
+  "code": "B003",
+  "message": "이미 선택된 좌석입니다."
 }
 ```
 <br>
@@ -166,12 +166,12 @@ ErrorCode에 따라 ErrorResponse 생성
 
 ```json
 {
-"success": true,
-"message": "등록 성공",
-"data": {
-"concertId": 12,
-"title": "Waiting Cha Live"
-}
+  "success": true,
+  "message": "등록 성공",
+  "data": {
+    "concertId": 12,
+    "title": "Waiting Cha Live"
+  }
 }
 ```
 
@@ -221,9 +221,9 @@ ErrorCode에 따라 ErrorResponse 생성
 
 1. Docker Desktop 설치 (https://www.docker.com/products/docker-desktop)
 2. **`.env`, `application-dev.yml` 파일 수령 및 배치**
-  - `application-dev.yml`, `.env`은 직접 전달 예정
-  - `application-dev.yml`는 `src/main/resources/`에 `application-dev.yml`로 위치
-  - `.env`는 팀 디스코드 또는 팀원 공유 경로에서 .env 파일을 받아, 프로젝트 루트 디렉토리에 위치
+- `application-dev.yml`, `.env`은 직접 전달 예정
+- `application-dev.yml`는 `src/main/resources/`에 `application-dev.yml`로 위치
+- `.env`는 팀 디스코드 또는 팀원 공유 경로에서 .env 파일을 받아, 프로젝트 루트 디렉토리에 위치
 3. `.env.example`은 참고용으로 제공됩니다.
 
 <br>

@@ -18,10 +18,11 @@ import com.team03.ticketmon.concert.domain.enums.BookingStatus;
  */
 
 @Entity
+@Getter
+@Setter
 @Table(name = "bookings")
-@Getter // @Data -> @Getter
-@Setter // @Data -> @Setter
-@ToString(exclude = {"concert", "tickets"}) // 연관관계 필드는 ToString에서 제외하여 무한루프 방지
+@ToString(exclude = {"concert", "tickets"})
+@EqualsAndHashCode(of = "bookingId")
 @NoArgsConstructor
 @AllArgsConstructor
 public class Booking {
@@ -37,7 +38,7 @@ public class Booking {
 	@JoinColumn(name = "concert_id", nullable = false)
 	private Concert concert;
 
-	@Column(name = "booking_number", nullable = false)
+	@Column(name = "booking_number", nullable = false, unique = true)
 	private String bookingNumber;
 
 	@Column(name = "total_amount", precision = 12, scale = 2, nullable = false)

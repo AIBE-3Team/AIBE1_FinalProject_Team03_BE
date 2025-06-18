@@ -4,6 +4,8 @@ import com.team03.ticketmon.concert.dto.*;
 import com.team03.ticketmon.concert.domain.enums.ConcertStatus;
 import com.team03.ticketmon.concert.service.SellerConcertService;
 import com.team03.ticketmon._global.exception.SuccessResponse;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -60,7 +62,7 @@ public class SellerConcertController {
 	@PostMapping
 	public ResponseEntity<SuccessResponse<SellerConcertDTO>> createConcert(
 		@RequestParam Long sellerId,
-		@RequestBody SellerConcertCreateDTO createDTO) {
+		@Valid @RequestBody SellerConcertCreateDTO createDTO) {
 
 		SellerConcertDTO createdConcert = sellerConcertService
 			.createConcert(sellerId, createDTO);
@@ -76,7 +78,7 @@ public class SellerConcertController {
 	public ResponseEntity<SuccessResponse<SellerConcertDTO>> updateConcert(
 		@RequestParam Long sellerId,
 		@PathVariable Long concertId,
-		@RequestBody SellerConcertUpdateDTO updateDTO) {
+		@Valid @RequestBody SellerConcertUpdateDTO updateDTO) {
 
 		SellerConcertDTO updatedConcert = sellerConcertService
 			.updateConcert(sellerId, concertId, updateDTO);
@@ -91,7 +93,7 @@ public class SellerConcertController {
 	public ResponseEntity<SuccessResponse<Void>> updatePosterImage(
 		@RequestParam Long sellerId,
 		@PathVariable Long concertId,
-		@RequestBody SellerConcertImageUpdateDTO imageDTO) {
+		@Valid @RequestBody SellerConcertImageUpdateDTO imageDTO) {
 
 		sellerConcertService.updatePosterImage(sellerId, concertId, imageDTO);
 		return ResponseEntity.ok(SuccessResponse.of("포스터 이미지가 업데이트되었습니다.", null));
@@ -105,7 +107,7 @@ public class SellerConcertController {
 		@RequestParam Long sellerId,
 		@PathVariable Long concertId) {
 
-		sellerConcertService.deleteConcert(sellerId, concertId);
+		sellerConcertService.cancleConcert(sellerId, concertId);
 		return ResponseEntity.ok(SuccessResponse.of("콘서트가 취소되었습니다.", null));
 	}
 

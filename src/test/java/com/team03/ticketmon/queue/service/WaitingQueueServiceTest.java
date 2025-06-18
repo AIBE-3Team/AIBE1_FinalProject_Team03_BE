@@ -1,14 +1,12 @@
 package com.team03.ticketmon.queue.service;
 
 import com.team03.ticketmon._global.config.RedissonConfig;
-import com.team03.ticketmon.queue.scheduler.WaitingQueueScheduler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -51,6 +49,7 @@ class WaitingQueueServiceTest {
     static void redisProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.data.redis.host", () -> redis.getHost());
         registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
+        registry.add("spring.data.redis.ssl.enabled", () -> false);
     }
 
     /**

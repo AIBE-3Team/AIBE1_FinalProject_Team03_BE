@@ -1,25 +1,21 @@
 package com.team03.ticketmon.queue.flow;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.team03.ticketmon._global.config.RedissonConfig;
-import com.team03.ticketmon.websocket.handler.CustomWebSocketHandler;
-import com.team03.ticketmon.queue.dto.AdmissionEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.team03.ticketmon._global.config.RedissonConfig;
+import com.team03.ticketmon.queue.dto.AdmissionEvent;
+import com.team03.ticketmon.websocket.handler.CustomWebSocketHandler;
 import com.team03.ticketmon.websocket.subscriber.RedisMessageSubscriber;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -65,6 +61,7 @@ class AdmissionFlowIntegrationTest {
     static void redisProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.data.redis.host", () -> redis.getHost());
         registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
+        registry.add("spring.data.redis.ssl.enabled", () -> false);
     }
 
     /**

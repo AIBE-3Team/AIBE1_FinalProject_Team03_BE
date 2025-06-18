@@ -59,9 +59,9 @@ public class WaitingQueueScheduler {
         RLock lock = redissonClient.getLock(ADMISSION_LOCK_KEY);
         try {
             // [분산 락 획득 시도]
-            // waitTime(0): 락을 기다리지 않고 즉시 획득을 시도. (Fail-Fast)
-            // leaseTime(10): 락을 획득하면 10초간 유지. 만약 이 스레드가 비정상 종료되어도 10초 후 락이 자동 해제되어 다른 인스턴스가 이어서 작업. (데드락 방지)
-            boolean isLocked = lock.tryLock(0, 10, TimeUnit.SECONDS);
+            // waitTime(0): waitTime을 0으로 두어, 락 획득에 실패하면 즉시 리턴하는 비대기 모드는 유지
+            // leaseTime(-1): 워치독(락 자동 갱신) 기능을 활성화. 락을 획득하면 기본 30초의 TTL이 설정되고, 작업이 끝나기 전까지 워치독이 락을 계속 갱신
+            boolean isLocked = lock.tryLock(0, -1, TimeUnit.SECONDS);
 
             // 락 획득에 실패하면, 다른 인스턴스가 이미 작업을 수행 중이라는 의미이므로 현재 작업을 종료
             if (!isLocked) {

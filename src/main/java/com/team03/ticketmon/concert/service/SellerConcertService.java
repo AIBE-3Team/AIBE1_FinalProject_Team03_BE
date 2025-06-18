@@ -117,7 +117,7 @@ public class SellerConcertService {
 	 * 콘서트 삭제 (취소 처리)
 	 */
 	@Transactional
-	public void cancleConcert(Long sellerId, Long concertId) {
+	public void cancelConcert(Long sellerId, Long concertId) {
 		validateSellerId(sellerId);
 		validateConcertId(concertId);
 

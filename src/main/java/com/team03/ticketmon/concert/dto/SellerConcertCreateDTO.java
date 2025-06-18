@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
 
+import com.team03.ticketmon.concert.validation.ValidConcertTimes;
+
 /*
  * Seller Concert Create DTO
  * 판매자용 콘서트 생성 전송 객체
@@ -18,6 +20,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ValidConcertTimes
 public class SellerConcertCreateDTO {
 
 	@NotBlank(message = "콘서트 제목은 필수입니다")
@@ -72,4 +75,38 @@ public class SellerConcertCreateDTO {
 	@Pattern(regexp = "^https?://.*\\.(jpg|jpeg|png|gif|webp)$",
 		message = "포스터 이미지 URL은 올바른 이미지 URL 형식이어야 합니다")
 	private String posterImageUrl;
+
+	/**
+	 * 공연 시간 순서 검증
+	 */
+	@AssertTrue(message = "종료 시간은 시작 시간보다 늦어야 합니다")
+	public boolean isValidPerformanceTimes() {
+		if (startTime == null || endTime == null) {
+			return true; // @NotNull에서 처리
+		}
+		return endTime.isAfter(startTime);
+	}
+
+	/**
+	 * 예매 시간 순서 검증
+	 */
+	@AssertTrue(message = "예매 종료일시는 예매 시작일시보다 늦어야 합니다")
+	public boolean isValidBookingTimes() {
+		if (bookingStartDate == null || bookingEndDate == null) {
+			return true; // @NotNull에서 처리
+		}
+		return bookingEndDate.isAfter(bookingStartDate);
+	}
+
+	/**
+	 * 예매 기간과 공연 날짜 검증
+	 */
+	@AssertTrue(message = "예매 종료일시는 공연 시작 전이어야 합니다")
+	public boolean isValidBookingPeriod() {
+		if (bookingEndDate == null || concertDate == null || startTime == null) {
+			return true;
+		}
+		LocalDateTime concertStartDateTime = concertDate.atTime(startTime);
+		return bookingEndDate.isBefore(concertStartDateTime);
+	}
 }

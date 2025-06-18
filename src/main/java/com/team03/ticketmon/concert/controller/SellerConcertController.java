@@ -107,7 +107,7 @@ public class SellerConcertController {
 		@RequestParam Long sellerId,
 		@PathVariable Long concertId) {
 
-		sellerConcertService.cancleConcert(sellerId, concertId);
+		sellerConcertService.cancelConcert(sellerId, concertId);
 		return ResponseEntity.ok(SuccessResponse.of("콘서트가 취소되었습니다.", null));
 	}
 

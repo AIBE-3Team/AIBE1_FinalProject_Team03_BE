@@ -81,7 +81,9 @@ public class CacheService {
 	            .filter(elementType::isInstance)
 	            .map(elementType::cast)
 	            .collect(Collectors.toList());
-	        return Optional.of(typedList);
+			return typedList.isEmpty()
+				? Optional.empty()
+				: Optional.of(typedList);
 		}
 		return Optional.empty();
 	}

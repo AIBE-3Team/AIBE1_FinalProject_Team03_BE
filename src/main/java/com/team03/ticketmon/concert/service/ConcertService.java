@@ -22,11 +22,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-/*
+/**
  * Concert Service
  * 콘서트 비즈니스 로직 처리
  */
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -35,19 +34,48 @@ public class ConcertService {
 	private final ConcertRepository concertRepository;
 	private final ConcertSeatRepository concertSeatRepository;
 
+	// 상수로 추출하여 중복 제거
+	private static final List<ConcertStatus> ACTIVE_STATUSES = Arrays.asList(
+		ConcertStatus.SCHEDULED,
+		ConcertStatus.ON_SALE
+	);
+
+	// 페이징 관련 상수
+	private static final int MIN_PAGE = 0;
+	private static final int MIN_SIZE = 1;
+	private static final int MAX_SIZE = 100;
+	private static final int DEFAULT_SIZE = 20;
+
 	/**
-	 * 전체 콘서트 조회
+	 * 전체 콘서트 조회 (페이징)
 	 */
 	public Page<ConcertDTO> getAllConcerts(int page, int size) {
-		List<ConcertStatus> activeStatuses = Arrays.asList(
-			ConcertStatus.SCHEDULED,
-			ConcertStatus.ON_SALE
-		);
+		// 페이징 파라미터 검증
+		validatePagingParameters(page, size);
 
 		Pageable pageable = PageRequest.of(page, size);
+		return getConcertsByStatuses(ACTIVE_STATUSES, pageable);
+	}
 
-		Page<Concert> concertPage = concertRepository.findByStatusInOrderByConcertDateAsc(activeStatuses, pageable);
+	/**
+	 * 전체 콘서트 조회 (페이징 없음)
+	 */
+	public List<ConcertDTO> getAllConcertsWithoutPaging() {
+		return getConcertsByStatuses(ACTIVE_STATUSES);
+	}
 
+	/**
+	 * 상태별 콘서트 조회 (페이징)
+	 */
+	public Page<ConcertDTO> getConcertsWithPaging(ConcertStatus status, Pageable pageable) {
+		if (status == null) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT);
+		}
+		if (pageable == null) {
+			throw new BusinessException(ErrorCode.INVALID_PAGE_REQUEST);
+		}
+		Page<Concert> concertPage = concertRepository
+			.findByStatusOrderByConcertDateAsc(status, pageable);
 		return concertPage.map(this::convertToDTO);
 	}
 
@@ -55,9 +83,7 @@ public class ConcertService {
 	 * 키워드로 콘서트 검색
 	 */
 	public List<ConcertDTO> searchByKeyword(String keyword) {
-		if (keyword == null || keyword.trim().isEmpty()) {
-			throw new BusinessException(ErrorCode.INVALID_SEARCH_KEYWORD);
-		}
+		validateKeyword(keyword);
 
 		return concertRepository
 			.findByKeyword(keyword.trim())
@@ -70,9 +96,7 @@ public class ConcertService {
 	 * 날짜 범위로 콘서트 필터링
 	 */
 	public List<ConcertDTO> filterByDateRange(LocalDate startDate, LocalDate endDate) {
-		if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
-			throw new BusinessException(ErrorCode.INVALID_DATE_ORDER);
-		}
+		validateDateRange(startDate, endDate);
 
 		return concertRepository
 			.findByDateRange(startDate, endDate)
@@ -85,15 +109,7 @@ public class ConcertService {
 	 * 가격 범위로 콘서트 필터링
 	 */
 	public List<ConcertDTO> filterByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
-		if (minPrice != null && minPrice.compareTo(BigDecimal.ZERO) < 0) {
-			throw new BusinessException(ErrorCode.INVALID_PRICE_RANGE);
-		}
-		if (maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) < 0) {
-			throw new BusinessException(ErrorCode.INVALID_PRICE_RANGE);
-		}
-		if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
-			throw new BusinessException(ErrorCode.INVALID_PRICE_RANGE);
-		}
+		validatePriceRange(minPrice, maxPrice);
 
 		return concertRepository
 			.findByPriceRange(minPrice, maxPrice)
@@ -109,19 +125,8 @@ public class ConcertService {
 		LocalDate startDate, LocalDate endDate,
 		BigDecimal minPrice, BigDecimal maxPrice) {
 
-		if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
-			throw new BusinessException(ErrorCode.INVALID_DATE_ORDER);
-		}
-
-		if (minPrice != null && minPrice.compareTo(BigDecimal.ZERO) < 0) {
-			throw new BusinessException(ErrorCode.INVALID_PRICE_RANGE);
-		}
-		if (maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) < 0) {
-			throw new BusinessException(ErrorCode.INVALID_PRICE_RANGE);
-		}
-		if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
-			throw new BusinessException(ErrorCode.INVALID_PRICE_RANGE);
-		}
+		validateDateRange(startDate, endDate);
+		validatePriceRange(minPrice, maxPrice);
 
 		return concertRepository
 			.findByDateAndPriceRange(startDate, endDate, minPrice, maxPrice)
@@ -134,6 +139,10 @@ public class ConcertService {
 	 * 필터 조건 적용
 	 */
 	public List<ConcertDTO> applyFilters(ConcertFilterDTO filterDTO) {
+		if (filterDTO == null) {
+			return getAllConcertsWithoutPaging();
+		}
+
 		LocalDate startDate = filterDTO.getStartDate();
 		LocalDate endDate = filterDTO.getEndDate();
 		BigDecimal priceMin = filterDTO.getPriceMin();
@@ -151,32 +160,6 @@ public class ConcertService {
 		} else {
 			return getAllConcertsWithoutPaging();
 		}
-	}
-
-	/**
-	 * 전체 콘서트 조회 (페이징 없음)
-	 */
-	public List<ConcertDTO> getAllConcertsWithoutPaging() {
-		List<ConcertStatus> activeStatuses = Arrays.asList(
-			ConcertStatus.SCHEDULED,
-			ConcertStatus.ON_SALE
-		);
-
-		return concertRepository
-			.findByStatusInOrderByConcertDateAsc(activeStatuses)
-			.stream()
-			.map(this::convertToDTO)
-			.collect(Collectors.toList());
-	}
-
-	/**
-	 * 페이징으로 콘서트 조회
-	 */
-	public Page<ConcertDTO> getConcertsWithPaging(ConcertStatus status, Pageable pageable) {
-		Page<Concert> concertPage = concertRepository
-			.findByStatusOrderByConcertDateAsc(status, pageable);
-
-		return concertPage.map(this::convertToDTO);
 	}
 
 	/**
@@ -220,9 +203,7 @@ public class ConcertService {
 	 * ID로 콘서트 조회
 	 */
 	public Optional<ConcertDTO> getConcertById(Long id) {
-		if (id == null || id <= 0) {
-			throw new BusinessException(ErrorCode.INVALID_CONCERT_ID);
-		}
+		validateConcertId(id);
 
 		return concertRepository.findById(id)
 			.map(this::convertToDTO);
@@ -232,14 +213,89 @@ public class ConcertService {
 	 * AI 요약 정보 조회
 	 */
 	public String getAiSummary(Long id) {
-		if (id == null || id <= 0) {
-			throw new BusinessException(ErrorCode.INVALID_CONCERT_ID);
-		}
+		validateConcertId(id);
 
 		return concertRepository.findById(id)
 			.map(Concert::getAiSummary)
 			.filter(summary -> summary != null && !summary.trim().isEmpty())
 			.orElse("AI 요약 정보가 아직 생성되지 않았습니다.");
+	}
+
+	// ========== Private Helper Methods ==========
+
+	/**
+	 * 상태별 콘서트 조회 (페이징) - 내부 공통 로직
+	 */
+	private Page<ConcertDTO> getConcertsByStatuses(List<ConcertStatus> statuses, Pageable pageable) {
+		Page<Concert> concertPage = concertRepository
+			.findByStatusInOrderByConcertDateAsc(statuses, pageable);
+
+		return concertPage.map(this::convertToDTO);
+	}
+
+	/**
+	 * 상태별 콘서트 조회 (페이징 없음) - 내부 공통 로직
+	 */
+	private List<ConcertDTO> getConcertsByStatuses(List<ConcertStatus> statuses) {
+		return concertRepository
+			.findByStatusInOrderByConcertDateAsc(statuses)
+			.stream()
+			.map(this::convertToDTO)
+			.collect(Collectors.toList());
+	}
+
+	/**
+	 * 페이징 파라미터 검증
+	 */
+	private void validatePagingParameters(int page, int size) {
+		if (page < MIN_PAGE) {
+			throw new BusinessException(ErrorCode.INVALID_PAGE_NUMBER);
+		}
+		if (size < MIN_SIZE || size > MAX_SIZE) {
+			throw new BusinessException(ErrorCode.INVALID_PAGE_SIZE);
+		}
+	}
+
+	/**
+	 * 키워드 검증
+	 */
+	private void validateKeyword(String keyword) {
+		if (keyword == null || keyword.trim().isEmpty()) {
+			throw new BusinessException(ErrorCode.INVALID_SEARCH_KEYWORD);
+		}
+	}
+
+	/**
+	 * 날짜 범위 검증
+	 */
+	private void validateDateRange(LocalDate startDate, LocalDate endDate) {
+		if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+			throw new BusinessException(ErrorCode.INVALID_DATE_ORDER);
+		}
+	}
+
+	/**
+	 * 가격 범위 검증
+	 */
+	private void validatePriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
+		if (minPrice != null && minPrice.compareTo(BigDecimal.ZERO) < 0) {
+			throw new BusinessException(ErrorCode.INVALID_PRICE_RANGE);
+		}
+		if (maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) < 0) {
+			throw new BusinessException(ErrorCode.INVALID_PRICE_RANGE);
+		}
+		if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+			throw new BusinessException(ErrorCode.INVALID_PRICE_RANGE);
+		}
+	}
+
+	/**
+	 * 콘서트 ID 검증
+	 */
+	private void validateConcertId(Long id) {
+		if (id == null || id <= 0) {
+			throw new BusinessException(ErrorCode.INVALID_CONCERT_ID);
+		}
 	}
 
 	/**

@@ -8,6 +8,7 @@ import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 
 /**
  * Redisson 설정 클래스
@@ -52,14 +53,18 @@ public class RedissonConfig {
         // 단일 서버 모드 설정
         config.useSingleServer()
                 .setAddress(redisUrl)
-                .setUsername(redisUsername)
-                .setPassword(redisPassword)
                 .setConnectionMinimumIdleSize(1)    // 최소 유휴 연결 수
                 .setConnectionPoolSize(10)          // 연결 풀 크기
                 .setRetryAttempts(3)                // 재시도 횟수
                 .setRetryInterval(1000)             // 재시도 간격 (ms)
                 .setTimeout(3000);                  // 타임아웃 (ms)
 
+        if (StringUtils.hasText(redisUsername)) {
+            config.useSingleServer().setPassword(redisUsername);
+        }
+        if (StringUtils.hasText(redisPassword)) {
+            config.useSingleServer().setPassword(redisPassword);
+        }
         return Redisson.create(config);
     }
 }

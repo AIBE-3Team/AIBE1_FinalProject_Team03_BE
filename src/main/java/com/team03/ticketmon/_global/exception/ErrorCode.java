@@ -55,7 +55,7 @@ public enum ErrorCode {
     QUEUE_ALREADY_JOINED(409, "Q001", "이미 대기열에 등록된 사용자입니다."),
     INVALID_ACCESS_KEY(403, "Q002", "유효하지 않은 접근 키입니다."),
     STILL_IN_QUEUE(403, "Q003", "아직 입장 순서가 아닙니다. 잠시만 더 기다려주세요."),
-    QUEUE_TOO_MANY_REQUESTS(503, "Q004", "접속 시도가 너무 많습니다. 잠시 후 다시 시도해주세요."),
+    QUEUE_TOO_MANY_REQUESTS(429, "Q004", "접속 시도가 너무 많습니다. 잠시 후 다시 시도해주세요."),
 
     // Booking & Seat (예매 및 좌석)
     BOOKING_NOT_AVAILABLE(403, "B001", "예매가 가능한 상태가 아닙니다."),

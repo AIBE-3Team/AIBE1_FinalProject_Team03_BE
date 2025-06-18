@@ -1,6 +1,7 @@
 package com.team03.ticketmon.auth.jwt;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -119,10 +120,13 @@ public class JwtTokenProvider {
     public boolean isTokenExpired(String token) {
         try {
             Claims claims = parseClaims(token); // throw 되지 않으면 유효
-            return claims.getExpiration().before(new Date());
+        } catch (ExpiredJwtException e) {
+            // 토큰은 만료되었지만 검증이 유효하므로 반환
+          return true;
         } catch (JwtException | IllegalArgumentException e) {
             throw new BadCredentialsException("JWT 검증에 실패했습니다.", e);
         }
+        return false;
     }
 
     public Authentication getAuthentication(String token) {

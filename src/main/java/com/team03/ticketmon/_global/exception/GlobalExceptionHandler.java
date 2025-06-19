@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -89,6 +90,14 @@ public class GlobalExceptionHandler {
         // 추가: NPE를 서버 에러로 분류하여 처리
         ErrorResponse response = ErrorResponse.of(ErrorCode.SERVER_ERROR);
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    // @RequestParam 필수 파라미터 누락 시 발생하는 예외를 처리
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
+        log.error("필수 파라미터 누락: {}", ex.getParameterName());
+        ErrorResponse response = ErrorResponse.of(ErrorCode.REQUEST_PARAM_MISSING);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     /**

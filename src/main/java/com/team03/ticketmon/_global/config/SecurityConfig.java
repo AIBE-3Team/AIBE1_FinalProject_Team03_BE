@@ -106,14 +106,6 @@ public class SecurityConfig {
                         })
                 );
 
-                // 로그아웃 시 세션 무효화 및 쿠키 삭제 설정 (JWT 기반에서는 토큰 무효화 로직은 따로 구현해야 함)
-                // .logout(logout -> logout
-                //         .logoutUrl("/auth/logout")   // 로그아웃 요청 경로
-                //         .invalidateHttpSession(true)    // 세션 무효화 (거의 의미 없음. JWT라서)
-                //         .deleteCookies("JSESSIONID", "jwt_token")   // 쿠키 삭제
-                //         .permitAll()
-                // );
-
         return http.build();
     }
 

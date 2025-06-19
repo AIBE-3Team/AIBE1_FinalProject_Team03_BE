@@ -15,7 +15,6 @@ import org.springframework.http.ResponseCookie;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
@@ -52,9 +51,10 @@ class ReissueServiceImplTest {
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
         given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_ACCESS, userId, role)).willReturn(newAccessToken);
+        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(true);
 
         // when
-        String token = reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS);
+        String token = reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
         
         // then
         assertEquals(newAccessToken, token);
@@ -68,9 +68,10 @@ class ReissueServiceImplTest {
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
         given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_REFRESH, userId, role)).willReturn(newRefreshToken);
+        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(true);
 
         // when
-        String token = reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH);
+        String token = reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH, true);
 
         // then
         assertEquals(newRefreshToken, token);
@@ -83,7 +84,7 @@ class ReissueServiceImplTest {
 
         // when & then
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS);
+            reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
         });
 
         assertEquals("유효하지 않은 카테고리 JWT 토큰입니다.", ex.getMessage());
@@ -97,7 +98,7 @@ class ReissueServiceImplTest {
 
         // when & then
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS);
+            reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
         });
 
         assertEquals("Refresh Token이 만료되었습니다.", ex.getMessage());
@@ -110,21 +111,40 @@ class ReissueServiceImplTest {
         given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of());
+        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(true);
 
         // when & then
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS);
+            reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
         });
 
         assertEquals("역할(Role) 정보가 없습니다.", ex.getMessage());
     }
     
     @Test
-    public void handleReissueToken_정상_테스트() {
+    public void reissueToken_DB_존재하지_않음_예외_테스트() {
+        // given
+        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
+        given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
+        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
+        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(false);
+
+        // when & then
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
+        });
+
+        assertEquals("Refresh Token이 DB에 존재하지 않습니다.", ex.getMessage());
+    }
+    
+    @Test
+    void handleReissueToken_정상_테스트() {
         // given
         given(jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_REFRESH, request)).willReturn(refreshToken);
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(userId);
-        given(refreshTokenService.findRefreshToken(userId, refreshToken)).willReturn(Optional.of(refreshToken));
+        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
+        given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
+        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(true);
 
         ResponseCookie accessCookie = ResponseCookie.from(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken)
                 .httpOnly(true).secure(true).path("/").maxAge(Duration.ofMinutes(10)).build();
@@ -132,16 +152,16 @@ class ReissueServiceImplTest {
         ResponseCookie refreshCookie = ResponseCookie.from(jwtTokenProvider.CATEGORY_REFRESH, newRefreshToken)
                 .httpOnly(true).secure(true).path("/").maxAge(Duration.ofDays(1)).build();
 
-        Long accessCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS) / 1000;
-        Long refreshCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_REFRESH) / 1000;
+        Long accessCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS);
+        Long refreshCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_REFRESH);
 
         given(cookieUtil.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken, accessCookieExp)).willReturn(accessCookie);
         given(cookieUtil.createCookie(jwtTokenProvider.CATEGORY_REFRESH, newRefreshToken, refreshCookieExp)).willReturn(refreshCookie);
 
         // 필요한 동작만 spy 처리
         ReissueServiceImpl spyService = spy(reissueService);
-        doReturn(newAccessToken).when(spyService).reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS);
-        doReturn(newRefreshToken).when(spyService).reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH);
+        doReturn(newAccessToken).when(spyService).reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, false);
+        doReturn(newRefreshToken).when(spyService).reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH, false);
 
         // when
         spyService.handleReissueToken(request, response);
@@ -163,7 +183,7 @@ class ReissueServiceImplTest {
     }
     
     @Test
-    public void handleReissueToken_RefreshToken이_없을때_예외_테스트() {
+    void handleReissueToken_RefreshToken이_없을때_예외_테스트() {
         // given
         given(jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_REFRESH, request)).willReturn("");
 
@@ -175,18 +195,20 @@ class ReissueServiceImplTest {
     }
     
     @Test
-    public void handleReissueToken_Token_재발급_실패_예외_테스트() {
+    void handleReissueToken_Token_재발급_실패_예외_테스트() {
         // given
         given(jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_REFRESH, request)).willReturn(refreshToken);
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(userId);
-        given(refreshTokenService.findRefreshToken(userId, refreshToken)).willReturn(Optional.of(refreshToken));
+        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(true);
         given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
-        given(reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS)).willReturn(null);
+
+        ReissueServiceImpl spyService = spy(reissueService);
+        doReturn(null).when(spyService).reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, false);
 
         // when
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            reissueService.handleReissueToken(request, response);
+            spyService.handleReissueToken(request, response);
         });
         
         // then

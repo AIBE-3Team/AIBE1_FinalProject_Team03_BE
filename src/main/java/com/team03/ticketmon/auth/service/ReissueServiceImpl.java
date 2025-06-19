@@ -21,12 +21,10 @@ public class ReissueServiceImpl implements ReissueService {
     private final CookieUtil cookieUtil;
 
     @Override
-    public String reissueToken(String refreshToken, String reissueCategory) {
-        validateRefreshToken(refreshToken);
-
+    public String reissueToken(String refreshToken, String reissueCategory, boolean dbCheck) {
+        validateRefreshToken(refreshToken, dbCheck);
         Long userId = jwtTokenProvider.getUserId(refreshToken);
         String role = extractRole(refreshToken);
-
         return jwtTokenProvider.generateToken(reissueCategory, userId, role);
     }
 
@@ -38,11 +36,10 @@ public class ReissueServiceImpl implements ReissueService {
 
         Long userId = jwtTokenProvider.getUserId(refreshToken);
 
-        if (refreshTokenService.findRefreshToken(userId, refreshToken).isEmpty())
-            throw new IllegalArgumentException("Refresh Token이 유효하지 않습니다.");
+        validateRefreshToken(refreshToken, true);
 
-        String newAccessToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS);
-        String newRefreshToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH);
+        String newAccessToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, false);
+        String newRefreshToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH, false);
 
         if(newAccessToken == null || newAccessToken.isEmpty())
             throw new IllegalArgumentException("Access Token 재발급이 실패했습니다.");
@@ -54,8 +51,8 @@ public class ReissueServiceImpl implements ReissueService {
         refreshTokenService.saveRefreshToken(userId, newRefreshToken);
 
         // 새로운 토큰 쿠키에 추가
-        Long accessCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS) / 1000;
-        Long refreshCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_REFRESH) / 1000;
+        Long accessCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS);
+        Long refreshCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_REFRESH);
 
         ResponseCookie accessCookie = cookieUtil.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken, accessCookieExp);
         ResponseCookie refreshCookie = cookieUtil.createCookie(jwtTokenProvider.CATEGORY_REFRESH, newRefreshToken, refreshCookieExp);
@@ -63,13 +60,19 @@ public class ReissueServiceImpl implements ReissueService {
         response.addHeader("Set-Cookie", refreshCookie.toString());
     }
 
-    private void validateRefreshToken(String refreshToken) {
+    private void validateRefreshToken(String refreshToken, boolean dbCheck) {
         String category = jwtTokenProvider.getCategory(refreshToken);
         if (!jwtTokenProvider.CATEGORY_REFRESH.equals(category))
             throw new IllegalArgumentException("유효하지 않은 카테고리 JWT 토큰입니다.");
 
         if (jwtTokenProvider.isTokenExpired(refreshToken))
             throw new IllegalArgumentException("Refresh Token이 만료되었습니다.");
+
+        if (dbCheck) {
+            Long userId = jwtTokenProvider.getUserId(refreshToken);
+            if (!refreshTokenService.existToken(userId, refreshToken))
+                throw new IllegalArgumentException("Refresh Token이 DB에 존재하지 않습니다.");
+        }
     }
 
     private String extractRole(String token) {

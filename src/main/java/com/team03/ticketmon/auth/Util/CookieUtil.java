@@ -3,6 +3,8 @@ package com.team03.ticketmon.auth.Util;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+
 @Component
 public class CookieUtil {
 
@@ -12,7 +14,7 @@ public class CookieUtil {
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
-                .maxAge(expiration) // 밀리초를 초로 변환
+                .maxAge(Duration.ofMillis(expiration)) // 밀리초를 초로 변환
                 .sameSite("Lax")
                 .build();
     }

@@ -18,7 +18,7 @@ import com.team03.ticketmon.auth.jwt.CustomUserDetails; // CustomUserDetails 임
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/queue")
+@RequestMapping("/queue")
 @RequiredArgsConstructor
 public class WaitingQueueController {
 

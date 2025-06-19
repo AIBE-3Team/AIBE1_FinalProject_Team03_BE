@@ -93,27 +93,15 @@ public class CustomWebSocketHandler extends TextWebSocketHandler {
 
 
     /**
-     * 세션 URI의 쿼리 스트링에서 사용자 ID를 추출합니다.
-     * 예: "/ws/waitqueue?userId=user-1" -> "user-1"
+     * 사용자 ID를 추출
      *
      * @param session 클라이언트 세션
      * @return 추출된 사용자 ID, 없으면 null
      */
     private String extractUserId(WebSocketSession session) {
-        // TODO: [보안] 실제 운영 환경에서는 보안을 위해 쿼리 스트링 대신,
         // WebSocket Handshake 과정에서 인터셉터를 통해 JWT 같은 인증 토큰을 검증하고 사용자 ID를 추출해야 합니다.
-        if (session.getUri() == null || session.getUri().getQuery() == null) {
-            return null;
-        }
-
-        String query = session.getUri().getQuery();
-        for (String param : query.split("&")) {
-            String[] pair = param.split("=");
-            if (pair.length == 2 && "userId".equals(pair[0])) {
-                return pair[1];
-            }
-        }
-        return null;
+        Map<String, Object> attributes = session.getAttributes();
+        return (String) attributes.get("userId");
     }
 
     // 테스트와 외부에서 세션을 추가하기 위한 public 메서드

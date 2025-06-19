@@ -46,16 +46,14 @@ class ReissueServiceImplTest {
     @Test
     void reissueToken_AccessToken_재발급_정상_테스트() {
         // given
-        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
-        given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
         given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_ACCESS, userId, role)).willReturn(newAccessToken);
-        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(true);
+        doNothing().when(refreshTokenService).validateRefreshToken(refreshToken, true);
 
         // when
         String token = reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
-        
+
         // then
         assertEquals(newAccessToken, token);
     }
@@ -63,12 +61,10 @@ class ReissueServiceImplTest {
     @Test
     public void reissueToken_RefreshToken_재발급_정상_테스트() {
         // given
-        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
-        given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
         given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_REFRESH, userId, role)).willReturn(newRefreshToken);
-        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(true);
+        doNothing().when(refreshTokenService).validateRefreshToken(refreshToken, true);
 
         // when
         String token = reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH, true);
@@ -76,42 +72,12 @@ class ReissueServiceImplTest {
         // then
         assertEquals(newRefreshToken, token);
     }
-    
-    @Test
-    void reissueToken_유효하지_않는_카테고리_예외_테스트() {
-        // given
-        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_ACCESS);
-
-        // when & then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
-        });
-
-        assertEquals("유효하지 않은 카테고리 JWT 토큰입니다.", ex.getMessage());
-    }
-    
-    @Test
-    void reissueToken_RefreshToken_만료_예외_테스트() {
-        // given
-        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
-        given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(true);
-
-        // when & then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
-        });
-
-        assertEquals("Refresh Token이 만료되었습니다.", ex.getMessage());
-    }
 
     @Test
     void reissueToken_Role추출_예외_테스트() {
         // given
-        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
-        given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of());
-        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(true);
 
         // when & then
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
@@ -120,31 +86,14 @@ class ReissueServiceImplTest {
 
         assertEquals("역할(Role) 정보가 없습니다.", ex.getMessage());
     }
-    
-    @Test
-    public void reissueToken_DB_존재하지_않음_예외_테스트() {
-        // given
-        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
-        given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
-        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
-        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(false);
 
-        // when & then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
-        });
 
-        assertEquals("Refresh Token이 DB에 존재하지 않습니다.", ex.getMessage());
-    }
-    
     @Test
     void handleReissueToken_정상_테스트() {
         // given
         given(jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_REFRESH, request)).willReturn(refreshToken);
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(userId);
-        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
-        given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
-        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(true);
+        doNothing().when(refreshTokenService).validateRefreshToken(refreshToken, true);
 
         ResponseCookie accessCookie = ResponseCookie.from(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken)
                 .httpOnly(true).secure(true).path("/").maxAge(Duration.ofMinutes(10)).build();
@@ -181,7 +130,7 @@ class ReissueServiceImplTest {
         assertTrue(hasAccess);
         assertTrue(hasRefresh);
     }
-    
+
     @Test
     void handleReissueToken_RefreshToken이_없을때_예외_테스트() {
         // given
@@ -193,15 +142,14 @@ class ReissueServiceImplTest {
         });
         assertEquals("Refresh Token이 존재하지 않습니다.", ex.getMessage());
     }
-    
+
     @Test
     void handleReissueToken_Token_재발급_실패_예외_테스트() {
         // given
         given(jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_REFRESH, request)).willReturn(refreshToken);
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(userId);
-        given(refreshTokenService.existToken(userId, refreshToken)).willReturn(true);
-        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
+        doNothing().when(refreshTokenService).validateRefreshToken(refreshToken, true);
 
         ReissueServiceImpl spyService = spy(reissueService);
         doReturn(null).when(spyService).reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, false);
@@ -210,7 +158,7 @@ class ReissueServiceImplTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
             spyService.handleReissueToken(request, response);
         });
-        
+
         // then
         assertEquals("Access Token 재발급이 실패했습니다.", ex.getMessage());
     }

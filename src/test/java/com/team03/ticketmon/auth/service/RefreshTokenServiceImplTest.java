@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,6 +30,9 @@ class RefreshTokenServiceImplTest {
     private UserRepository userRepository;
     @InjectMocks
     private RefreshTokenServiceImpl refreshTokenService;
+
+    private final String refreshToken = "refresh-token";
+    private final Long userId = 1L;
 
     @Test
     void saveRefreshToken_정상작동_테스트() {
@@ -71,5 +75,58 @@ class RefreshTokenServiceImplTest {
 
         // then
         verify(refreshTokenRepository, times(1)).deleteByUserEntityId(userId);
+    }
+
+    @Test
+    public void validateRefreshToken_정상작동_테스트() {
+        // given
+        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
+        given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
+        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
+        given(refreshTokenRepository.existsByUserEntityIdAndToken(userId, refreshToken)).willReturn(true);
+
+        // when & then
+        assertDoesNotThrow(() -> refreshTokenService.validateRefreshToken(refreshToken, true));
+    }
+
+    @Test
+    void validateRefreshToken_유효하지_않는_카테고리_예외_테스트() {
+        // given
+        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_ACCESS);
+
+        // when & then
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            refreshTokenService.validateRefreshToken(refreshToken, true);
+        });
+
+        assertEquals("유효하지 않은 카테고리 JWT 토큰입니다.", ex.getMessage());
+    }
+
+    @Test
+    void validateRefreshToken_RefreshToken_만료_예외_테스트() {
+        // given
+        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
+        given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(true);
+
+        // when & then
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            refreshTokenService.validateRefreshToken(refreshToken, true);
+        });
+
+        assertEquals("Refresh Token이 만료되었습니다.", ex.getMessage());
+    }
+
+    @Test
+    public void validateRefreshToken_DB_존재하지_않음_예외_테스트() {
+        // given
+        given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
+        given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
+
+        // when & then
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            refreshTokenService.validateRefreshToken(refreshToken, true);
+        });
+
+        assertEquals("Refresh Token이 DB에 존재하지 않습니다.", ex.getMessage());
     }
 }

@@ -4,4 +4,5 @@ public interface RefreshTokenService {
     void deleteRefreshToken(Long userId);
     void saveRefreshToken(Long userId, String token);
     boolean existToken(Long userId, String token);
+    void validateRefreshToken(String refreshToken, boolean dbCheck);
 }

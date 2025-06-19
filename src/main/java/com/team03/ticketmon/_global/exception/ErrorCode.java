@@ -29,6 +29,7 @@ public enum ErrorCode {
     INVALID_PAGE_NUMBER(400, "C004", "페이지 번호는 0 이상이어야 합니다."), // 추가: 페이징 검증
     INVALID_PAGE_SIZE(400, "C005", "페이지 크기는 1-100 사이여야 합니다."), // 추가: 페이징 검증
     INVALID_PAGE_REQUEST(400, "C006", "페이징 요청 정보가 유효하지 않습니다."), // 추가: Pageable 검증
+    REQUEST_PARAM_MISSING(400, "C007", "필수 요청 파라미터가 누락되었습니다."), // <--- 추가됨
 
     // Auth & User (인증 및 사용자 관련)
     LOGIN_FAILED(401, "A001", "아이디 또는 비밀번호가 일치하지 않습니다."),
@@ -36,6 +37,7 @@ public enum ErrorCode {
     ACCESS_DENIED(403, "A003", "해당 리소스에 접근할 권한이 없습니다."),
     EMAIL_DUPLICATION(409, "A004", "이미 가입된 이메일입니다."),
     SELLER_APPLY_ONCE(400, "A005", "판매자 권한 신청은 한 번만 가능합니다."),
+    AUTHENTICATION_REQUIRED(401, "A006", "인증이 필요한 요청입니다. 로그인이 필요합니다."), // <--- 추가됨
 
     // Permission & Admin (권한 및 관리자)
     ADMIN_ACCESS_DENIED(403, "P001", "관리자만 접근할 수 있습니다."),

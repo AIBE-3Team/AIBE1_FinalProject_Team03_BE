@@ -13,16 +13,20 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
 
+    private final String NEED_SIGNUP_ERROR_CODE = "need_signup";
+    private final String REGISTER_URL = "/auth/register";
+    private final String LOGIN_ERROR_URL = "/auth/login?error";
+
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         if (exception instanceof OAuth2AuthenticationException) {
             OAuth2AuthenticationException ex = (OAuth2AuthenticationException) exception;
-            if ("need_signup".equals(ex.getError().getErrorCode())) {
-                response.sendRedirect("/auth/register");
+            if (NEED_SIGNUP_ERROR_CODE.equals(ex.getError().getErrorCode())) {
+                response.sendRedirect(REGISTER_URL);
                 return;
             }
         }
         // 기본 실패 처리
-        response.sendRedirect("/auth/login?error");
+        response.sendRedirect(LOGIN_ERROR_URL);
     }
 }

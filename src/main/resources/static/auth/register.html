@@ -73,6 +73,9 @@
                     emailInput.readOnly = true;
                     nameInput.readOnly = true;
                 }
+            })
+            .catch(error => {
+                document.getElementById('error-message').innerHTML = '소셜 등록 정보를 가져오는데 실패했습니다.';
             });
     });
 

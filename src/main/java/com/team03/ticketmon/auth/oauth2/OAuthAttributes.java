@@ -49,6 +49,9 @@ public class OAuthAttributes {
     }
 
     private static OAuthAttributes ofNaver(String key, Map<String, Object> resp) {
+        if (resp == null)
+            throw new OAuth2AuthenticationException("네이버 사용자 정보가 없습니다.");
+
         return OAuthAttributes.builder()
                 .name((String) resp.get("name"))
                 .email((String) resp.get("email"))

@@ -21,7 +21,7 @@ public class SocialUser {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @JoinColumn(name = "user_id", nullable = false)
     private UserEntity userEntity;
 
     @Column(nullable = false, length = 10)

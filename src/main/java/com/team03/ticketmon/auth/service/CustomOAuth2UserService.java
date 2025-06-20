@@ -34,7 +34,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String regId = request.getClientRegistration().getRegistrationId();
         OAuthAttributes attr = OAuthAttributes.of(regId, oAuth2User.getAttributes());
 
-        CheckUserEmail(attr);
+        checkUserEmail(attr);
 
         if (!socialUserService.existSocialUser(attr.getProvider(), attr.getProviderId()))
             socialUserService.saveSocialUser(attr);
@@ -46,7 +46,12 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         );
     }
 
-    private void CheckUserEmail(OAuthAttributes attr) {
+    private void checkUserEmail(OAuthAttributes attr) {
+        if (attr.getEmail() == null || attr.getEmail().isEmpty()) {
+            OAuth2Error oauth2Error = new OAuth2Error("missing_email", "이메일 정보가 제공되지 않았습니다.", null);
+            throw new OAuth2AuthenticationException(oauth2Error, oauth2Error.toString());
+        }
+
         if (!userEntityService.existsByEmail(attr.getEmail())) {
             // UserEntity에 email 정보가 없으면 세션에 OAuthAttributes 저장 후 회원 가입 유도
             RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();

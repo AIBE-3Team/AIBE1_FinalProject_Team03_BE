@@ -34,10 +34,13 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         String email = oAuth2User.getAttribute("email");
 
         UserEntity userEntity = userEntityService.findUserEntityByEmail(email)
-                .orElseThrow(() -> new IOException("유저 정보가 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("소셜 로그인 유저의 이메일 정보가 없습니다."));
 
         Long userId = userEntity.getId();
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+        if (authorities.isEmpty())
+            throw new IllegalStateException("사용자 권한 정보가 없습니다.");
+        
         GrantedAuthority grantedAuthority = authorities.iterator().next();
         String role = grantedAuthority.getAuthority();
 
@@ -51,7 +54,6 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         addCookie(response, accessToken, refreshToken);
 
         response.sendRedirect("/");
-        response.setStatus(HttpServletResponse.SC_OK);
     }
 
     private void addCookie(HttpServletResponse response, String accessToken, String refreshToken) {

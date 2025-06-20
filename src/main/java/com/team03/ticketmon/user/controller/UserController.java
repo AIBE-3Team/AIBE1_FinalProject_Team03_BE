@@ -2,6 +2,7 @@ package com.team03.ticketmon.user.controller;
 
 import com.team03.ticketmon.auth.oauth2.OAuthAttributes;
 import com.team03.ticketmon.user.dto.RegisterResponseDTO;
+import com.team03.ticketmon.user.dto.SocialRegisterDTO;
 import com.team03.ticketmon.user.dto.UserEntityDTO;
 import com.team03.ticketmon.user.service.RegisterService;
 import jakarta.servlet.http.HttpSession;
@@ -32,17 +33,13 @@ public class UserController {
 
     @GetMapping("/auth/register/social")
     @ResponseBody
-    public Map<String, Object> registerInfo(HttpSession session) {
+    public SocialRegisterDTO registerInfo(HttpSession session) {
         OAuthAttributes attr = (OAuthAttributes) session.getAttribute("oauthAttributes");
-        Map<String, Object> result = new HashMap<>();
         if (attr != null) {
-            result.put("isSocial", true);
-            result.put("name", attr.getName());
-            result.put("email", attr.getEmail());
+            return new SocialRegisterDTO(true, attr.getName(), attr.getEmail());
         } else {
-            result.put("isSocial", false);
+            return new SocialRegisterDTO(false, null, null);
         }
-        return result;
     }
 
     @PostMapping("/auth/register")

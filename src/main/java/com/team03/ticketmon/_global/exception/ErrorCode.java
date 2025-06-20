@@ -42,6 +42,9 @@ public enum ErrorCode {
     // Permission & Admin (권한 및 관리자)
     ADMIN_ACCESS_DENIED(403, "P001", "관리자만 접근할 수 있습니다."),
 
+    // Venue (공연장)
+    VENUE_NOT_FOUND(404, "V001", "공연장을 찾을 수 없습니다."),
+
     // Ticket & Concert (티켓 및 콘서트) - 확장됨
     SEARCH_BAD_REQUEST(400, "T001", "콘서트 검색어는 2글자 이상 입력해주세요."),
     INVALID_DATE_RANGE(400, "T002", "조회 가능한 날짜 범위를 벗어났습니다."),

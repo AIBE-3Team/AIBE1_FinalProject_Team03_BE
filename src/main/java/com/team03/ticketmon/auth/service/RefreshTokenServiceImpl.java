@@ -46,6 +46,22 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         refreshTokenRepository.deleteByUserEntityId(userId);
     }
 
+    @Override
+    public void validateRefreshToken(String refreshToken, boolean dbCheck) {
+        String category = jwtTokenProvider.getCategory(refreshToken);
+        if (!jwtTokenProvider.CATEGORY_REFRESH.equals(category))
+            throw new IllegalArgumentException("유효하지 않은 카테고리 JWT 토큰입니다.");
+
+        if (jwtTokenProvider.isTokenExpired(refreshToken))
+            throw new IllegalArgumentException("Refresh Token이 만료되었습니다.");
+
+        if (dbCheck) {
+            Long userId = jwtTokenProvider.getUserId(refreshToken);
+            if (!existToken(userId, refreshToken))
+                throw new IllegalArgumentException("Refresh Token이 DB에 존재하지 않습니다.");
+        }
+    }
+
     private LocalDateTime getExpirationTime() {
         Instant now = Instant.now();
         Instant expirationInstant = now.plusMillis(jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_REFRESH));

@@ -4,6 +4,7 @@ import com.team03.ticketmon.auth.Util.CookieUtil;
 import com.team03.ticketmon.auth.jwt.JwtAuthenticationFilter;
 import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
 import com.team03.ticketmon.auth.jwt.LoginFilter;
+import com.team03.ticketmon.auth.jwt.CustomLogoutFilter;
 import com.team03.ticketmon.auth.service.RefreshTokenService;
 import com.team03.ticketmon.auth.service.ReissueService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,6 +22,7 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -89,6 +91,7 @@ public class SecurityConfig {
 
                 // Login Filter 적용
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, reissueService, cookieUtil), LoginFilter.class)
+                .addFilterBefore(new CustomLogoutFilter(jwtTokenProvider, refreshTokenService, cookieUtil), LogoutFilter.class)
                 .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtTokenProvider, refreshTokenService, cookieUtil), UsernamePasswordAuthenticationFilter.class)
 
                 // 인증/인가 실패(인증 실패(401), 권한 부족(403)) 시 반환되는 예외 응답 설정
@@ -101,14 +104,6 @@ public class SecurityConfig {
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);   // 403
                             response.getWriter().write("Access Denied: " + accessDeniedException.getMessage());
                         })
-                )
-
-                // 로그아웃 시 세션 무효화 및 쿠키 삭제 설정 (JWT 기반에서는 토큰 무효화 로직은 따로 구현해야 함)
-                .logout(logout -> logout
-                        .logoutUrl("/logout")   // 로그아웃 요청 경로
-                        .invalidateHttpSession(true)    // 세션 무효화 (거의 의미 없음. JWT라서)
-                        .deleteCookies("JSESSIONID", "jwt_token")   // 쿠키 삭제
-                        .permitAll()
                 );
 
         return http.build();

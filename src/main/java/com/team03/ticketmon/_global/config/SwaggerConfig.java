@@ -44,24 +44,56 @@ public class SwaggerConfig {
 
 
 
-    //  API 그룹 나누기 예시 — Swagger UI에 구분된 그룹으로 표시됨 (현재는 계획 없음)
-    // 주석 해제 시 사용 가능 (예: /api/user/**, /api/admin/** 등)
-    // 사용자 API 그룹
-//        @Bean
-//        public GroupedOpenApi userApi() {
-//                return GroupedOpenApi.builder()
-//                        .group("User API")
-//                        .pathsToMatch("/api/user/**")
-//                        .packagesToScan("com.team03.ticketmongo") // ← 스캔 범위 지정(테스트용)
-//                        .build();
-//        }
+    //  API 그룹 나누기 — Swagger UI에 구분된 그룹으로 표시됨
+    // 기능 구현 API 그룹
+        @Bean
+        public GroupedOpenApi devApi() {
+                return GroupedOpenApi.builder()
+                        .group("1. 기능 구현 API 모음")
+                        .pathsToMatch("/api/**")
+//                        .pathsToExclude("/test/**")
+//                        .pathsToExclude("/health/**")
+//                        .pathsToExclude("/redis/**")
+                        .build();
+        }
 
-    // 관리자 API 그룹
-//        @Bean
-//        public GroupedOpenApi adminApi() {
-//                return GroupedOpenApi.builder()
-//                        .group("Admin API") // Swagger UI에 표시될 그룹명
-//                        .pathsToMatch("/api/admin/**")
-//                        .build();
-//        }
+
+    // Redis 테스트 API 그룹
+    @Bean
+    public GroupedOpenApi redisTestApi() {
+        return GroupedOpenApi.builder()
+                .group("2. Redis 테스트 API 모음")
+                .pathsToMatch("/test/redis/**")
+                .build();
+    }
+
+    // 헬스체크 관련 API 그룹
+    @Bean
+    public GroupedOpenApi healthApi() {
+        return GroupedOpenApi.builder()
+                .group("3. 헬스체크(Redis, ..) API")
+                .pathsToMatch("/health/**")
+                .build();
+    }
+
+    // 초기 테스트 API 그룹
+        @Bean
+        public GroupedOpenApi initTestApi() {
+                return GroupedOpenApi.builder()
+                        .group("4. 초기 테스트 API 모음")
+                        .pathsToMatch("/test/**")
+                        .pathsToExclude("/test/redis/**")
+                        .build();
+        }
+
+    // 전체 API 그룹
+    @Bean
+    public GroupedOpenApi allApi() {
+        return GroupedOpenApi.builder()
+                .group("5. 전체 API(초기 테스트, 헬스체크 포함)")
+                .pathsToMatch("/**")
+                .pathsToExclude("/example/**")
+                .build();
+    }
+
 }

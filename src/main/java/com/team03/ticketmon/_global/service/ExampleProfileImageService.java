@@ -9,7 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
-public class ProfileImageService {
+public class ExampleProfileImageService {
 
     private final StorageUploader storageUploader;
 

@@ -1,4 +1,4 @@
-package com.team03.ticketmon.payment.domain;
+package com.team03.ticketmon.payment.domain.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -25,7 +25,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "payments") // ERD에 정의된 'payments' 테이블
+@Table(name = "payments")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Payment {
@@ -35,7 +35,7 @@ public class Payment {
 
 	@OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "booking_id", nullable = false, unique = true)
-	private Booking booking; // **핵심: 기존 Booking 엔티티와 1:1 연관관계**
+	private Booking booking;
 
 	@Column(nullable = false, unique = true, length = 64)
 	private String orderId;
@@ -77,5 +77,25 @@ public class Payment {
 		this.orderId = orderId;
 		this.amount = amount;
 		this.status = PaymentStatus.PENDING;
+	}
+
+	public void complete(String paymentKey) {
+		this.paymentKey = paymentKey;
+		this.status = PaymentStatus.DONE;
+		this.approvedAt = LocalDateTime.now();
+	}
+
+	public void complete(String paymentKey, LocalDateTime approvedAt) { // 💡 [추가/수정]
+		this.paymentKey = paymentKey;
+		this.status = PaymentStatus.DONE;
+		this.approvedAt = approvedAt;
+	}
+
+	public void fail() {
+		this.status = PaymentStatus.FAILED;
+	}
+
+	public void cancel() {
+		this.status = PaymentStatus.CANCELED;
 	}
 }

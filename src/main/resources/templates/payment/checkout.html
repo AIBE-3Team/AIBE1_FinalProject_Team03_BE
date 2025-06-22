@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <title>결제 요청</title>
+    <!-- 토스페이먼츠 v1 결제창 SDK 추가 -->
+    <script src="https://js.tosspayments.com/v1/payment"></script>
+</head>
+<body>
+<h1>결제하기</h1>
+<div th:if="${errorMessage}"><p style="color:red;" th:text="${errorMessage}"></p></div>
+<div th:unless="${errorMessage}">
+    <label for="booking-select">결제할 예매 선택:</label>
+    <select id="booking-select">
+        <option value="">-- 결제할 예매 선택 --</option>
+        <th:block th:each="b : ${bookings}">
+            <option th:value="${b.bookingNumber}" th:text="|${b.concert.title} (${b.bookingNumber})|"></option>
+        </th:block>
+    </select>
+    <button id="payment-button" disabled>결제</button>
+</div>
+
+<script th:inline="javascript">
+    const bookingSelect = document.getElementById('booking-select');
+    const paymentButton = document.getElementById('payment-button');
+
+    // 💡 [핵심 수정] tossPayments 객체는 API 응답 후 초기화됩니다.
+    let tossPayments = null; // 초기화 전에는 null로 선언
+
+    bookingSelect.addEventListener('change', () => paymentButton.disabled = !bookingSelect.value);
+
+    paymentButton.addEventListener('click', async () => {
+        const bookingNumber = bookingSelect.value;
+        if (!bookingNumber) return;
+
+        try {
+            const response = await fetch('/api/v1/payments/request', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({bookingNumber})
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '결제 정보 생성에 실패했습니다.');
+            }
+
+            const paymentData = await response.json();
+
+            // 💡 [핵심 수정] 여기서 tossPayments 객체를 초기화합니다.
+            // clientKey가 유효하지 않으면 여기서 오류가 발생할 수 있습니다.
+            tossPayments = TossPayments(paymentData.clientKey);
+
+            // 💡 [추가] tossPayments 객체가 올바르게 초기화되었는지 확인합니다.
+            if (!tossPayments) {
+                throw new Error('TossPayments SDK 초기화에 실패했습니다. clientKey를 확인해주세요.');
+            }
+
+            tossPayments.requestPayment('카드', {
+                amount: paymentData.amount,
+                orderId: paymentData.orderId,
+                orderName: paymentData.orderName,
+                customerName: paymentData.customerName,
+                successUrl: paymentData.successUrl,
+                failUrl: paymentData.failUrl
+            })
+                .catch(function (error) {
+                    // error.code가 'USER_CANCEL'이면 사용자가 직접 창을 닫은 경우
+                    if (error.code === 'USER_CANCEL') {
+                        console.log('사용자가 결제를 취소했습니다.');
+                        // 수동으로 fail 페이지로 리다이렉트
+                        // orderId를 알 수 없으므로, 현재 선택된 bookingNumber를 기반으로 메시지를 전달
+                        window.location.href = '/payment/result/fail?orderId=' + paymentData.orderId
+                            + '&code=' + error.code
+                            + '&message=' + encodeURIComponent('사용자가 결제를 취소했습니다.');
+                    } else {
+                        // 그 외 다른 결제 오류 (네트워크 문제 등)
+                        console.error('결제 오류:', error.message);
+                        window.location.href = '/payment/result/fail?orderId=' + paymentData.orderId
+                            + '&message=' + encodeURIComponent('결제 중 오류가 발생했습니다: ' + error.message);
+                    }
+                });
+
+        } catch (error) {
+            alert(error.message);
+        }
+    });
+</script>
+</body>
+</html>

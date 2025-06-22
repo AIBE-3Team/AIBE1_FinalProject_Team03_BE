@@ -1,0 +1,38 @@
+# ================================================================
+#   테스트 환경 전용 통합 설정 (진짜 최종 완성본)
+# ================================================================
+
+spring:
+  # H2 데이터베이스 설정 (테스트 시에만 사용되는 인메모리 DB)
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  # JPA 설정: 테스트 실행 시마다 DB 스키마를 새로 생성하고, 끝나면 삭제
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+    # H2 DB를 MySQL 문법처럼 사용하기 위한 설정
+    database-platform: org.hibernate.dialect.H2Dialect
+
+# SQL 로그를 더 자세히 보기 위해 DEBUG 레벨로 설정
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+# 테스트용 토스페이먼츠 및 앱 설정
+toss:
+  client-key: test_ck_xxxxxxxxxxxxxxx
+  secret-key: test_sk_xxxxxxxxxxxxxxx
+app:
+  base-url: http://localhost:8080
+
+# 테스트용 JWT Secret Key 설정 (아무 문자열이나 괜찮습니다)
+jwt:
+  secret: this-is-a-very-long-and-secure-test-secret-key-for-jwt-provider

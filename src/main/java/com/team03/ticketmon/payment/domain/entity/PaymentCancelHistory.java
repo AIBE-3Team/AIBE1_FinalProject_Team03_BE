@@ -1,4 +1,4 @@
-package com.team03.ticketmon.payment.domain;
+package com.team03.ticketmon.payment.domain.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,11 +11,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+// import com.team03.ticketmon.payment.domain.Payment; // 💡 [확인] 이 임포트가 필요할 수 있습니다.
 
 @Entity
 @Table(name = "payment_cancel_history")
@@ -42,10 +45,13 @@ public class PaymentCancelHistory {
 	@Column(nullable = false)
 	private LocalDateTime canceledAt;
 
-	// ... 환불 계좌 정보 필드들 ...
-
 	@Column(nullable = false, updatable = false)
-	private final LocalDateTime createdAt = LocalDateTime.now();
+	private LocalDateTime createdAt;
+
+	@PrePersist
+	private void onCreate() {
+		this.createdAt = LocalDateTime.now();
+	}
 
 	@Builder
 	public PaymentCancelHistory(Payment payment, String transactionKey, BigDecimal cancelAmount, String cancelReason,

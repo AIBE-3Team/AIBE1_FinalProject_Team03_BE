@@ -113,7 +113,7 @@ public class ConcertController {
 	 */
 	@GetMapping("/{id}/reviews")
 	public ResponseEntity<SuccessResponse<Page<ReviewDTO>>> getConcertReviews(
-		@PathVariable Long concertId,
+		@PathVariable("id") Long concertId,
 		@RequestParam(defaultValue = "0") int page,
 		@RequestParam(defaultValue = "10") int size) {
 

@@ -5,8 +5,13 @@ import com.team03.ticketmon.auth.jwt.JwtAuthenticationFilter;
 import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
 import com.team03.ticketmon.auth.jwt.LoginFilter;
 import com.team03.ticketmon.auth.jwt.CustomLogoutFilter;
+import com.team03.ticketmon.auth.oauth2.OAuth2LoginFailureHandler;
+import com.team03.ticketmon.auth.oauth2.OAuth2LoginSuccessHandler;
+import com.team03.ticketmon.auth.service.CustomOAuth2UserService;
 import com.team03.ticketmon.auth.service.RefreshTokenService;
 import com.team03.ticketmon.auth.service.ReissueService;
+import com.team03.ticketmon.user.service.SocialUserService;
+import com.team03.ticketmon.user.service.UserEntityService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +25,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
@@ -45,6 +53,8 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final ReissueService reissueService;
     private final RefreshTokenService refreshTokenService;
+    private final UserEntityService userEntityService;
+    private final SocialUserService socialUserService;
     private final CookieUtil cookieUtil;
 
     @Bean
@@ -88,6 +98,11 @@ public class SecurityConfig {
                         // 나머지 모든 요청은 인증만 되면 접근 허용 (추후 JWT 완성 시 주석 제거)
 //                        .anyRequest().authenticated()
                 )
+                // OAuth2 Login
+                .oauth2Login(oauth -> oauth
+                        .userInfoEndpoint(user -> user.userService(customOAuth2UserService()))
+                        .successHandler(oAuth2SuccessHandler())
+                        .failureHandler(oAuth2LoginFailureHandler()))
 
                 // Login Filter 적용
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, reissueService, cookieUtil), LoginFilter.class)
@@ -135,5 +150,21 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    // OAuth2 로그인
+    @Bean
+    public OAuth2UserService<OAuth2UserRequest, OAuth2User> customOAuth2UserService() {
+        return new CustomOAuth2UserService(socialUserService, userEntityService);
+    }
+
+    @Bean
+    public OAuth2LoginSuccessHandler oAuth2SuccessHandler() {
+        return new OAuth2LoginSuccessHandler(userEntityService, refreshTokenService, jwtTokenProvider, cookieUtil);
+    }
+
+    @Bean
+    public OAuth2LoginFailureHandler oAuth2LoginFailureHandler() {
+        return new OAuth2LoginFailureHandler();
     }
 }

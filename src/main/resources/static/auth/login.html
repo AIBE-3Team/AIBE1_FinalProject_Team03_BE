@@ -63,7 +63,17 @@
         <button type="submit">로그인</button>
     </form>
     <div id="message"></div>
-
+</div>
+<div class="social-container">
+    <button class="social-login-btn">
+        구글 로그인
+    </button>
+    <button class="social-login-btn">
+        카카오 로그인
+    </button>
+    <button class="social-login-btn">
+        네이버 로그인
+    </button>
 </div>
 
 <script>
@@ -92,6 +102,21 @@
             .catch(err => {
                 document.getElementById("message").textContent = "로그인 실패: " + err.message;
             });
+    });
+
+    document.querySelectorAll('.social-login-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const text = btn.textContent.trim();
+
+            let provider = '';
+            if (text.includes('카카오')) provider = 'kakao';
+            else if (text.includes('네이버')) provider = 'naver';
+            else if (text.includes('구글')) provider = 'google';
+
+            if (provider) {
+                window.location.href = `/oauth2/authorization/${provider}`;
+            }
+        });
     });
 </script>
 

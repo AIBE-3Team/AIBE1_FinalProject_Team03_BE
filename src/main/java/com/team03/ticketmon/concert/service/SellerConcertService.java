@@ -65,11 +65,50 @@ public class SellerConcertService {
 	public SellerConcertDTO createConcert(Long sellerId, SellerConcertCreateDTO createDTO) {
 		validateSellerId(sellerId);
 
-		Concert concert = convertToEntity(createDTO, sellerId);
+		// DTO 유효성 추가 검증 (Controller 검증 보완)
+		validateCreateDTO(createDTO);
 
+		Concert concert = convertToEntity(createDTO, sellerId);
 		Concert savedConcert = sellerConcertRepository.save(concert);
 
 		return convertToSellerDTO(savedConcert);
+	}
+
+	private void validateCreateDTO(SellerConcertCreateDTO createDTO) {
+		if (createDTO == null) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "콘서트 정보가 없습니다");
+		}
+
+		// 필수 문자열 필드들 검증
+		if (!hasValidStringValue(createDTO.getTitle())) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "콘서트 제목이 필요합니다");
+		}
+		if (!hasValidStringValue(createDTO.getArtist())) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "아티스트명이 필요합니다");
+		}
+		if (!hasValidStringValue(createDTO.getVenueName())) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "공연장명이 필요합니다");
+		}
+
+		// 필수 객체 필드들 검증
+		if (createDTO.getConcertDate() == null) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "콘서트 날짜가 필요합니다");
+		}
+		if (createDTO.getStartTime() == null) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "시작 시간이 필요합니다");
+		}
+		if (createDTO.getEndTime() == null) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "종료 시간이 필요합니다");
+		}
+		if (createDTO.getTotalSeats() == null) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "총 좌석 수가 필요합니다");
+		}
+		if (createDTO.getBookingStartDate() == null) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "예매 시작일시가 필요합니다");
+		}
+		if (createDTO.getBookingEndDate() == null) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "예매 종료일시가 필요합니다");
+		}
 	}
 
 	/**
@@ -79,6 +118,11 @@ public class SellerConcertService {
 	public SellerConcertDTO updateConcert(Long sellerId, Long concertId, SellerConcertUpdateDTO updateDTO) {
 		validateSellerId(sellerId);
 		validateConcertId(concertId);
+
+		// DTO 기본 검증
+		if (updateDTO == null) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "수정할 정보가 없습니다");
+		}
 
 		if (!sellerConcertRepository.existsByConcertIdAndSellerId(concertId, sellerId)) {
 			throw new BusinessException(ErrorCode.SELLER_PERMISSION_DENIED);
@@ -101,12 +145,23 @@ public class SellerConcertService {
 		validateSellerId(sellerId);
 		validateConcertId(concertId);
 
-		if (imageDTO == null || imageDTO.getPosterImageUrl() == null || imageDTO.getPosterImageUrl().trim().isEmpty()) {
-			throw new BusinessException(ErrorCode.INVALID_POSTER_URL);
+		// 더 엄격한 검증
+		if (imageDTO == null) {
+			throw new BusinessException(ErrorCode.INVALID_POSTER_URL, "이미지 정보가 없습니다");
+		}
+
+		String posterUrl = imageDTO.getPosterImageUrl();
+		if (posterUrl == null) {
+			throw new BusinessException(ErrorCode.INVALID_POSTER_URL, "포스터 URL이 없습니다");
+		}
+
+		String trimmedUrl = posterUrl.trim();
+		if (trimmedUrl.isEmpty()) {
+			throw new BusinessException(ErrorCode.INVALID_POSTER_URL, "포스터 URL이 비어있습니다");
 		}
 
 		int updatedRows = sellerConcertRepository
-			.updatePosterImageUrl(concertId, sellerId, imageDTO.getPosterImageUrl().trim());
+			.updatePosterImageUrl(concertId, sellerId, trimmedUrl);
 
 		if (updatedRows == 0) {
 			throw new BusinessException(ErrorCode.SELLER_PERMISSION_DENIED);
@@ -165,21 +220,29 @@ public class SellerConcertService {
 	private Concert convertToEntity(SellerConcertCreateDTO createDTO, Long sellerId) {
 		Concert concert = new Concert();
 
-		concert.setTitle(createDTO.getTitle().trim());
-		concert.setArtist(createDTO.getArtist().trim());
-		concert.setDescription(createDTO.getDescription());
-		concert.setVenueName(createDTO.getVenueName().trim());
-		concert.setVenueAddress(createDTO.getVenueAddress());
+		// Null-safe 문자열 처리
+		concert.setTitle(safeStringTrim(createDTO.getTitle()));
+		concert.setArtist(safeStringTrim(createDTO.getArtist()));
+		concert.setVenueName(safeStringTrim(createDTO.getVenueName()));
+
+		// Optional 필드들 - null 허용
+		concert.setDescription(safeOptionalStringTrim(createDTO.getDescription()));
+		concert.setVenueAddress(safeOptionalStringTrim(createDTO.getVenueAddress()));
+		concert.setPosterImageUrl(safeOptionalStringTrim(createDTO.getPosterImageUrl()));
+
+		// 날짜/시간 필드들
 		concert.setConcertDate(createDTO.getConcertDate());
 		concert.setStartTime(createDTO.getStartTime());
 		concert.setEndTime(createDTO.getEndTime());
-		concert.setTotalSeats(createDTO.getTotalSeats());
 		concert.setBookingStartDate(createDTO.getBookingStartDate());
 		concert.setBookingEndDate(createDTO.getBookingEndDate());
+
+		// 숫자 필드들 - 기본값 처리
+		concert.setTotalSeats(createDTO.getTotalSeats());
 		concert.setMinAge(createDTO.getMinAge() != null ? createDTO.getMinAge() : 0);
 		concert.setMaxTicketsPerUser(createDTO.getMaxTicketsPerUser() != null ? createDTO.getMaxTicketsPerUser() : 4);
-		concert.setPosterImageUrl(createDTO.getPosterImageUrl());
 
+		// 시스템 설정값들
 		concert.setSellerId(sellerId);
 		concert.setStatus(ConcertStatus.SCHEDULED);
 
@@ -190,21 +253,29 @@ public class SellerConcertService {
 	 * 수정 DTO로 Entity 업데이트
 	 */
 	private void updateConcertEntity(Concert concert, SellerConcertUpdateDTO updateDTO) {
-		if (updateDTO.getTitle() != null) {
+		// 문자열 필드들 - null과 빈 문자열 모두 체크
+		if (hasValidStringValue(updateDTO.getTitle())) {
 			concert.setTitle(updateDTO.getTitle().trim());
 		}
-		if (updateDTO.getArtist() != null) {
+		if (hasValidStringValue(updateDTO.getArtist())) {
 			concert.setArtist(updateDTO.getArtist().trim());
 		}
-		if (updateDTO.getDescription() != null) {
-			concert.setDescription(updateDTO.getDescription());
-		}
-		if (updateDTO.getVenueName() != null) {
+		if (hasValidStringValue(updateDTO.getVenueName())) {
 			concert.setVenueName(updateDTO.getVenueName().trim());
 		}
-		if (updateDTO.getVenueAddress() != null) {
-			concert.setVenueAddress(updateDTO.getVenueAddress());
+
+		// Optional 문자열 필드들 - null 허용하지만 빈 문자열은 null로 변환
+		if (updateDTO.getDescription() != null) {
+			concert.setDescription(updateDTO.getDescription().trim().isEmpty() ? null : updateDTO.getDescription());
 		}
+		if (updateDTO.getVenueAddress() != null) {
+			concert.setVenueAddress(updateDTO.getVenueAddress().trim().isEmpty() ? null : updateDTO.getVenueAddress());
+		}
+		if (updateDTO.getPosterImageUrl() != null) {
+			concert.setPosterImageUrl(updateDTO.getPosterImageUrl().trim().isEmpty() ? null : updateDTO.getPosterImageUrl());
+		}
+
+		// 날짜/시간 필드들
 		if (updateDTO.getConcertDate() != null) {
 			concert.setConcertDate(updateDTO.getConcertDate());
 		}
@@ -214,14 +285,16 @@ public class SellerConcertService {
 		if (updateDTO.getEndTime() != null) {
 			concert.setEndTime(updateDTO.getEndTime());
 		}
-		if (updateDTO.getTotalSeats() != null) {
-			concert.setTotalSeats(updateDTO.getTotalSeats());
-		}
 		if (updateDTO.getBookingStartDate() != null) {
 			concert.setBookingStartDate(updateDTO.getBookingStartDate());
 		}
 		if (updateDTO.getBookingEndDate() != null) {
 			concert.setBookingEndDate(updateDTO.getBookingEndDate());
+		}
+
+		// 숫자 필드들
+		if (updateDTO.getTotalSeats() != null) {
+			concert.setTotalSeats(updateDTO.getTotalSeats());
 		}
 		if (updateDTO.getMinAge() != null) {
 			concert.setMinAge(updateDTO.getMinAge());
@@ -229,11 +302,10 @@ public class SellerConcertService {
 		if (updateDTO.getMaxTicketsPerUser() != null) {
 			concert.setMaxTicketsPerUser(updateDTO.getMaxTicketsPerUser());
 		}
+
+		// 상태 필드
 		if (updateDTO.getStatus() != null) {
 			concert.setStatus(updateDTO.getStatus());
-		}
-		if (updateDTO.getPosterImageUrl() != null) {
-			concert.setPosterImageUrl(updateDTO.getPosterImageUrl());
 		}
 	}
 
@@ -263,5 +335,33 @@ public class SellerConcertService {
 			.createdAt(concert.getCreatedAt())
 			.updatedAt(concert.getUpdatedAt())
 			.build();
+	}
+
+	/**
+	 * Optional 문자열 안전 trim 처리
+	 */
+	private String safeOptionalStringTrim(String str) {
+		if (str == null) {
+			return null;
+		}
+		String trimmed = str.trim();
+		return trimmed.isEmpty() ? null : trimmed;
+	}
+
+	/**
+	 * 문자열 null-safe trim 처리
+	 */
+	private String safeStringTrim(String str) {
+		if (str == null) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT, "필수 문자열 필드가 null입니다");
+		}
+		return str.trim();
+	}
+
+	/**
+	 * 유효한 문자열 값인지 확인 (null이 아니고 trim 후 비어있지 않음)
+	 */
+	private boolean hasValidStringValue(String str) {
+		return str != null && !str.trim().isEmpty();
 	}
 }

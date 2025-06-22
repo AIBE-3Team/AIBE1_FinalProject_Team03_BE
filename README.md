@@ -371,5 +371,5 @@ docker exec -it localstack awslocal sqs list-queues
 ---
 
 ### + [추가 문서]
-- 📎 [TimeUtil 설명 보기](src/main/java/com/team03/ticketmon/_global/util/README.md)
+- 📎 [TimeUtil 설명 보기](src/main/java/com/team03/ticketmon/_global/util/TIME_UTIL_GUIDE.md)
 - 📦 [파일 업로드 시스템 / 파일 업로드 구조 보기](./STORAGE_GUIDE.md)

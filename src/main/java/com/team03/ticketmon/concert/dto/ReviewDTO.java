@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 public class ReviewDTO {
 	private Long id;
 
-	@NotNull(message = "콘서트 ID는 필수입니다")
 	private Long concertId;
 
 	@NotNull(message = "사용자 ID는 필수입니다")

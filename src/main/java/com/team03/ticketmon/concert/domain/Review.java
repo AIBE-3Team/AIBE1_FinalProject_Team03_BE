@@ -23,6 +23,7 @@ import com.team03.ticketmon._global.entity.BaseTimeEntity;
 @Entity
 @Getter
 @Setter
+@Table(name = "reviews")
 @ToString(exclude = {"concert"})
 @EqualsAndHashCode(of = "id", callSuper = false)
 @NoArgsConstructor

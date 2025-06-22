@@ -27,6 +27,11 @@ public class BusinessException extends RuntimeException {
     private final ErrorCode errorCode;
 
     /**
+     * 커스텀 메시지 (ErrorCode의 기본 메시지를 재정의할 때 사용)
+     */
+    private final String customMessage;
+
+    /**
      * BusinessException 생성자
      *
      * @param errorCode ErrorCode enum 값 (status, code, message 포함)
@@ -34,5 +39,18 @@ public class BusinessException extends RuntimeException {
     public BusinessException(ErrorCode errorCode) {
         super(errorCode.getMessage());  // 예외 메시지는 ErrorCode에서 가져옴
         this.errorCode = errorCode;
+		this.customMessage = null;
+	}
+
+    /**
+     * 커스텀 메시지를 포함한 BusinessException 생성자
+     *
+     * @param errorCode ErrorCode enum 값 (status, code는 유지)
+     * @param customMessage 구체적인 상황에 맞는 커스텀 메시지
+     */
+    public BusinessException(ErrorCode errorCode, String customMessage) {
+        super(customMessage != null ? customMessage : errorCode.getMessage());
+        this.errorCode = errorCode;
+        this.customMessage = customMessage;
     }
 }

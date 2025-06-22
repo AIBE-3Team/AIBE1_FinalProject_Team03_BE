@@ -20,6 +20,7 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
+@Table(name = "concertSeats")
 @ToString(exclude = {"concert", "seat", "tickets"})
 @EqualsAndHashCode(of = "concertSeatId")  // ID 기반으로 변경
 @NoArgsConstructor

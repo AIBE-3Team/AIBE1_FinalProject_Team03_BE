@@ -7,6 +7,11 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.stream.Collectors;
 
 /**
  * ✅ GlobalExceptionHandler
@@ -16,7 +21,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * 주요 처리 방식:
  * <ul>
  *   <li>{@link BusinessException} : 비즈니스 로직 중 발생하는 커스텀 예외</li>
- *   <li>{@link IllegalArgumentException} : 입력값 검증 예외</li> <!-- 추가됨 -->
+ *   <li>{@link MethodArgumentNotValidException} : @Valid 검증 실패 예외</li> <!-- 🆕 추가됨 -->
+ *   <li>{@link HttpMessageNotReadableException} : JSON 파싱 실패 예외</li> <!-- 🆕 추가됨 -->
+ *   <li>{@link HttpRequestMethodNotSupportedException} : HTTP 메서드 불일치 예외</li> <!-- 🆕 추가됨 -->
+ *   <li>{@link IllegalArgumentException} : 입력값 검증 예외</li>
  *   <li>{@link Exception} : 예상치 못한 모든 예외 (Fallback)</li>
  * </ul>
  * <br>
@@ -44,23 +52,63 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * ✅ @Valid 애노테이션을 통한 유효성 검사 실패 시 발생하는 예외 처리
+     * 🆕 @Valid 검증 실패 예외 처리
      * <p>
-     * MethodArgumentNotValidException이 발생하면, 어떤 필드가 왜 유효성 검사에 실패했는지
-     * 상세한 정보를 담은 {@link ErrorResponse}를 생성하여 반환합니다.
+     * @RequestBody @Valid ReviewDTO에서 검증 실패 시 발생하는 예외를 처리합니다.<br>
+     * @NotBlank, @NotNull, @Min, @Max 등의 검증 어노테이션 실패를 400 Bad Request로 처리합니다.
      *
-     * @param e MethodArgumentNotValidException
-     * @return 필드별 상세 오류 정보가 포함된 400 에러 응답
+     * @param e MethodArgumentNotValidException (@Valid 검증 실패 예외)
+     * @return 400 에러 응답 (ResponseEntity<ErrorResponse>)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     protected ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        log.warn("MethodArgumentNotValidException 발생: {}", e.getMessage());
-        ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT, e.getBindingResult());
+        // 🎯 검증 실패 필드들의 에러 메시지 수집
+        String errorMessage = e.getBindingResult()
+            .getFieldErrors()
+            .stream()
+            .map(error -> error.getField() + ": " + error.getDefaultMessage())
+            .collect(Collectors.joining(", "));
+
+        // 🔥 @Valid 검증 실패를 INVALID_INPUT 에러 코드로 매핑
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     /**
-     * ✅ IllegalArgumentException 처리 (새롭게 추가됨)
+     * 🆕 JSON 파싱 실패 예외 처리
+     * <p>
+     * @RequestBody로 전달된 JSON이 올바르지 않은 형식일 때 발생하는 예외를 처리합니다.<br>
+     * 잘못된 JSON 구문, 타입 불일치 등을 400 Bad Request로 처리합니다.
+     *
+     * @param e HttpMessageNotReadableException (JSON 파싱 실패 예외)
+     * @return 400 에러 응답 (ResponseEntity<ErrorResponse>)
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    protected ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        // 🔥 JSON 파싱 실패를 INVALID_INPUT 에러 코드로 매핑
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * 🆕 HTTP 메서드 불일치 예외 처리
+     * <p>
+     * 지원하지 않는 HTTP 메서드로 요청했을 때 발생하는 예외를 처리합니다.<br>
+     * 예: POST 엔드포인트에 GET 요청을 보낸 경우 405 Method Not Allowed로 처리합니다.
+     *
+     * @param e HttpRequestMethodNotSupportedException (HTTP 메서드 불일치 예외)
+     * @return 405 에러 응답 (ResponseEntity<ErrorResponse>)
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    protected ResponseEntity<ErrorResponse> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
+        // 🔥 HTTP 메서드 불일치를 METHOD_NOT_ALLOWED 에러 코드로 매핑 (ErrorCode에 추가 필요)
+        // 임시로 INVALID_INPUT 사용, 나중에 METHOD_NOT_ALLOWED 에러 코드 추가 권장
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT);
+        return new ResponseEntity<>(response, HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
+    /**
+     * ✅ IllegalArgumentException 처리
      * <p>
      * Service 계층에서 발생하는 입력값 검증 예외를 처리합니다.<br>
      * 대부분의 검증 실패는 400 Bad Request로 처리됩니다.
@@ -68,15 +116,15 @@ public class GlobalExceptionHandler {
      * @param e IllegalArgumentException (입력값 검증 실패 예외)
      * @return 400 에러 응답 (ResponseEntity<ErrorResponse>)
      */
-    @ExceptionHandler(IllegalArgumentException.class) // 추가: IllegalArgumentException 전용 핸들러
+    @ExceptionHandler(IllegalArgumentException.class)
     protected ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
-        // 🔥 추가: IllegalArgumentException을 INVALID_INPUT 에러 코드로 매핑
+        // 🔥 IllegalArgumentException을 INVALID_INPUT 에러 코드로 매핑
         ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     /**
-     * ✅ NullPointerException 처리 (새롭게 추가됨)
+     * ✅ NullPointerException 처리
      * <p>
      * 예상치 못한 null 참조로 인한 예외를 처리합니다.<br>
      * 개발 단계에서 디버깅에 유용하며, 서버 내부 오류로 분류됩니다.
@@ -84,10 +132,9 @@ public class GlobalExceptionHandler {
      * @param e NullPointerException (null 참조 예외)
      * @return 500 에러 응답 (ResponseEntity<ErrorResponse>)
      */
-    @ExceptionHandler(NullPointerException.class) // 추가: NullPointerException 전용 핸들러
+    @ExceptionHandler(NullPointerException.class)
     protected ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException e) {
         // TODO: 로그 기록 추가 (개발 단계에서 디버깅용)
-        // 추가: NPE를 서버 에러로 분류하여 처리
         ErrorResponse response = ErrorResponse.of(ErrorCode.SERVER_ERROR);
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -97,6 +144,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
         log.error("필수 파라미터 누락: {}", ex.getParameterName());
         ErrorResponse response = ErrorResponse.of(ErrorCode.REQUEST_PARAM_MISSING);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * 🚨 타입 변환 예외 처리
+     * sellerId="invalid-id" 또는 status="INVALID_STATUS" 등의 경우 발생
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    protected ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 

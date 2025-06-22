@@ -61,6 +61,24 @@
 </form>
 
 <script>
+    window.addEventListener("DOMContentLoaded", () => {
+        fetch("/auth/register/social")
+            .then(res => res.json())
+            .then(data => {
+                if (data.isSocial) {
+                    const emailInput = document.getElementById("email");
+                    const nameInput = document.getElementById("name");
+                    emailInput.value = data.email;
+                    nameInput.value = data.name;
+                    emailInput.readOnly = true;
+                    nameInput.readOnly = true;
+                }
+            })
+            .catch(error => {
+                document.getElementById('error-message').innerHTML = '소셜 등록 정보를 가져오는데 실패했습니다.';
+            });
+    });
+
     document.getElementById('register-form').addEventListener('submit', async function (e) {
         e.preventDefault();
 

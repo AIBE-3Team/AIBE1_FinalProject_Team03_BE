@@ -5,7 +5,6 @@ import com.team03.ticketmon.auth.service.RefreshTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -50,22 +49,11 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) {
         CustomUserDetails userDetails = (CustomUserDetails) authResult.getPrincipal();
         Long userId = userDetails.getUserId();
+        String username = userDetails.getUsername();
         String role = userDetails.getAuthorities().iterator().next().getAuthority();
 
-        String accessToken = jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_ACCESS, userId, role);
-        String refreshToken = jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_REFRESH, userId, role);
+        cookieUtil.generateAndSetJwtCookies(userId, username, role, response);
 
-        // Refresh Token DB 저장
-        refreshTokenService.deleteRefreshToken(userId);
-        refreshTokenService.saveRefreshToken(userId, refreshToken);
-
-        Long accessCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS);
-        Long refreshCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_REFRESH);
-
-        ResponseCookie accessCookie = cookieUtil.createCookie(jwtTokenProvider.CATEGORY_ACCESS, accessToken, accessCookieExp);
-        ResponseCookie refreshCookie = cookieUtil.createCookie(jwtTokenProvider.CATEGORY_REFRESH, refreshToken, refreshCookieExp);
-        response.addHeader("Set-Cookie", accessCookie.toString());
-        response.addHeader("Set-Cookie", refreshCookie.toString());
         response.setStatus(HttpServletResponse.SC_OK);
     }
 

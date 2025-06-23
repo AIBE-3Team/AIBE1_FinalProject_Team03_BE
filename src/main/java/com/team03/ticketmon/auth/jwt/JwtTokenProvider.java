@@ -29,6 +29,7 @@ public class JwtTokenProvider {
     public final String CATEGORY_REFRESH = "refresh";
     private static final String CLAIM_CATEGORY = "category";
     private static final String CLAIM_USERID = "userid";
+    private static final String CLAIM_USERNAME = "username";
     private static final String CLAIM_ROLE = "role";
 
     @Value("${jwt.secret}")
@@ -46,14 +47,14 @@ public class JwtTokenProvider {
     }
 
     // JWT Token 생성
-    public String generateToken(String category, Long userId, String role) {
-
+    public String generateToken(String category, Long userId, String username, String role) {
         Instant now = Instant.now();
         Date expiration = new Date(now.toEpochMilli() + getExpirationMs(category));
 
         return Jwts.builder()
                 .claim(CLAIM_CATEGORY, category)
                 .claim(CLAIM_USERID, userId)
+                .claim(CLAIM_USERNAME, username)
                 .claim(CLAIM_ROLE, role)
                 .issuedAt(Date.from(now))
                 .expiration(expiration)
@@ -70,7 +71,7 @@ public class JwtTokenProvider {
         try {
             return parseClaims(token).get(CLAIM_CATEGORY, String.class);
         } catch (JwtException e) {
-            throw new BadCredentialsException("유효하지 않은 카테고리 JWT 토큰입니다.", e);
+            throw new BadCredentialsException("JWT 토큰의 카테고리 형식이 유효하지 않습니다.", e);
         }
     }
 
@@ -78,7 +79,15 @@ public class JwtTokenProvider {
         try {
             return parseClaims(token).get(CLAIM_USERID, Long.class);
         } catch (JwtException e) {
-            throw new BadCredentialsException("유효하지 않은 아이디 JWT 토큰입니다.", e);
+            throw new BadCredentialsException("JWT 토큰의 UserId 형식이 유효하지 않습니다.", e);
+        }
+    }
+
+    public String getUsername(String token) {
+        try {
+            return parseClaims(token).get(CLAIM_USERNAME, String.class);
+        } catch (JwtException e) {
+            throw new BadCredentialsException("JWT 토큰의 Username 형식이 유효하지 않습니다.", e);
         }
     }
 
@@ -120,12 +129,12 @@ public class JwtTokenProvider {
     }
 
     public Authentication getAuthentication(String token) {
-        Long userId = getUserId(token);
+        String username = getUsername(token);
         List<SimpleGrantedAuthority> authorities = getRoles(token).stream()
                 .map(SimpleGrantedAuthority::new)
                 .toList();
 
-        UserDetails user = new User(userId.toString(), "", authorities);
+        UserDetails user = new User(username, "", authorities);
         return new UsernamePasswordAuthenticationToken(user, null, authorities);
     }
 

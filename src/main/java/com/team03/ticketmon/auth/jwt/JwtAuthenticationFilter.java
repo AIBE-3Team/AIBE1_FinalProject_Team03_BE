@@ -71,7 +71,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         Long accessExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS);
         ResponseCookie accessCookie = cookieUtil.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken, accessExp);
         response.addHeader("Set-Cookie", accessCookie.toString());
-
         return newAccessToken;
     }
 

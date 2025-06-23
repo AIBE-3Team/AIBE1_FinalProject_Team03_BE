@@ -5,7 +5,6 @@ import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,8 +23,9 @@ public class ReissueServiceImpl implements ReissueService {
     public String reissueToken(String refreshToken, String reissueCategory, boolean dbCheck) {
         refreshTokenService.validateRefreshToken(refreshToken, dbCheck);
         Long userId = jwtTokenProvider.getUserId(refreshToken);
+        String username = jwtTokenProvider.getUsername(refreshToken);
         String role = extractRole(refreshToken);
-        return jwtTokenProvider.generateToken(reissueCategory, userId, role);
+        return jwtTokenProvider.generateToken(reissueCategory, userId, username, role);
     }
 
     @Override
@@ -35,29 +35,14 @@ public class ReissueServiceImpl implements ReissueService {
             throw new IllegalArgumentException("Refresh Token이 존재하지 않습니다.");
 
         Long userId = jwtTokenProvider.getUserId(refreshToken);
+        String username = jwtTokenProvider.getUsername(refreshToken);
+        String role = extractRole(refreshToken);
 
         refreshTokenService.validateRefreshToken(refreshToken, true);
 
-        String newAccessToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, false);
-        String newRefreshToken = reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH, false);
+        cookieUtil.generateAndSetJwtCookies(userId, username, role, response);
 
-        if(newAccessToken == null || newAccessToken.isEmpty())
-            throw new IllegalArgumentException("Access Token 재발급이 실패했습니다.");
-        if(newRefreshToken == null || newRefreshToken.isEmpty())
-            throw new IllegalArgumentException("Refresh Token 재발급이 실패했습니다.");
-
-        // 기존 Refresh Token 삭제 후 New Refresh Token DB 저장
-        refreshTokenService.deleteRefreshToken(userId);
-        refreshTokenService.saveRefreshToken(userId, newRefreshToken);
-
-        // 새로운 토큰 쿠키에 추가
-        Long accessCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS);
-        Long refreshCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_REFRESH);
-
-        ResponseCookie accessCookie = cookieUtil.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken, accessCookieExp);
-        ResponseCookie refreshCookie = cookieUtil.createCookie(jwtTokenProvider.CATEGORY_REFRESH, newRefreshToken, refreshCookieExp);
-        response.addHeader("Set-Cookie", accessCookie.toString());
-        response.addHeader("Set-Cookie", refreshCookie.toString());
+        response.setStatus(HttpServletResponse.SC_OK);
     }
 
     private String extractRole(String token) {

@@ -38,6 +38,7 @@ public enum ErrorCode {
     EMAIL_DUPLICATION(409, "A004", "이미 가입된 이메일입니다."),
     SELLER_APPLY_ONCE(400, "A005", "판매자 권한 신청은 한 번만 가능합니다."),
     AUTHENTICATION_REQUIRED(401, "A006", "인증이 필요한 요청입니다. 로그인이 필요합니다."), // <--- 추가됨
+    USER_NOT_FOUND(404, "A007", "사용자를 찾을 수 없습니다."), // <--- 추가됨
 
     // Permission & Admin (권한 및 관리자)
     ADMIN_ACCESS_DENIED(403, "P001", "관리자만 접근할 수 있습니다."),
@@ -70,6 +71,8 @@ public enum ErrorCode {
     BOOKING_TIMEOUT(408, "B005", "좌석 선점 시간이 만료되었습니다."),
     SEAT_NOT_FOUND(404, "B006", "좌석을 찾을 수 없습니다."),
     INVALID_SEAT_SELECTION(400, "B007", "선택한 좌석 중 일부를 찾을 수 없습니다."),
+    BOOKING_NOT_FOUND(404, "B008", "요청한 예매 정보를 찾을 수 없습니다."),
+    ALREADY_CANCELED_BOOKING(409, "B009", "이미 취소 처리된 예매입니다."),
 
     // Review & Expectation (후기 및 기대평) - 새롭게 추가된 도메인
     REVIEW_ALREADY_EXISTS(409, "R001", "이미 후기를 작성했습니다."), // 추가: 중복 후기 방지

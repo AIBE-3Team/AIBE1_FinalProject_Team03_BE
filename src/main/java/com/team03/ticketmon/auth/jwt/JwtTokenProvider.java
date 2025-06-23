@@ -129,12 +129,13 @@ public class JwtTokenProvider {
     }
 
     public Authentication getAuthentication(String token) {
+        Long userid = getUserId(token);
         String username = getUsername(token);
         List<SimpleGrantedAuthority> authorities = getRoles(token).stream()
                 .map(SimpleGrantedAuthority::new)
                 .toList();
 
-        UserDetails user = new User(username, "", authorities);
+        CustomUserDetails user = new CustomUserDetails(userid, username, "", authorities);
         return new UsernamePasswordAuthenticationToken(user, null, authorities);
     }
 

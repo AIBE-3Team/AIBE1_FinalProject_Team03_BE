@@ -13,6 +13,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.team03.ticketmon.booking.domain.Booking;
+import com.team03.ticketmon.booking.domain.BookingStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -20,8 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.team03.ticketmon._global.config.AppProperties;
-import com.team03.ticketmon.concert.domain.Booking;
-import com.team03.ticketmon.concert.repository.BookingRepository;
+import com.team03.ticketmon.booking.repository.BookingRepository;
 import com.team03.ticketmon.payment.config.TossPaymentsProperties;
 import com.team03.ticketmon.payment.domain.entity.Payment;
 import com.team03.ticketmon.payment.domain.entity.PaymentCancelHistory;
@@ -55,7 +56,7 @@ public class PaymentService {
 		Booking booking = bookingRepository.findByBookingNumber(paymentRequest.getBookingNumber())
 			.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매 번호입니다."));
 
-		if (booking.getStatus() != com.team03.ticketmon.concert.domain.enums.BookingStatus.PENDING_PAYMENT) {
+		if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
 			throw new IllegalStateException("결제를 진행할 수 없는 예매 상태입니다.");
 		}
 

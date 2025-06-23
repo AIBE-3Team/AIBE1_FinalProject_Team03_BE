@@ -2,6 +2,8 @@ package com.team03.ticketmon.payment.controller;
 
 import java.util.List;
 
+import com.team03.ticketmon.booking.domain.Booking;
+import com.team03.ticketmon.booking.domain.BookingStatus;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -9,9 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.team03.ticketmon.concert.domain.Booking;
-import com.team03.ticketmon.concert.domain.enums.BookingStatus;
-import com.team03.ticketmon.concert.repository.BookingRepository;
+import com.team03.ticketmon.booking.repository.BookingRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

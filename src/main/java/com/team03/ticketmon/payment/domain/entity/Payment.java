@@ -3,7 +3,7 @@ package com.team03.ticketmon.payment.domain.entity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.team03.ticketmon.concert.domain.Booking;
+import com.team03.ticketmon.booking.domain.Booking;
 import com.team03.ticketmon.payment.domain.enums.PaymentStatus;
 
 import jakarta.persistence.Column;

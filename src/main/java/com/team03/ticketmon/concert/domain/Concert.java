@@ -6,6 +6,7 @@ import java.time.LocalTime;
 import java.util.List;
 
 import com.team03.ticketmon._global.entity.BaseTimeEntity;
+import com.team03.ticketmon.booking.domain.Booking;
 import com.team03.ticketmon.concert.domain.enums.ConcertStatus;
 
 import jakarta.persistence.CascadeType;

@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.team03.ticketmon.booking.domain.Booking;
+import com.team03.ticketmon.booking.domain.BookingStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,10 +28,8 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.team03.ticketmon._global.config.AppProperties;
-import com.team03.ticketmon.concert.domain.Booking;
 import com.team03.ticketmon.concert.domain.Concert;
-import com.team03.ticketmon.concert.domain.enums.BookingStatus;
-import com.team03.ticketmon.concert.repository.BookingRepository;
+import com.team03.ticketmon.booking.repository.BookingRepository;
 import com.team03.ticketmon.payment.config.TossPaymentsProperties;
 import com.team03.ticketmon.payment.domain.entity.Payment;
 import com.team03.ticketmon.payment.domain.enums.PaymentStatus;

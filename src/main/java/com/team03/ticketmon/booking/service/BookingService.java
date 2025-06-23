@@ -138,6 +138,9 @@ public class BookingService {
         if (booking.getStatus() == BookingStatus.CANCELED) {
             throw new BusinessException(ErrorCode.ALREADY_CANCELED_BOOKING);
         }
+        if (booking.getStatus() == BookingStatus.COMPLETED) {
+            throw new BusinessException(ErrorCode.ALREADY_COMPLETE_BOOKING);
+        }
 
         // 4. 히스토리 테이블로 이관하는 로직 호출
         archiveBookingAndTickets(booking);

@@ -34,7 +34,7 @@ public enum ErrorCode {
     // Auth & User (인증 및 사용자 관련)
     LOGIN_FAILED(401, "A001", "아이디 또는 비밀번호가 일치하지 않습니다."),
     INVALID_TOKEN(401, "A002", "인증 토큰이 유효하지 않습니다."),
-    ACCESS_DENIED(403, "A003", "해당 리소스에 접근할 권한이 없습니다."),
+    ACCESS_DENIED(403, "A003", "해당 예매를 취소할 권한이 없습니다."),
     EMAIL_DUPLICATION(409, "A004", "이미 가입된 이메일입니다."),
     SELLER_APPLY_ONCE(400, "A005", "판매자 권한 신청은 한 번만 가능합니다."),
     AUTHENTICATION_REQUIRED(401, "A006", "인증이 필요한 요청입니다. 로그인이 필요합니다."), // <--- 추가됨
@@ -73,6 +73,7 @@ public enum ErrorCode {
     INVALID_SEAT_SELECTION(400, "B007", "선택한 좌석 중 일부를 찾을 수 없습니다."),
     BOOKING_NOT_FOUND(404, "B008", "요청한 예매 정보를 찾을 수 없습니다."),
     ALREADY_CANCELED_BOOKING(409, "B009", "이미 취소 처리된 예매입니다."),
+    ALREADY_COMPLETE_BOOKING(409, "B010", "이미 관람(사용)이 완료된 예매는 취소할 수 없습니다."),
 
     // Review & Expectation (후기 및 기대평) - 새롭게 추가된 도메인
     REVIEW_ALREADY_EXISTS(409, "R001", "이미 후기를 작성했습니다."), // 추가: 중복 후기 방지

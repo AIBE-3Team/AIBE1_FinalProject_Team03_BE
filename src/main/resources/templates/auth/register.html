@@ -62,7 +62,7 @@
 
 <script>
     window.addEventListener("DOMContentLoaded", () => {
-        fetch("/auth/register/social")
+        fetch("/api/auth/register/social")
             .then(res => res.json())
             .then(data => {
                 if (data.isSocial) {
@@ -93,14 +93,14 @@
         };
 
         try {
-            const res = await fetch('/auth/register', {
+            const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data)
             });
 
             if (res.ok) {
-                window.location.href = "auth/login";
+                window.location.href = "/auth/login";
                 return;
             }
 

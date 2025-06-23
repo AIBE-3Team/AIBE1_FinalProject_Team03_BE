@@ -6,6 +6,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -26,10 +27,14 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         this.jwtTokenProvider = jwtTokenProvider;
         this.refreshTokenService = refreshTokenService;
         this.cookieUtil = cookieUtil;
+        setFilterProcessesUrl("/api/auth/login");
     }
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
+
+        if (!"POST".equalsIgnoreCase(request.getMethod()))
+            throw new AuthenticationCredentialsNotFoundException("Authentication Method가 POST 요청이 아닙니다");
 
         // 클라이언트 요청에서 아이디, 비밀번호 추출
         String username = obtainUsername(request);

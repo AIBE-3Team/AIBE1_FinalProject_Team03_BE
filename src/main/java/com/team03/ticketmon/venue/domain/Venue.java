@@ -1,6 +1,7 @@
 package com.team03.ticketmon.venue.domain;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.util.List;

@@ -12,7 +12,6 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * Concert Seat Entity
@@ -23,7 +22,7 @@ import java.util.List;
 @Getter
 @Setter
 @Table(name = "concertSeats")
-@ToString(exclude = {"concert", "seat", "tickets"})
+@ToString(exclude = {"concert", "seat", "ticket"})
 @EqualsAndHashCode(of = "concertSeatId")  // ID 기반으로 변경
 @NoArgsConstructor
 @AllArgsConstructor
@@ -48,5 +47,5 @@ public class ConcertSeat {
 	private BigDecimal price;
 
 	@OneToOne(mappedBy = "concertSeat")
-	private Ticket tickets;
+	private Ticket ticket;
 }

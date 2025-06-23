@@ -19,7 +19,7 @@ public interface ConcertSeatRepository extends JpaRepository<ConcertSeat, Long> 
 	 * 예약 가능한 좌석 조회
 	 */
 	@Query("SELECT cs FROM ConcertSeat cs " +
-		"LEFT JOIN cs.tickets t " +
+		"LEFT JOIN cs.ticket t " +
 		"WHERE cs.concert.concertId = :concertId " +
 		"AND t.ticketId IS NULL " +
 		"ORDER BY cs.seat.section, cs.seat.seatRow, cs.seat.seatNumber")

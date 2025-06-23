@@ -67,6 +67,11 @@ public class Booking extends BaseTimeEntity {
 	private Payment payment;
 
 	public void setTickets(List<Ticket> tickets) {
+
+		// [방어 코드] 현재는 실행되지 않지만, 미래의 변경에 대비
+		if (this.tickets != null) {
+			this.tickets.forEach(ticket -> ticket.setBooking(null));
+		}
 		this.tickets = tickets;
 		for (Ticket ticket : tickets) {
 			ticket.setBooking(this);

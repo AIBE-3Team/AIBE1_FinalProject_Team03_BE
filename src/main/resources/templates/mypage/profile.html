@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>마이페이지</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            background: #f4f4f4;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.25rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+        }
+
+        button {
+            padding: 0.75rem 1rem;
+            background: #007bff;
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .message {
+            color: green;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        img.profile {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>프로필 수정</h2>
+
+    <img alt="프로필 이미지" class="profile"/>
+
+    <form th:action="@{/mypage/profile}" method="post" th:object="${user}">
+        <label>이메일
+            <input type="text" th:value="*{email}" readonly />
+        </label>
+
+        <label>아이디
+            <input type="text" th:value="*{username}" readonly />
+        </label>
+
+        <label>이름
+            <input type="text" th:field="*{name}" />
+        </label>
+
+        <label>닉네임
+            <input type="text" th:field="*{nickname}" />
+        </label>
+
+        <label>전화번호
+            <input type="text" th:field="*{phone}" />
+        </label>
+
+        <label>주소
+            <input type="text" th:field="*{address}" />
+        </label>
+
+        <label>프로필 이미지 URL
+            <input type="text" th:field="*{profileImage}" />
+        </label>
+
+        <button type="submit">수정하기</button>
+    </form>
+
+    <div class="message" th:if="${message}" th:text="${message}"></div>
+</div>
+</body>
+</html>

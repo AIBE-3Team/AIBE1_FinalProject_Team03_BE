@@ -14,6 +14,11 @@ public class UserEntityServiceImpl implements UserEntityService {
     private final UserRepository userRepository;
 
     @Override
+    public Optional<UserEntity> findUserEntityByUserId(Long userId) {
+        return userRepository.findById(userId);
+    }
+
+    @Override
     public Optional<UserEntity> findUserEntityByEmail(String email) {
         return userRepository.findByEmail(email);
     }

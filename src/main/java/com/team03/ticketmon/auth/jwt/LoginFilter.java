@@ -26,7 +26,6 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         this.jwtTokenProvider = jwtTokenProvider;
         this.refreshTokenService = refreshTokenService;
         this.cookieUtil = cookieUtil;
-        setFilterProcessesUrl("/auth/login");
     }
 
     @Override
@@ -68,7 +67,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     // 로그인 실패시 실행하는 메소드
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) throws IOException {
-        response.sendRedirect("/auth/login.html?error");
+        response.sendRedirect("/auth/login?error");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
 }

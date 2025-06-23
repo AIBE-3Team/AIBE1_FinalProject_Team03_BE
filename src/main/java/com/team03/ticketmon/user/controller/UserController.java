@@ -28,7 +28,7 @@ public class UserController {
 
     @GetMapping("/auth/register")
     public String register() {
-        return "register.html";
+        return "auth/register";
     }
 
     @GetMapping("/auth/register/social")

@@ -10,6 +10,6 @@ public class loginController {
 
     @GetMapping("/login")
     public String login() {
-        return "login.html";
+        return "auth/login";
     }
 }

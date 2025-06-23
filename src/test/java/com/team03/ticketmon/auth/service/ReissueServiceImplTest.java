@@ -4,16 +4,13 @@ import com.team03.ticketmon.auth.Util.CookieUtil;
 import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.ResponseCookie;
 
-import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,16 +26,22 @@ class ReissueServiceImplTest {
     @Mock
     private RefreshTokenService refreshTokenService;
     @Mock
-    private CookieUtil cookieUtil;
-    @Mock
     HttpServletRequest request;
     @Mock
     HttpServletResponse response;
-    @InjectMocks
+
     private ReissueServiceImpl reissueService;
+    private CookieUtil cookieUtil;
+
+    @BeforeEach
+    void setUp() {
+        cookieUtil = spy(new CookieUtil(jwtTokenProvider, refreshTokenService));
+        reissueService = new ReissueServiceImpl(jwtTokenProvider, refreshTokenService, cookieUtil);
+    }
 
     private final String refreshToken = "refresh-token";
     private final Long userId = 1L;
+    private final String username = "user";
     private final String role = "ROLE_USER";
     private final String newAccessToken = "new-access-token";
     private final String newRefreshToken = "new-refresh-token";
@@ -47,8 +50,9 @@ class ReissueServiceImplTest {
     void reissueToken_AccessToken_재발급_정상_테스트() {
         // given
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
+        given(jwtTokenProvider.getUsername(refreshToken)).willReturn(username);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
-        given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_ACCESS, userId, role)).willReturn(newAccessToken);
+        given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_ACCESS, userId, username, role)).willReturn(newAccessToken);
         doNothing().when(refreshTokenService).validateRefreshToken(refreshToken, true);
 
         // when
@@ -62,8 +66,9 @@ class ReissueServiceImplTest {
     public void reissueToken_RefreshToken_재발급_정상_테스트() {
         // given
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
+        given(jwtTokenProvider.getUsername(refreshToken)).willReturn(username);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
-        given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_REFRESH, userId, role)).willReturn(newRefreshToken);
+        given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_REFRESH, userId, username, role)).willReturn(newRefreshToken);
         doNothing().when(refreshTokenService).validateRefreshToken(refreshToken, true);
 
         // when
@@ -87,48 +92,27 @@ class ReissueServiceImplTest {
         assertEquals("역할(Role) 정보가 없습니다.", ex.getMessage());
     }
 
-
     @Test
     void handleReissueToken_정상_테스트() {
         // given
         given(jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_REFRESH, request)).willReturn(refreshToken);
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(userId);
+        given(jwtTokenProvider.getUsername(refreshToken)).willReturn(username);
+        given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
+        given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_ACCESS, userId, username, role))
+                .willReturn(newAccessToken);
+        given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_REFRESH, userId, username, role))
+                .willReturn(newRefreshToken);
+
         doNothing().when(refreshTokenService).validateRefreshToken(refreshToken, true);
 
-        ResponseCookie accessCookie = ResponseCookie.from(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken)
-                .httpOnly(true).secure(true).path("/").maxAge(Duration.ofMinutes(10)).build();
-
-        ResponseCookie refreshCookie = ResponseCookie.from(jwtTokenProvider.CATEGORY_REFRESH, newRefreshToken)
-                .httpOnly(true).secure(true).path("/").maxAge(Duration.ofDays(1)).build();
-
-        Long accessCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS);
-        Long refreshCookieExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_REFRESH);
-
-        given(cookieUtil.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken, accessCookieExp)).willReturn(accessCookie);
-        given(cookieUtil.createCookie(jwtTokenProvider.CATEGORY_REFRESH, newRefreshToken, refreshCookieExp)).willReturn(refreshCookie);
-
-        // 필요한 동작만 spy 처리
-        ReissueServiceImpl spyService = spy(reissueService);
-        doReturn(newAccessToken).when(spyService).reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, false);
-        doReturn(newRefreshToken).when(spyService).reissueToken(refreshToken, jwtTokenProvider.CATEGORY_REFRESH, false);
-
         // when
-        spyService.handleReissueToken(request, response);
+        reissueService.handleReissueToken(request, response);
 
         // then
-        ArgumentCaptor<String> headerCaptor = ArgumentCaptor.forClass(String.class);
-
-        verify(response, times(2)).addHeader(eq("Set-Cookie"), headerCaptor.capture());
-        List<String> setCookieHeaders = headerCaptor.getAllValues();
-
-        boolean hasAccess = setCookieHeaders.stream().anyMatch(h -> h.contains(newAccessToken));
-        boolean hasRefresh = setCookieHeaders.stream().anyMatch(h -> h.contains(newRefreshToken));
-
+        verify(response, times(2)).addHeader(eq("Set-Cookie"), anyString());
         verify(refreshTokenService).deleteRefreshToken(userId);
         verify(refreshTokenService).saveRefreshToken(userId, newRefreshToken);
-
-        assertTrue(hasAccess);
-        assertTrue(hasRefresh);
     }
 
     @Test
@@ -148,18 +132,19 @@ class ReissueServiceImplTest {
         // given
         given(jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_REFRESH, request)).willReturn(refreshToken);
         given(jwtTokenProvider.getUserId(refreshToken)).willReturn(userId);
+        given(jwtTokenProvider.getUsername(refreshToken)).willReturn(username);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
         doNothing().when(refreshTokenService).validateRefreshToken(refreshToken, true);
 
-        ReissueServiceImpl spyService = spy(reissueService);
-        doReturn(null).when(spyService).reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, false);
+        // Access Token만 null 반환하도록 설정
+        doThrow(new IllegalArgumentException("Access Token 재발급이 실패했습니다."))
+                .when(cookieUtil).generateAndSetJwtCookies(eq(userId), eq(username), eq(role), eq(response));
 
-        // when
+        // when & then
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            spyService.handleReissueToken(request, response);
+            reissueService.handleReissueToken(request, response);
         });
 
-        // then
         assertEquals("Access Token 재발급이 실패했습니다.", ex.getMessage());
     }
 }

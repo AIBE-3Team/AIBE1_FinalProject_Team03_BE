@@ -13,6 +13,7 @@ import com.team03.ticketmon.concert.repository.ConcertRepository;
 import com.team03.ticketmon.concert.repository.ConcertSeatRepository;
 import com.team03.ticketmon.seat.service.SeatStatusService;
 import com.team03.ticketmon.user.domain.entity.UserEntity;
+import com.team03.ticketmon.user.repository.UserRepository;
 import com.team03.ticketmon.user.service.UserEntityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,10 +32,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class BookingService {
 
+    private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final ConcertRepository concertRepository;
     private final ConcertSeatRepository concertSeatRepository;
-    private final UserEntityService userEntityService;
     private final SeatStatusService seatStatusService;
 
     /**
@@ -51,7 +52,8 @@ public class BookingService {
         public BookingDTO.PaymentReadyResponse createPendingBooking(BookingDTO.CreateRequest createDto, Long userId) {
 
         // 0. 유저 정보 조회
-        UserEntity user = userEntityService.getUserEntityOrThrow(userId);
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // 1. 콘서트 정보 조회
         Concert concert = concertRepository.findById(createDto.getConcertId())

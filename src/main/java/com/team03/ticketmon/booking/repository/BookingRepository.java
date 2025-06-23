@@ -1,13 +1,15 @@
-package com.team03.ticketmon.concert.repository;
+package com.team03.ticketmon.booking.repository;
 
 import java.util.List;
 import java.util.Optional;
 
+import com.team03.ticketmon.booking.domain.Booking;
+import com.team03.ticketmon.booking.domain.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.team03.ticketmon.concert.domain.Booking;
-import com.team03.ticketmon.concert.domain.enums.BookingStatus;
-
+/**
+ * 예매(Booking) 엔티티에 대한 데이터 접근을 처리
+ */
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 	Optional<Booking> findByBookingNumber(String bookingNumber);
 

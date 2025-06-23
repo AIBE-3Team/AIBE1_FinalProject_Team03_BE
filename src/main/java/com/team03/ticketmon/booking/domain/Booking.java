@@ -1,9 +1,11 @@
-package com.team03.ticketmon.concert.domain;
+package com.team03.ticketmon.booking.domain;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
-import com.team03.ticketmon.concert.domain.enums.BookingStatus;
+import com.team03.ticketmon._global.entity.BaseTimeEntity;
+import com.team03.ticketmon.concert.domain.Concert;
 import com.team03.ticketmon.payment.domain.entity.Payment;
 
 import jakarta.persistence.CascadeType;
@@ -20,13 +22,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 /**
  * Booking Entity
@@ -36,13 +32,12 @@ import lombok.ToString;
 @Builder
 @Entity
 @Getter
-@Setter
 @Table(name = "bookings")
 @ToString(exclude = {"concert", "tickets", "payment"})
-@EqualsAndHashCode(of = "bookingId")
-@NoArgsConstructor
-@AllArgsConstructor
-public class Booking {
+@EqualsAndHashCode(of = "bookingId", callSuper = false)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class Booking extends BaseTimeEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "booking_id")
@@ -65,11 +60,18 @@ public class Booking {
 	@Column(length = 20, nullable = false)
 	private BookingStatus status; // String -> BookingStatus (Enum)
 
-	@OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	private List<Ticket> tickets;
+	@OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+	private List<Ticket> tickets = new ArrayList<>(); // NPE 방지를 위한 초기화
 
 	@OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	private Payment payment;
+
+	public void setTickets(List<Ticket> tickets) {
+		this.tickets = tickets;
+		for (Ticket ticket : tickets) {
+			ticket.setBooking(this);
+		}
+	}
 
 	// 캡슐화를 위한 상태 변경 메소드 추가
 	public void confirm() {

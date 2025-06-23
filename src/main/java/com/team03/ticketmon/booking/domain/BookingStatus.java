@@ -1,4 +1,4 @@
-package com.team03.ticketmon.concert.domain.enums;
+package com.team03.ticketmon.booking.domain;
 
 public enum BookingStatus {
 	PENDING_PAYMENT, // 결제 대기

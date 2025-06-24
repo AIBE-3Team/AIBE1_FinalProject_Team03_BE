@@ -63,7 +63,11 @@ public class UserEntity {
     public enum Role {
         USER,
         SELLER,
-        ADMIN
+        ADMIN;
+
+        public String getRoleName() {
+            return "ROLE_" + this.name();
+        }
     }
 
     public enum ApprovalStatus {

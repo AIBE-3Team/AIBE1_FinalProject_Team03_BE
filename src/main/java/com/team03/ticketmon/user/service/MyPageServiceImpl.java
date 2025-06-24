@@ -36,9 +36,6 @@ public class MyPageServiceImpl implements MyPageService {
         UserEntity user = userEntityService.findUserEntityByUserId(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원 정보가 없습니다."));
 
-        user.setEmail(dto.email());
-        user.setUsername(dto.username());
-        user.setName(dto.name());
         user.setNickname(dto.nickname());
         user.setPhone(dto.phone());
         user.setAddress(dto.address());

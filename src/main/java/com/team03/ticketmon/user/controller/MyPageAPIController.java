@@ -48,7 +48,8 @@ public class MyPageAPIController {
 
         Long userId = userDetails.getUserId();
         myPageService.updateUserProfile(userId, dto);
+        UserProfileDTO updatedProfile = myPageService.getUserProfile(userId);
 
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(updatedProfile);
     }
 }

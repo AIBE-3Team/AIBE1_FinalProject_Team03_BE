@@ -30,6 +30,7 @@ class MyPageServiceImplTest {
 
     private final Long userId = 1L;
     private UserEntity user;
+
     @BeforeEach
     void init() {
         user = UserEntity.builder()
@@ -81,9 +82,6 @@ class MyPageServiceImplTest {
     void 마이페이지_정보_수정_정상_테스트() {
         // given
         UpdateUserProfileDTO dto = new UpdateUserProfileDTO(
-                "test@test.com",
-                "testuser",
-                "홍길동",
                 "새로운닉네임",
                 "010-1111-2222",
                 "서울",
@@ -95,9 +93,6 @@ class MyPageServiceImplTest {
         myPageService.updateUserProfile(userId, dto);
 
         // then
-        assertEquals(dto.email(), user.getEmail());
-        assertEquals(dto.username(), user.getUsername());
-        assertEquals(dto.name(), user.getName());
         assertEquals(dto.nickname(), user.getNickname());
         assertEquals(dto.phone(), user.getPhone());
         assertEquals(dto.address(), user.getAddress());
@@ -110,9 +105,6 @@ class MyPageServiceImplTest {
     void 마이페이지_정보_수정_유저없음_예외_테스트() {
         // given
         UpdateUserProfileDTO dto = new UpdateUserProfileDTO(
-                "test@test.com",
-                "testuser",
-                "홍길동",
                 "새로운닉네임",
                 "010-1111-2222",
                 "서울",

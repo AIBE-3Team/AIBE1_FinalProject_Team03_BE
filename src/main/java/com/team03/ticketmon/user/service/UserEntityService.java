@@ -8,4 +8,5 @@ public interface UserEntityService {
     Optional<UserEntity> findUserEntityByUserId(Long userId);
     Optional<UserEntity> findUserEntityByEmail(String email);
     boolean existsByEmail(String email);
+    UserEntity save(UserEntity user);
 }

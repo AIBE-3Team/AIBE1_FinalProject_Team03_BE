@@ -27,4 +27,9 @@ public class UserEntityServiceImpl implements UserEntityService {
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
+
+    @Override
+    public UserEntity save(UserEntity user) {
+        return userRepository.save(user);
+    }
 }

@@ -1,8 +1,11 @@
 package com.team03.ticketmon.booking.controller;
 
 import com.team03.ticketmon._global.exception.SuccessResponse;
-import com.team03.ticketmon.booking.dto.BookingDTO;
+import com.team03.ticketmon.auth.jwt.CustomUserDetails;
+import com.team03.ticketmon.booking.dto.BookingCreateRequest;
+import com.team03.ticketmon.booking.facade.BookingFacadeService;
 import com.team03.ticketmon.booking.service.BookingService;
+import com.team03.ticketmon.payment.dto.PaymentExecutionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -13,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -29,26 +31,14 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Booking API", description = "예매 생성, 취소 관련 API")
 @Slf4j
 @RestController
-@RequestMapping("/bookings")
+@RequestMapping("/api/bookings")
 @RequiredArgsConstructor
 public class BookingController {
 
-    private final BookingService bookingService;
+    private final BookingFacadeService bookingFacadeService; // Facade 주입
 
-    /**
-     * 새로운 예매를 생성 (결제 대기 상태)
-     *
-     * <p>
-     * 클라이언트로부터 콘서트 ID와 선택한 좌석 ID 목록을 받아,
-     * Redis를 통해 좌석 선점이 유효한지 검증한 후, '결제 대기' 상태의 예매를 생성
-     * 생성된 예매 정보는 다음 결제 단계로 넘어가기 위해 클라이언트에게 반환
-     * </p>
-     *
-     * @param createRequest 예매 생성을 위한 요청 DTO (콘서트 ID, 좌석 ID 목록 포함)
-     * @param user   현재 인증된 사용자의 정보
-     * @return 생성된 예매의 상세 정보가 담긴 응답
-     */
-    @Operation(summary = "예매 생성 (결제 대기)", description = "좌석 선점 후 '결제 대기' 상태의 예매를 생성하고, 결제에 필요한 정보를 반환합니다.")
+
+    @Operation(summary = "예매 생성 및 결제 준비", description = "좌석 선점 후 예매를 생성하고, 즉시 결제에 필요한 정보를 반환합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "예매 정보 생성 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "유효하지 않은 입력 (좌석 ID 누락 등)"),
@@ -56,32 +46,24 @@ public class BookingController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 선택되었거나 선점 정보가 유효하지 않은 좌석")
     })
     @PostMapping
-    public ResponseEntity<SuccessResponse<BookingDTO.PaymentReadyResponse>> createBooking(
-            @Valid @RequestBody BookingDTO.CreateRequest createRequest,
-            @AuthenticationPrincipal User user
+    public ResponseEntity<SuccessResponse<PaymentExecutionResponse>> createBookingAndPreparePayment(
+            @Valid @RequestBody BookingCreateRequest createRequest,
+            @AuthenticationPrincipal CustomUserDetails user
     ) {
+        log.info("예매 생성 및 결제 준비 시도. for user: {}", user.getUsername());
 
-        log.info("보류중인 예약 생성 시도. for user: {}", user.getUsername());
+        PaymentExecutionResponse responseDto = bookingFacadeService.createBookingAndInitiatePayment(createRequest, user.getUserId());
 
-        BookingDTO.PaymentReadyResponse responseDto = bookingService.createPendingBooking(createRequest, Long.valueOf(user.getUsername()));
-
-        return new ResponseEntity<>(SuccessResponse.of(responseDto), HttpStatus.CREATED);
+        return new ResponseEntity<>(SuccessResponse.of("예매 생성 및 결제 정보 조회가 완료되었습니다.", responseDto), HttpStatus.CREATED);
     }
 
     /**
-     * 특정 예매를 취소합니다.
-     *
-     * <p>
-     * 이 엔드포인트는 예매 취소 프로세스를 시작하는 역할
-     * 내부적으로 결제 서비스와의 연동을 통해 결제 취소를 먼저 시도하고,
-     * 성공 시 예매 상태를 'CANCELED'로 변경하고 좌석을 반환 처리
-     * </p>
-     *
+     * 예매를 취소. 이 요청은 결제 취소를 포함한 모든 과정을 동기적으로 처리
      * @param bookingId 취소할 예매의 ID
-     * @param user 현재 인증된 사용자의 정보 (취소 권한 확인용)
-     * @return 처리 성공 여부만 담긴 응답 (데이터 없음)
+     * @param user 현재 인증된 사용자 정보
+     * @return 취소 성공 메시지
      */
-    @Operation(summary = "예매 취소", description = "특정 예매를 취소 처리합니다. 성공 시 연동된 결제도 함께 취소됩니다.")
+    @Operation(summary = "예매 취소 (동기)", description = "특정 예매를 취소 처리합니다. 성공 시 연동된 결제도 함께 취소됩니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "취소 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증되지 않은 사용자 (토큰 없음)"),
@@ -92,10 +74,16 @@ public class BookingController {
     @PostMapping("/{bookingId}/cancel")
     public ResponseEntity<SuccessResponse<Void>> cancelBooking(
             @Parameter(description = "취소할 예매의 ID", required = true) @PathVariable Long bookingId,
-            @Parameter(hidden = true) @AuthenticationPrincipal User user) {
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails user) {
 
-        log.info("예매 취소 시도 booking ID: {} for user: {}", bookingId, user.getUsername());
-        bookingService.cancelBooking(bookingId, Long.valueOf(user.getUsername()));
-        return ResponseEntity.ok(SuccessResponse.of(null));
+        log.info("예매 취소 시도 booking ID: {} for user: {}", bookingId, user);
+
+        bookingFacadeService.cancelBookingAndPayment(bookingId, user.getUserId());
+
+        // TODO: 향후 비동기 처리 방식으로 전환 고려.
+        // 현재는 동기 처리 후 즉시 성공 응답을 반환하지만,
+        // 미래에는 202 Accepted를 반환하고 백그라운드에서 처리 후 알림을 주는 방식으로 개선할 수 있음.
+
+        return ResponseEntity.ok(SuccessResponse.of("예매가 성공적으로 취소되었습니다.", null));
     }
 }

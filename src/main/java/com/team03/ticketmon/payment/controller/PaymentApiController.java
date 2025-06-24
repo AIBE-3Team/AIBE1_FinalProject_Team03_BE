@@ -1,35 +1,26 @@
 package com.team03.ticketmon.payment.controller;
 
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import com.team03.ticketmon.booking.domain.Booking;
+import com.team03.ticketmon.booking.domain.BookingStatus;
+import com.team03.ticketmon.booking.repository.BookingRepository;
+import com.team03.ticketmon.payment.dto.BookingResponseDto;
+import com.team03.ticketmon.payment.dto.PaymentConfirmRequest;
+import com.team03.ticketmon.payment.dto.PaymentHistoryDto;
+import com.team03.ticketmon.payment.service.PaymentService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriUtils;
 
-import com.team03.ticketmon.booking.domain.Booking;
-import com.team03.ticketmon.booking.domain.BookingStatus;
-import com.team03.ticketmon.booking.repository.BookingRepository;
-import com.team03.ticketmon.payment.dto.BookingResponseDto;
-import com.team03.ticketmon.payment.dto.PaymentCancelRequest;
-import com.team03.ticketmon.payment.dto.PaymentConfirmRequest;
-import com.team03.ticketmon.payment.dto.PaymentExecutionResponse;
-import com.team03.ticketmon.payment.dto.PaymentHistoryDto;
-import com.team03.ticketmon.payment.dto.PaymentRequest;
-import com.team03.ticketmon.payment.service.PaymentService;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j // 로그 출력을 위한 Lombok 어노테이션
 @Controller // JSON과 Redirect(페이지 이동) 모두 지원하기 위해 @Controller 사용
@@ -39,27 +30,6 @@ public class PaymentApiController {
 
 	private final PaymentService paymentService; // 결제 관련 비즈니스 로직을 처리하는 서비스
 	private final BookingRepository bookingRepository;
-
-	/**
-	 * 결제 요청 API
-	 * - 클라이언트에서 결제 요청 정보를 받아 결제 준비 정보를 반환
-	 * - JSON 요청/응답
-	 */
-	@PostMapping("/request")
-	@ResponseBody // JSON 형태로 응답
-	public ResponseEntity<PaymentExecutionResponse> requestPayment(
-		@Valid @RequestBody PaymentRequest paymentRequest) { // 결제 요청 정보(예매번호 등) JSON으로 받음
-
-		// 💡 [수정] 기존 bookingNumber를 사용하는 로직 대신, 새로운 DTO를 사용하도록 변경
-		// 예시: bookingNumber를 사용하여 paymentService를 호출하는 로직으로 변경 필요
-		// PaymentExecutionResponse response = paymentService.initiatePayment(paymentRequest.getBookingNumber());
-
-		// 임시로 기존 로직을 유지하되, 실제로는 paymentRequest 객체를 활용해야 합니다.
-		// 결제 준비(결제 정보 생성 또는 재사용)
-		PaymentExecutionResponse response = paymentService.initiatePayment(paymentRequest);
-		// 200 OK + 결제 준비 정보 반환
-		return ResponseEntity.ok(response);
-	}
 
 	/**
 	 * 결제 성공 콜백(리다이렉트)
@@ -120,23 +90,6 @@ public class PaymentApiController {
 		// 결제 실패 결과 페이지로 리다이렉트
 		String reactFailUrl = "http://localhost:3000/payment/result/fail";
 		return "redirect:" + reactFailUrl + "?orderId=" + orderId + "&code=" + code + "&message=" + encodedMessage;
-	}
-
-	/**
-	 * 결제 취소 요청 API
-	 * - 사용자가 결제 취소를 요청할 때 사용
-	 * - JSON 요청/응답
-	 */
-	@PostMapping("/{orderId}/cancel")
-	@ResponseBody // JSON 형태로 응답
-	public ResponseEntity<Void> cancelPayment(
-		@PathVariable String orderId, // 취소할 주문 ID
-		@Valid @RequestBody PaymentCancelRequest cancelRequest) { // 취소 사유 등
-
-		// 결제 취소 처리
-		paymentService.cancelPayment(orderId, cancelRequest);
-		// 200 OK 반환(본문 없음)
-		return ResponseEntity.ok().build();
 	}
 
 	/**

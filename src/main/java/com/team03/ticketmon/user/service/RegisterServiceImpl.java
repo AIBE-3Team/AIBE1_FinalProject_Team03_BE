@@ -2,6 +2,7 @@ package com.team03.ticketmon.user.service;
 
 import com.team03.ticketmon.user.domain.entity.UserEntity;
 import com.team03.ticketmon.user.dto.RegisterResponseDTO;
+import com.team03.ticketmon.user.dto.RegisterUserEntityDTO;
 import com.team03.ticketmon.user.dto.UserEntityDTO;
 import com.team03.ticketmon.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,7 +24,7 @@ public class RegisterServiceImpl implements RegisterService {
     }
 
     @Override
-    public void createUser(UserEntityDTO dto) {
+    public void createUser(RegisterUserEntityDTO dto) {
 
         UserEntity user = UserEntity.builder()
                 .email(dto.email())
@@ -42,10 +43,7 @@ public class RegisterServiceImpl implements RegisterService {
     }
 
     @Override
-    public RegisterResponseDTO validCheck(UserEntityDTO dto) {
-
-        if (!isValidPassword(dto.password()))
-            return new RegisterResponseDTO(false, "password", "비밀번호 형식이 올바르지 않습니다.");
+    public RegisterResponseDTO validCheck(RegisterUserEntityDTO dto) {
 
         if (userRepository.existsByUsername(dto.username()))
             return new RegisterResponseDTO(false, "username", "이미 사용 중인 아이디입니다.");
@@ -59,10 +57,5 @@ public class RegisterServiceImpl implements RegisterService {
         ;
 
         return new RegisterResponseDTO(true, "", "");
-    }
-
-    private boolean isValidPassword(String password) {
-        String regex = "^(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+=-])[A-Za-z\\d!@#$%^&*()_+=-]{8,}$";
-        return password != null && password.matches(regex);
     }
 }

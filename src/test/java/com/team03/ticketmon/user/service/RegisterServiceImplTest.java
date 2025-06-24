@@ -2,7 +2,7 @@ package com.team03.ticketmon.user.service;
 
 import com.team03.ticketmon.user.domain.entity.UserEntity;
 import com.team03.ticketmon.user.dto.RegisterResponseDTO;
-import com.team03.ticketmon.user.dto.UserEntityDTO;
+import com.team03.ticketmon.user.dto.RegisterUserEntityDTO;
 import com.team03.ticketmon.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,8 +34,8 @@ class RegisterServiceImplTest {
         MockitoAnnotations.openMocks(this);
     }
 
-    private UserEntityDTO baseDTO() {
-        return new UserEntityDTO(
+    private RegisterUserEntityDTO baseDTO() {
+        return new RegisterUserEntityDTO(
                 "test@email.com",
                 "test",
                 "1q2w3e4r!",
@@ -50,7 +50,7 @@ class RegisterServiceImplTest {
     @Test
     void 회원가입_정상처리_테스트(){
         //given
-        UserEntityDTO dto = baseDTO();
+        RegisterUserEntityDTO dto = baseDTO();
 
         when(passwordEncoder.encode("1q2w3e4r!")).thenReturn("encodedPassword");
 
@@ -72,7 +72,7 @@ class RegisterServiceImplTest {
     @Test
     void 회원가입_유효성검증_테스트() {
         //given
-        UserEntityDTO dto = baseDTO();
+        RegisterUserEntityDTO dto = baseDTO();
 
         // when
         RegisterResponseDTO responseDTO = registerService.validCheck(dto);
@@ -82,29 +82,8 @@ class RegisterServiceImplTest {
     }
 
     @Test
-    void 회원가입_비밀번호_형식이_유효하지_않으면_false_반환_테스트() {
-        // given
-        UserEntityDTO dto = new UserEntityDTO(
-                "test@email.com",
-                "test",
-                "qwe123",
-                "홍길동",
-                "testMan",
-                "010-1234-5678",
-                "서울특별시 서대문구 포방터2길 59(홍은동) 03607 한국",
-                ""
-        );
-
-        // when
-        RegisterResponseDTO responseDTO = registerService.validCheck(dto);
-
-        //then
-        assertThat(responseDTO.isSuccess()).isFalse();
-    }
-
-    @Test
     void 회원가입_중복된_아이디이면_false를_반환_테스트() {
-        UserEntityDTO dto = baseDTO();
+        RegisterUserEntityDTO dto = baseDTO();
 
         // 해당 메서드가 호출되면 무조건 true로 반환
         when(userRepository.existsByUsername("test")).thenReturn(true);
@@ -117,7 +96,7 @@ class RegisterServiceImplTest {
 
     @Test
     void 회원가입_중복된_이메일이면_false를_반환_테스트() {
-        UserEntityDTO dto = baseDTO();
+        RegisterUserEntityDTO dto = baseDTO();
 
         when(userRepository.existsByEmail("test@email.com")).thenReturn(true);
 
@@ -129,7 +108,7 @@ class RegisterServiceImplTest {
 
     @Test
     void 회원가입_중복된_닉네임이면_false를_반환_테스트() {
-        UserEntityDTO dto = baseDTO();
+        RegisterUserEntityDTO dto = baseDTO();
 
         when(userRepository.existsByNickname("testMan")).thenReturn(true);
 

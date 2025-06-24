@@ -1,9 +1,21 @@
 package com.team03.ticketmon.user.dto;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
-public record UpdateUserProfileDTO(
+public record RegisterUserEntityDTO(
+        @Email(message = "이메일 형식이 올바르지 않습니다.")
+        String email,
+        @NotBlank(message = "사용자 아이디는 필수입니다.")
+        String username,
+        @Pattern(
+                regexp = "^(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+=-])[A-Za-z\\d!@#$%^&*()_+=-]{8,}$",
+                message = "비밀번호는 최소 8자 이상이며, 소문자, 숫자, 특수문자를 포함해야 합니다."
+        )
+        String password,
+        @NotBlank(message = "사용자 이름은 필수입니다.")
+        String name,
         @NotBlank(message = "사용자 닉네임은 필수입니다.")
         String nickname,
         @Pattern(

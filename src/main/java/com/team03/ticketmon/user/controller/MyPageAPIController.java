@@ -5,6 +5,7 @@ import com.team03.ticketmon.user.dto.UpdateUserProfileDTO;
 import com.team03.ticketmon.user.dto.UserProfileDTO;
 import com.team03.ticketmon.user.service.MyPageService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,8 @@ public class MyPageAPIController {
 
     @GetMapping("/profile")
     @Operation(summary = "사용자 프로필 조회", description = "현재 로그인된 사용자의 프로필을 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "프로필 조회 성공")
+    @ApiResponse(responseCode = "401", description = "사용자 권한 인증 실패")
     public ResponseEntity<UserProfileDTO> getUserProfile(@AuthenticationPrincipal CustomUserDetails userDetails) {
         if (userDetails == null)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -35,6 +38,9 @@ public class MyPageAPIController {
 
     @PostMapping("/profile")
     @Operation(summary = "사용자 프로필 변경", description = "현재 로그인된 사용자의 프로필을 변경합니다.")
+    @ApiResponse(responseCode = "200", description = "프로필 변경 성공")
+    @ApiResponse(responseCode = "400", description = "프로필 형식 불일치")
+    @ApiResponse(responseCode = "401", description = "사용자 권한 인증 실패")
     public ResponseEntity<?> updateUserProfile(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Validated @ModelAttribute("user") UpdateUserProfileDTO dto,

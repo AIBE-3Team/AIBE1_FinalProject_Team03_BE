@@ -1,25 +1,8 @@
 package com.team03.ticketmon.payment.service;
 
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
-
 import com.team03.ticketmon._global.config.AppProperties;
+import com.team03.ticketmon._global.exception.BusinessException;
+import com.team03.ticketmon._global.exception.ErrorCode;
 import com.team03.ticketmon.booking.domain.Booking;
 import com.team03.ticketmon.booking.domain.BookingStatus;
 import com.team03.ticketmon.booking.repository.BookingRepository;
@@ -27,17 +10,28 @@ import com.team03.ticketmon.payment.config.TossPaymentsProperties;
 import com.team03.ticketmon.payment.domain.entity.Payment;
 import com.team03.ticketmon.payment.domain.entity.PaymentCancelHistory;
 import com.team03.ticketmon.payment.domain.enums.PaymentStatus;
-import com.team03.ticketmon.payment.dto.PaymentCancelRequest;
 import com.team03.ticketmon.payment.dto.PaymentConfirmRequest;
 import com.team03.ticketmon.payment.dto.PaymentExecutionResponse;
 import com.team03.ticketmon.payment.dto.PaymentHistoryDto;
-import com.team03.ticketmon.payment.dto.PaymentRequest;
 import com.team03.ticketmon.payment.repository.PaymentCancelHistoryRepository;
 import com.team03.ticketmon.payment.repository.PaymentRepository;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j // 로그 출력을 위한 Lombok 어노테이션
 @Service // Spring의 서비스 빈 등록
@@ -59,20 +53,23 @@ public class PaymentService {
 	 * - 결제 준비에 필요한 정보(PaymentExecutionResponse) 반환
 	 */
 	@Transactional
-	public PaymentExecutionResponse initiatePayment(PaymentRequest paymentRequest) {
-		// 1. 예매 정보 조회
-		Booking booking = bookingRepository.findByBookingNumber(paymentRequest.getBookingNumber())
-			.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매 번호입니다."));
+	public PaymentExecutionResponse initiatePayment(Booking booking) {
 
-		// 2. 예매 상태가 결제 대기(PENDING_PAYMENT)인지 확인
-		if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
-			throw new IllegalStateException("결제를 진행할 수 없는 예매 상태입니다.");
+		if (booking == null) {
+			throw new BusinessException(ErrorCode.BOOKING_NOT_FOUND);
 		}
 
-		// 3. 기존 결제 정보(PENDING) 있으면 재사용, 없으면 새로 생성
+		// 1. 예매 상태가 결제 대기(PENDING_PAYMENT)인지 확인
+		if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
+			throw new BusinessException(ErrorCode.INVALID_BOOKING_STATUS_FOR_PAYMENT);
+		}
+
+		// 2. 기존 결제 정보(PENDING) 있으면 재사용, 없으면 새로 생성
 		Optional<Payment> existingPaymentOpt = paymentRepository.findByBooking(booking)
 			.filter(p -> p.getStatus() == PaymentStatus.PENDING);
+
 		Payment paymentToUse;
+
 		if (existingPaymentOpt.isPresent()) {
 			paymentToUse = existingPaymentOpt.get();
 			log.info("기존 결제 정보를 재사용합니다. orderId: {}", paymentToUse.getOrderId());
@@ -86,7 +83,7 @@ public class PaymentService {
 				.build());
 		}
 
-		// 4. 결제 준비 응답 객체 생성 및 반환
+		// 3. 결제 준비 응답 객체 생성 및 반환
 		return PaymentExecutionResponse.builder()
 			.orderId(paymentToUse.getOrderId())
 			.bookingNumber(booking.getBookingNumber())
@@ -202,97 +199,96 @@ public class PaymentService {
 	}
 
 	/**
-	 * 결제 취소 요청 처리
-	 * - 결제 완료(DONE) 상태에서만 취소 가능
-	 * - 외부 결제 취소 API 호출 및 취소 이력 저장
+	 * 전달받은 Payment 엔티티에 대해 외부 결제 API를 통해 환불을 실행하고 상태를 변경
+	 * 이 메서드는 상위 서비스(Facade)에서 모든 비즈니스 유효성 검사를 마친 후 호출되어야 한다.
+	 *
+	 * @param booking 취소할 Payment 엔티티
+	 * @param reason 취소 사유
 	 */
 	@Transactional
-	public void cancelPayment(String orderId, PaymentCancelRequest cancelRequest) {
-		Payment payment = paymentRepository.findByOrderId(orderId)
-			.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문 ID 입니다: " + orderId));
+	public void cancelPayment(Booking booking, String reason) {
 
-		// 이미 취소된 결제는 예외
-		if (payment.getStatus() == PaymentStatus.CANCELED) {
-			throw new IllegalStateException("이미 취소된 결제입니다.");
-		}
-		// 결제 완료(DONE) 상태에서만 취소 가능
-		if (payment.getStatus() != PaymentStatus.DONE) {
-			throw new IllegalStateException("결제 완료 상태에서만 취소가 가능합니다.");
-		}
+		paymentRepository.findByBooking(booking).ifPresent(payment -> {
+			switch (payment.getStatus()) {
+				case DONE   -> internalCancel(payment, reason);   // 환불
+				case PENDING -> payment.fail();                   // 결제 미완료면 실패 처리
+				default -> log.info("취소 불필요 – status={}", payment.getStatus());
+			}
+		});
+	}
+	private void internalCancel(Payment payment, String reason) {
 
 		// 토스페이먼츠 API 인증키 준비
 		String encodedSecretKey = Base64.getEncoder()
-			.encodeToString((tossPaymentsProperties.secretKey() + ":").getBytes(StandardCharsets.UTF_8));
+				.encodeToString((tossPaymentsProperties.secretKey() + ":").getBytes(StandardCharsets.UTF_8));
 
 		// 외부 결제 취소 API 호출
-		callTossCancelApi(payment.getPaymentKey(), cancelRequest.getCancelReason(), encodedSecretKey)
-			.doOnSuccess(tossResponse -> {
-				// 결제/예매 상태 취소로 변경
-				payment.cancel();
-				payment.getBooking().cancel();
-				paymentRepository.save(payment);
-				bookingRepository.save(payment.getBooking());
+		callTossCancelApi(payment.getPaymentKey(), reason, encodedSecretKey)
+				.doOnSuccess(tossResponse -> {
+					// 결제/예매 상태 취소로 변경
+					payment.cancel();
 
-				// 취소 응답에서 취소 이력 정보 추출
-				String transactionKey = null;
-				BigDecimal cancelAmount = BigDecimal.ZERO;
-				LocalDateTime canceledAt = null;
+					// 취소 응답에서 취소 이력 정보 추출
+					String transactionKey = null;
+					BigDecimal cancelAmount = BigDecimal.ZERO;
+					LocalDateTime canceledAt = null;
 
-				List<Map<String, Object>> cancels = (List<Map<String, Object>>)tossResponse.get("cancels");
-				if (cancels != null && !cancels.isEmpty()) {
-					Map<String, Object> lastCancel = cancels.get(cancels.size() - 1);
-					transactionKey = (String)lastCancel.get("transactionKey");
+					List<Map<String, Object>> cancels = (List<Map<String, Object>>)tossResponse.get("cancels");
+					if (cancels != null && !cancels.isEmpty()) {
+						Map<String, Object> lastCancel = cancels.get(cancels.size() - 1);
+						transactionKey = (String)lastCancel.get("transactionKey");
 
-					Object amountObj = lastCancel.get("cancelAmount");
-					if (amountObj instanceof Integer) {
-						cancelAmount = BigDecimal.valueOf((Integer)amountObj);
-					} else if (amountObj instanceof Double) {
-						cancelAmount = BigDecimal.valueOf((Double)amountObj);
-					} else if (amountObj != null) {
-						cancelAmount = new BigDecimal(amountObj.toString());
-					}
+						Object amountObj = lastCancel.get("cancelAmount");
+						if (amountObj instanceof Integer) {
+							cancelAmount = BigDecimal.valueOf((Integer)amountObj);
+						} else if (amountObj instanceof Double) {
+							cancelAmount = BigDecimal.valueOf((Double)amountObj);
+						} else if (amountObj != null) {
+							cancelAmount = new BigDecimal(amountObj.toString());
+						}
 
-					Object canceledAtObj = lastCancel.get("canceledAt");
-					if (canceledAtObj instanceof String) {
-						try {
-							canceledAt = LocalDateTime.parse((String)canceledAtObj,
-								DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-						} catch (DateTimeParseException e) {
-							log.warn("canceledAt 파싱 실패 (ISO_OFFSET_DATE_TIME): {}, 다른 포맷 시도", canceledAtObj);
+						Object canceledAtObj = lastCancel.get("canceledAt");
+						if (canceledAtObj instanceof String) {
 							try {
 								canceledAt = LocalDateTime.parse((String)canceledAtObj,
-									DateTimeFormatter.ISO_DATE_TIME);
-							} catch (DateTimeParseException ex) {
-								log.error("canceledAt 파싱 최종 실패: {}", canceledAtObj, ex);
-								canceledAt = LocalDateTime.now();
+										DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+							} catch (DateTimeParseException e) {
+								log.warn("canceledAt 파싱 실패 (ISO_OFFSET_DATE_TIME): {}, 다른 포맷 시도", canceledAtObj);
+								try {
+									canceledAt = LocalDateTime.parse((String)canceledAtObj,
+											DateTimeFormatter.ISO_DATE_TIME);
+								} catch (DateTimeParseException ex) {
+									log.error("canceledAt 파싱 최종 실패: {}", canceledAtObj, ex);
+									canceledAt = LocalDateTime.now();
+								}
 							}
 						}
+					} else {
+						log.warn("토스페이먼츠 취소 응답에 'cancels' 정보가 없거나 비어 있습니다. orderId: {}", payment.getOrderId());
 					}
-				} else {
-					log.warn("토스페이먼츠 취소 응답에 'cancels' 정보가 없거나 비어 있습니다. orderId: {}", payment.getOrderId());
-				}
 
-				if (canceledAt == null) {
-					canceledAt = LocalDateTime.now();
-				}
+					if (canceledAt == null) {
+						canceledAt = LocalDateTime.now();
+					}
 
-				// 결제 취소 이력 저장
-				PaymentCancelHistory history = PaymentCancelHistory.builder()
-					.payment(payment)
-					.transactionKey(transactionKey)
-					.cancelAmount(cancelAmount)
-					.cancelReason(cancelRequest.getCancelReason())
-					.canceledAt(canceledAt)
-					.build();
-				paymentCancelHistoryRepository.save(history);
+					// 결제 취소 이력 저장
+					PaymentCancelHistory history = PaymentCancelHistory.builder()
+							.payment(payment)
+							.transactionKey(transactionKey)
+							.cancelAmount(cancelAmount)
+							.cancelReason(reason)
+							.canceledAt(canceledAt)
+							.build();
+					paymentCancelHistoryRepository.save(history);
 
-				log.info("결제 취소 완료: orderId={}", orderId);
-			})
-			.doOnError(e -> {
-				log.error("결제 취소 중 오류 발생: orderId={}, 오류={}", orderId, e.getMessage(), e);
-				throw new RuntimeException("결제 취소에 실패했습니다. (내부 오류)", e);
-			})
-			.block();
+					log.info("결제 취소 완료: orderId={}", payment.getOrderId());
+				})
+				.doOnError(e -> {
+					log.error("결제 취소 중 오류 발생: orderId={}, 오류={}", payment.getOrderId(), e.getMessage(), e);
+					throw new RuntimeException("결제 취소에 실패했습니다. (내부 오류)", e);
+				})
+				.block();
+
 	}
 
 	/**

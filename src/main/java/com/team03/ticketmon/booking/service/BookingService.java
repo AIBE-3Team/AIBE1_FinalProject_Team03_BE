@@ -4,25 +4,21 @@ import com.team03.ticketmon._global.exception.BusinessException;
 import com.team03.ticketmon._global.exception.ErrorCode;
 import com.team03.ticketmon.booking.domain.Booking;
 import com.team03.ticketmon.booking.domain.BookingStatus;
-import com.team03.ticketmon.booking.domain.Ticket;
-import com.team03.ticketmon.booking.dto.BookingDTO;
+import com.team03.ticketmon.booking.dto.BookingCreateRequest;
 import com.team03.ticketmon.booking.repository.BookingRepository;
 import com.team03.ticketmon.concert.domain.Concert;
 import com.team03.ticketmon.concert.domain.ConcertSeat;
 import com.team03.ticketmon.concert.repository.ConcertRepository;
 import com.team03.ticketmon.concert.repository.ConcertSeatRepository;
 import com.team03.ticketmon.seat.service.SeatStatusService;
-import com.team03.ticketmon.user.domain.entity.UserEntity;
 import com.team03.ticketmon.user.repository.UserRepository;
-import com.team03.ticketmon.user.service.UserEntityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * 예매(Booking)와 관련된 핵심 비즈니스 로직을 처리하는 서비스
@@ -49,11 +45,12 @@ public class BookingService {
      * @throws IllegalStateException       선점된 좌석의 상태가 유효하지 않을 때 (다른 사용자가 선점했거나, 이미 예매된 경우)
      */
     @Transactional
-        public BookingDTO.PaymentReadyResponse createPendingBooking(BookingDTO.CreateRequest createDto, Long userId) {
+    public Booking createPendingBooking(BookingCreateRequest createDto, Long userId) {
 
         // 0. 유저 정보 조회
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
 
         // 1. 콘서트 정보 조회
         Concert concert = concertRepository.findById(createDto.getConcertId())
@@ -70,61 +67,55 @@ public class BookingService {
                 validateSeatReservation(seat.getConcert().getConcertId(), seat.getConcertSeatId(), userId)
         );
 
-        // 3. Ticket 생성 (Ticket의 정적 팩토리 메서드 활용)
-        List<Ticket> tickets = selectedSeats.stream()
-                .map(Ticket::createTicket)
-                .toList();
+        // 3. Ticket & Booking 생성
+        Booking booking = Booking.createBooking(userId, concert, selectedSeats);
 
-        // 4. Booking 생성 (정적 팩토리 메서드 또는 빌더 활용)
-        BigDecimal totalAmount = tickets.stream()
-                .map(Ticket::getPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        log.info("총 예매 금액 계산 완료: {}", totalAmount);
-
-        Booking booking = Booking.builder()
-                .userId(userId)
-                .concert(concert)
-                .bookingNumber(UUID.randomUUID().toString())
-                .totalAmount(totalAmount)
-                .status(BookingStatus.PENDING_PAYMENT)
-                .build();
-
-        booking.setTickets(tickets);
-
-        // 5. Booking 저장
+        // 4. Booking 저장
         Booking savedBooking = bookingRepository.save(booking);
         log.info("결제 대기 상태의 예매 생성 완료. Booking ID: {}", savedBooking.getBookingId());
 
-        // 6. 서비스 계층에서 직접 DTO로 변환하여 반환
-        String orderName = createOrderName(savedBooking); // 주문명 생성 로직도 서비스에 위임
-
-        return BookingDTO.PaymentReadyResponse.builder()
-                .orderId(savedBooking.getBookingNumber())
-                .orderName(orderName)
-                .amount(savedBooking.getTotalAmount())
-                .customerName(user.getName())
-                .customerEmail(user.getEmail())
-                .bookingId(savedBooking.getBookingId())
-                .build();
+        return savedBooking;
     }
 
-    private String createOrderName(Booking booking) {
-        String concertTitle = booking.getConcert().getTitle();
-        int ticketCount = booking.getTickets().size();
-        return ticketCount > 1 ?
-                String.format("%s 외 %d매", concertTitle, ticketCount - 1) :
-                concertTitle;
+
+    /**
+     * 예매와 관련된 내부 상태를 '취소'로 최종 처리
+     * 이 메서드는 외부 시스템(결제)과의 연동이 성공한 후 호출되어야 한다.
+     *
+     * @param booking 취소할 Booking 엔티티
+     */
+    @Transactional
+    public void finalizeCancellation(Booking booking) {
+        // 1. 예매 상태를 CANCELED로 변경
+        booking.cancel();
+
+        // [좌석 반환] 예매된 좌석들을 다시 'AVAILABLE' 상태로 변경하는 로직 추가,
+         booking.getTickets().forEach(ticket ->
+             seatStatusService.releaseSeat(
+                 booking.getConcert().getConcertId(),
+                 ticket.getConcertSeat().getSeat().getSeatId(),
+                 booking.getUserId()
+             )
+         );
+
+        // 히스토리 테이블로 이관하는 로직 호출
+        archiveBookingAndTickets(booking);
+
+        bookingRepository.delete(booking);
+        log.info("예매가 성공적으로 취소(삭제)되었습니다. Booking ID: {}", booking.getBookingId());
     }
 
     /**
-     * 예매를 취소합니다.
-     * 현재 구현에서는 물리적 삭제(Hard Delete)를 수행합니다.
+     * 예매 취소 요청의 유효성을 검사
+     * 취소할 예매 엔티티를 반환
      *
-     * @param bookingId 취소할 예매의 ID
-     * @param userId    취소를 요청한 사용자의 ID (권한 확인용)
+     * @param bookingId 검사할 예매 ID
+     * @param userId 요청한 사용자 ID
+     * @return 검증이 완료된 Booking 엔티티
+     * @throws BusinessException 유효성 검사 실패 시 (소유권, 상태, 취소 기간 등)
      */
-    @Transactional
-    public void cancelBooking(Long bookingId, Long userId) {
+    @Transactional(readOnly = true)
+    public Booking validateCancellableBooking(Long bookingId, Long userId) {
         // 1. 예매 정보 조회
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.BOOKING_NOT_FOUND));
@@ -138,17 +129,18 @@ public class BookingService {
         if (booking.getStatus() == BookingStatus.CANCELED) {
             throw new BusinessException(ErrorCode.ALREADY_CANCELED_BOOKING);
         }
+
         if (booking.getStatus() == BookingStatus.COMPLETED) {
-            throw new BusinessException(ErrorCode.ALREADY_COMPLETE_BOOKING);
+            throw new BusinessException(ErrorCode.CANNOT_CANCEL_COMPLETED_BOOKING);
         }
 
-        // 4. 히스토리 테이블로 이관하는 로직 호출
-        archiveBookingAndTickets(booking);
+        // TODO: [취소 정책] 상세한 비즈니스 규칙을 추가 (예: 공연 1일 전까지 가능)(현재 하드코딩)
+        // 4. 취소 정책 검증 (예: 공연 시작일 하루 전까지만 가능)
+        if (booking.getConcert().getConcertDate().isBefore(LocalDate.now().plusDays(1))) {
+            throw new BusinessException(ErrorCode.CANCELLATION_PERIOD_EXPIRED);
+        }
 
-        // 5. 운영 DB에서 예매 정보 물리적 삭제
-        bookingRepository.delete(booking);
-
-        log.info("예매가 성공적으로 취소되었습니다. Booking ID: {}", bookingId);
+        return booking;
     }
 
     /**
@@ -168,18 +160,17 @@ public class BookingService {
      */
     private void archiveBookingAndTickets(Booking booking) {
 
-        // TODO: [미래 구현] 아래 로직을 실제 히스토리 DB에 맞게 구현해야 합니다.
+        // [미래 구현] 아래 로직을 실제 히스토리 DB에 맞게 구현
 
-        // 1. (개념적) 이관 전, 객체의 상태를 'CANCELED'로 변경합니다.
-        booking.cancel();
+        // 1. 변경된 상태가 반영된 객체를 기반으로 History 객체를 생성합니다.
+        //    BookingHistory bookingHistory = BookingHistory.from(booking);
 
-        // 2. 변경된 상태가 반영된 객체를 기반으로 History 객체를 생성합니다.
-        //    BookingHistory bookingHistory = BookingHistory.from(booking); // 이 때 status는 'CANCELED'가 됨
-
-        // 3. History DB에 저장합니다.
+        // 2. History DB에 저장합니다.
         //    bookingHistoryRepository.save(bookingHistory);
         //    ... (Ticket 히스토리 저장 로직) ...
 
         log.info("[시뮬레이션] Booking ID {} 및 관련 Ticket 정보를 히스토리 테이블로 이관 완료.", booking.getBookingId());
     }
 }
+
+

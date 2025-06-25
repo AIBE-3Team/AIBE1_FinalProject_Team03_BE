@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>좌석 관리 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .controls label {
+            display: inline-block;
+            width: 100px;
+            font-weight: bold;
+        }
+        .controls input, .controls button {
+            margin: 5px;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .controls button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background-color: #0056b3;
+        }
+        .controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+            margin: 15px 0;
+        }
+        .seat {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #f9f9f9;
+        }
+        .seat.available {
+            background-color: #28a745;
+            color: white;
+            border-color: #1e7e34;
+        }
+        .seat.reserved {
+            background-color: #ffc107;
+            color: black;
+            border-color: #d39e00;
+        }
+        .seat.my-reserved {
+            background-color: #17a2b8;
+            color: white;
+            border-color: #138496;
+        }
+        .seat.booked {
+            background-color: #dc3545;
+            color: white;
+            border-color: #c82333;
+        }
+        .section-title {
+            text-align: center;
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 5px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+        .status-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status-info h4 {
+            margin-top: 0;
+        }
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+        }
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .message.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .timer {
+            font-weight: bold;
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎫 좌석 관리 테스트 페이지</h1>
+
+    <!-- 설정 섹션 -->
+    <div class="section">
+        <h3>⚙️ 테스트 설정</h3>
+        <div class="controls">
+            <label>콘서트 ID:</label>
+            <input type="number" id="concertId" value="1" min="1">
+
+            <label>사용자 ID:</label>
+            <input type="number" id="userId" value="1" min="1">
+
+            <button onclick="refreshSeats()">🔄 좌석 상태 새로고침</button>
+            <button onclick="startPolling()" id="pollingBtn">📡 실시간 폴링 시작</button>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #28a745;"></div>
+                <span>예약 가능</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ffc107;"></div>
+                <span>다른 사용자 선점중</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #17a2b8;"></div>
+                <span>내가 선점중</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #dc3545;"></div>
+                <span>예매 완료</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메시지 표시 영역 -->
+    <div id="messageArea"></div>
+
+    <!-- 좌석 배치도 -->
+    <div class="section">
+        <h3>🎭 좌석 배치도</h3>
+
+        <!-- A구역 -->
+        <div class="section-title">A구역 (1-50번)</div>
+        <div class="seat-grid" id="sectionA"></div>
+
+        <!-- B구역 -->
+        <div class="section-title">B구역 (51-100번)</div>
+        <div class="seat-grid" id="sectionB"></div>
+
+        <!-- C구역 -->
+        <div class="section-title">C구역 (101-150번)</div>
+        <div class="seat-grid" id="sectionC"></div>
+    </div>
+
+    <!-- 선점 좌석 정보 -->
+    <div class="section">
+        <h3>📋 내 선점 좌석 정보</h3>
+        <div id="myReservations"></div>
+    </div>
+
+    <!-- 상태 정보 -->
+    <div class="section">
+        <h3>📊 실시간 상태 정보</h3>
+        <div class="status-info" id="statusInfo">
+            <h4>좌석 현황</h4>
+            <p>총 좌석: <span id="totalSeats">150</span></p>
+            <p>예약 가능: <span id="availableSeats">-</span></p>
+            <p>선점중: <span id="reservedSeats">-</span></p>
+            <p>예매 완료: <span id="bookedSeats">-</span></p>
+            <p>마지막 업데이트: <span id="lastUpdate">-</span></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 전역 변수
+    let currentUserId = 1;
+    let currentConcertId = 1;
+    let pollingInterval = null;
+    let seatData = new Map();
+
+    // API 기본 URL
+    const API_BASE = '/api/seats';
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeSeats();
+        refreshSeats();
+
+        // 입력 값 변경 감지
+        document.getElementById('userId').addEventListener('change', function() {
+            currentUserId = parseInt(this.value);
+            refreshSeats();
+        });
+
+        document.getElementById('concertId').addEventListener('change', function() {
+            currentConcertId = parseInt(this.value);
+            refreshSeats();
+        });
+    });
+
+    // 좌석 그리드 초기화
+    function initializeSeats() {
+        const sections = ['A', 'B', 'C'];
+
+        sections.forEach((section, sectionIndex) => {
+            const container = document.getElementById(`section${section}`);
+            container.innerHTML = '';
+
+            for (let i = 1; i <= 50; i++) {
+                const seatNumber = (sectionIndex * 50) + i;
+                const seat = document.createElement('div');
+                seat.className = 'seat';
+                seat.id = `seat-${seatNumber}`;
+                seat.textContent = `${section}-${i}`;
+                seat.addEventListener('click', () => handleSeatClick(seatNumber));
+                container.appendChild(seat);
+            }
+        });
+    }
+
+    // 좌석 클릭 처리
+    async function handleSeatClick(seatId) {
+        const seat = seatData.get(seatId);
+
+        if (!seat || seat.status === 'AVAILABLE') {
+            // 예약 가능한 좌석 - 선점 시도
+            await reserveSeat(seatId);
+        } else if (seat.status === 'RESERVED' && seat.userId === currentUserId) {
+            // 내가 선점한 좌석 - 해제 시도
+            await releaseSeat(seatId);
+        } else {
+            showMessage('이 좌석은 선택할 수 없습니다.', 'warning');
+        }
+    }
+
+    // 좌석 선점
+    async function reserveSeat(seatId) {
+        try {
+            showMessage(`좌석 ${seatId}번 선점 중...`, 'warning');
+
+            const response = await fetch(`${API_BASE}/concerts/${currentConcertId}/seats/${seatId}/reserve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    concertId: currentConcertId,
+                    seatId: seatId,
+                    userId: currentUserId
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                showMessage(`좌석 ${seatId}번 선점 성공! 5분간 유지됩니다.`, 'success');
+                await refreshSeats();
+            } else {
+                showMessage(`좌석 선점 실패: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('좌석 선점 오류:', error);
+            showMessage('좌석 선점 중 오류가 발생했습니다.', 'error');
+        }
+    }
+
+    // 좌석 해제
+    async function releaseSeat(seatId) {
+        try {
+            showMessage(`좌석 ${seatId}번 해제 중...`, 'warning');
+
+            const response = await fetch(`${API_BASE}/concerts/${currentConcertId}/seats/${seatId}/release`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                showMessage(`좌석 ${seatId}번 해제 성공!`, 'success');
+                await refreshSeats();
+            } else {
+                showMessage(`좌석 해제 실패: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('좌석 해제 오류:', error);
+            showMessage('좌석 해제 중 오류가 발생했습니다.', 'error');
+        }
+    }
+
+    // 전체 좌석 상태 새로고침
+    async function refreshSeats() {
+        try {
+            const response = await fetch(`${API_BASE}/concerts/${currentConcertId}/status`);
+            const result = await response.json();
+
+            if (response.ok && result.data) {
+                updateSeatDisplay(result.data);
+                updateStatusInfo(result.data);
+                updateMyReservations();
+            } else {
+                showMessage('좌석 상태를 불러올 수 없습니다.', 'error');
+            }
+
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        } catch (error) {
+            console.error('좌석 상태 조회 오류:', error);
+            showMessage('서버 연결에 실패했습니다.', 'error');
+        }
+    }
+
+    // 좌석 화면 업데이트
+    function updateSeatDisplay(seats) {
+        // 기존 데이터 초기화
+        seatData.clear();
+
+        // 모든 좌석을 기본값으로 설정
+        for (let i = 1; i <= 150; i++) {
+            seatData.set(i, {
+                seatId: i,
+                status: 'AVAILABLE',
+                userId: null
+            });
+        }
+
+        // 서버에서 받은 데이터로 업데이트
+        seats.forEach(seat => {
+            seatData.set(seat.seatId, seat);
+        });
+
+        // UI 업데이트
+        for (let i = 1; i <= 150; i++) {
+            const seatElement = document.getElementById(`seat-${i}`);
+            const seatInfo = seatData.get(i);
+
+            if (seatElement) {
+                seatElement.className = 'seat';
+
+                if (seatInfo.status === 'AVAILABLE') {
+                    seatElement.classList.add('available');
+                } else if (seatInfo.status === 'RESERVED') {
+                    if (seatInfo.userId === currentUserId) {
+                        seatElement.classList.add('my-reserved');
+                    } else {
+                        seatElement.classList.add('reserved');
+                    }
+                } else if (seatInfo.status === 'BOOKED') {
+                    seatElement.classList.add('booked');
+                }
+            }
+        }
+    }
+
+    // 상태 정보 업데이트
+    function updateStatusInfo(seats) {
+        let available = 0, reserved = 0, booked = 0;
+
+        for (let i = 1; i <= 150; i++) {
+            const seat = seatData.get(i);
+            if (seat) {
+                switch (seat.status) {
+                    case 'AVAILABLE': available++; break;
+                    case 'RESERVED': reserved++; break;
+                    case 'BOOKED': booked++; break;
+                }
+            } else {
+                available++; // 데이터가 없으면 예약 가능으로 처리
+            }
+        }
+
+        document.getElementById('availableSeats').textContent = available;
+        document.getElementById('reservedSeats').textContent = reserved;
+        document.getElementById('bookedSeats').textContent = booked;
+    }
+
+    // 내 선점 좌석 정보 업데이트
+    function updateMyReservations() {
+        const mySeats = Array.from(seatData.values())
+            .filter(seat => seat.status === 'RESERVED' && seat.userId === currentUserId);
+
+        const container = document.getElementById('myReservations');
+
+        if (mySeats.length === 0) {
+            container.innerHTML = '<p>선점한 좌석이 없습니다.</p>';
+            return;
+        }
+
+        container.innerHTML = mySeats.map(seat => {
+            const remainingTime = seat.remainingSeconds || 0;
+            const minutes = Math.floor(remainingTime / 60);
+            const seconds = remainingTime % 60;
+
+            return `
+                    <div style="padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                        <strong>${seat.seatInfo || `좌석 ${seat.seatId}`}</strong>
+                        <span class="timer">남은 시간: ${minutes}분 ${seconds}초</span>
+                        <button onclick="releaseSeat(${seat.seatId})" style="margin-left: 10px;">해제</button>
+                    </div>
+                `;
+        }).join('');
+    }
+
+    // 폴링 시작/중지
+    function startPolling() {
+        const button = document.getElementById('pollingBtn');
+
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+            button.textContent = '📡 실시간 폴링 시작';
+            showMessage('실시간 폴링이 중지되었습니다.', 'warning');
+        } else {
+            pollingInterval = setInterval(refreshSeats, 2000); // 2초마다 업데이트
+            button.textContent = '⏹️ 실시간 폴링 중지';
+            showMessage('실시간 폴링이 시작되었습니다. (2초 간격)', 'success');
+        }
+    }
+
+    // 메시지 표시
+    function showMessage(message, type = 'info') {
+        const messageArea = document.getElementById('messageArea');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        messageDiv.textContent = message;
+
+        messageArea.innerHTML = '';
+        messageArea.appendChild(messageDiv);
+
+        // 3초 후 메시지 제거
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.parentNode.removeChild(messageDiv);
+            }
+        }, 3000);
+    }
+</script>
+</body>
+</html>

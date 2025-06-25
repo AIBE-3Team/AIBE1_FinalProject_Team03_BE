@@ -1,12 +1,12 @@
 package com.team03.ticketmon._global.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Primary;
 import lombok.Data;
 
 @Data
-@Component
 @ConfigurationProperties(prefix = "ai.together")
+@Primary
 public class AiServiceProperties {
 
 	private String apiKey;

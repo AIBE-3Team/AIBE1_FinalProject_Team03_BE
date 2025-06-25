@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>좌석 관리 테스트 도움말</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            background-color: #fafbfc;
+        }
+        .api-endpoint {
+            background: #2c3e50;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .method {
+            background: #e74c3c;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .method.get {
+            background: #27ae60;
+        }
+        .method.post {
+            background: #3498db;
+        }
+        .method.delete {
+            background: #e74c3c;
+        }
+        .nav-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .nav-buttons a {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+        .nav-buttons a:hover {
+            background: linear-gradient(135deg, #2980b9, #1f618d);
+            transform: translateY(-1px);
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #664d03;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            background: white;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .feature-list li::before {
+            content: "✅ ";
+            margin-right: 10px;
+        }
+        code {
+            background: #f1f2f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📖 좌석 관리 테스트 도움말</h1>
+
+    <div class="nav-buttons">
+        <a href="/seat/test">🎫 테스트 페이지로 이동</a>
+        <a href="/swagger-ui/index.html" target="_blank">📋 API 문서 (Swagger)</a>
+    </div>
+
+    <div class="section">
+        <h2>🎯 테스트 페이지 주요 기능</h2>
+        <ul class="feature-list">
+            <li><strong>좌석 시각화:</strong> 150개 좌석을 A, B, C 구역으로 구분하여 표시</li>
+            <li><strong>실시간 상태 확인:</strong> 좌석의 현재 상태를 색상으로 구분 표시</li>
+            <li><strong>좌석 선점/해제:</strong> 클릭 한 번으로 좌석 선점 및 해제 가능</li>
+            <li><strong>실시간 폴링:</strong> 2초 간격으로 자동 상태 업데이트</li>
+            <li><strong>TTL 모니터링:</strong> 선점한 좌석의 남은 시간 실시간 표시</li>
+            <li><strong>다중 사용자 테스트:</strong> 사용자 ID 변경으로 동시성 테스트 가능</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>🚀 사용 방법</h2>
+
+        <h3>1. 기본 설정</h3>
+        <ul>
+            <li><strong>콘서트 ID:</strong> 테스트할 콘서트의 고유 번호 (기본값: 1)</li>
+            <li><strong>사용자 ID:</strong> 테스트할 사용자의 고유 번호 (기본값: 1)</li>
+        </ul>
+
+        <h3>2. 좌석 선점 테스트</h3>
+        <ul>
+            <li>🟢 <strong>녹색 좌석 (예약 가능):</strong> 클릭하면 선점됩니다</li>
+            <li>🔵 <strong>파란색 좌석 (내가 선점중):</strong> 클릭하면 해제됩니다</li>
+            <li>🟡 <strong>노란색 좌석 (다른 사용자 선점중):</strong> 선택할 수 없습니다</li>
+            <li>🔴 <strong>빨간색 좌석 (예매 완료):</strong> 선택할 수 없습니다</li>
+        </ul>
+
+        <h3>3. 실시간 폴링</h3>
+        <ul>
+            <li><strong>폴링 시작:</strong> "실시간 폴링 시작" 버튼 클릭</li>
+            <li><strong>자동 업데이트:</strong> 2초마다 모든 좌석 상태가 자동으로 갱신됩니다</li>
+            <li><strong>폴링 중지:</strong> "실시간 폴링 중지" 버튼 클릭</li>
+        </ul>
+
+        <h3>4. 동시성 테스트</h3>
+        <ul>
+            <li><strong>다중 탭 열기:</strong> 같은 페이지를 여러 탭에서 열기</li>
+            <li><strong>다른 사용자 ID:</strong> 각 탭에서 다른 사용자 ID 설정</li>
+            <li><strong>동시 선점 시도:</strong> 같은 좌석을 동시에 클릭하여 분산 락 테스트</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>🔧 사용된 API 엔드포인트</h2>
+        <div th:each="endpoint : ${apiEndpoints}">
+            <div class="api-endpoint" th:text="${endpoint}"></div>
+        </div>
+
+        <div class="info">
+            <strong>참고:</strong> 모든 API는 RESTful 방식으로 구현되어 있으며,
+            분산 락(Redisson)을 통해 동시성 문제를 해결합니다.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>⚠️ 주의사항</h2>
+        <div class="warning">
+            <ul>
+                <li><strong>TTL 만료:</strong> 선점한 좌석은 5분 후 자동으로 해제됩니다</li>
+                <li><strong>분산 락:</strong> 같은 좌석에 대한 동시 요청은 순차적으로 처리됩니다</li>
+                <li><strong>네트워크 오류:</strong> 서버 연결 실패 시 적절한 오류 메시지가 표시됩니다</li>
+                <li><strong>브라우저 호환성:</strong> 모던 브라우저에서 최적화되어 있습니다</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🧪 테스트 시나리오 예시</h2>
+
+        <h3>시나리오 1: 기본 선점/해제 테스트</h3>
+        <ol>
+            <li>콘서트 ID: 1, 사용자 ID: 1로 설정</li>
+            <li>A구역의 임의 좌석(예: A-10) 클릭</li>
+            <li>좌석이 파란색으로 변경되는지 확인</li>
+            <li>같은 좌석을 다시 클릭하여 해제</li>
+            <li>좌석이 녹색으로 돌아가는지 확인</li>
+        </ol>
+
+        <h3>시나리오 2: 동시성 테스트</h3>
+        <ol>
+            <li>새 탭을 열어 같은 페이지 접속</li>
+            <li>첫 번째 탭: 사용자 ID 1, 두 번째 탭: 사용자 ID 2</li>
+            <li>동시에 같은 좌석 클릭</li>
+            <li>한 사용자만 선점 성공하는지 확인</li>
+            <li>다른 사용자에게는 적절한 오류 메시지 표시 확인</li>
+        </ol>
+
+        <h3>시나리오 3: TTL 만료 테스트</h3>
+        <ol>
+            <li>임의 좌석 선점</li>
+            <li>실시간 폴링 시작</li>
+            <li>5분 대기 (또는 서버에서 TTL 시간 단축 설정)</li>
+            <li>만료 시 자동으로 좌석이 해제되는지 확인</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>🔍 트러블슈팅</h2>
+
+        <h3>문제: 좌석 상태가 업데이트되지 않음</h3>
+        <ul>
+            <li><strong>해결방법:</strong> "좌석 상태 새로고침" 버튼 클릭</li>
+            <li><strong>원인:</strong> 네트워크 지연 또는 서버 응답 지연</li>
+        </ul>
+
+        <h3>문제: 좌석 선점이 실패함</h3>
+        <ul>
+            <li><strong>해결방법:</strong> 다른 사용자가 선점했는지 확인</li>
+            <li><strong>원인:</strong> 분산 락으로 인한 동시성 제어</li>
+        </ul>
+
+        <h3>문제: 페이지가 느림</h3>
+        <ul>
+            <li><strong>해결방법:</strong> 실시간 폴링 중지 후 수동 새로고침 사용</li>
+            <li><strong>원인:</strong> 2초 간격의 지속적인 API 호출</li>
+        </ul>
+    </div>
+
+    <div class="nav-buttons">
+        <a href="/seat/test">🎫 테스트 페이지로 이동</a>
+    </div>
+</div>
+</body>
+</html>

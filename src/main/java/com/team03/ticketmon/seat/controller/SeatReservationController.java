@@ -149,8 +149,9 @@ public class SeatReservationController {
         }
     }
 
+    // ✅ 핵심 수정: @PostMapping → @DeleteMapping으로 변경
     @Operation(summary = "좌석 선점 해제", description = "임시 선점된 좌석을 해제합니다 (권한 검증 포함)")
-    @PostMapping("/concerts/{concertId}/seats/{seatId}/release")
+    @DeleteMapping("/concerts/{concertId}/seats/{seatId}/release")
     public ResponseEntity<SuccessResponse<String>> releaseSeat(
             @Parameter(description = "콘서트 ID", example = "1")
             @PathVariable Long concertId,

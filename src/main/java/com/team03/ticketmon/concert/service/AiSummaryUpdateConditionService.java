@@ -5,9 +5,9 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.team03.ticketmon._global.config.AiSummaryConditionProperties;
 import com.team03.ticketmon.concert.domain.Concert;
 import com.team03.ticketmon.concert.domain.Review;
-import com.team03.ticketmon.concert.dto.AiSummaryUpdateConditionDTO;
 import com.team03.ticketmon.concert.dto.ReviewChangeDetectionDTO;
 import com.team03.ticketmon.concert.repository.ReviewRepository;
 import com.team03.ticketmon.concert.util.ReviewChecksumGenerator;
@@ -34,7 +34,7 @@ public class AiSummaryUpdateConditionService {
 	 * @param condition 업데이트 조건을 담은 설정 객체
 	 * @return 변경 감지 결과를 담은 DTO
 	 */
-	public ReviewChangeDetectionDTO checkNeedsUpdate(Concert concert, AiSummaryUpdateConditionDTO condition) {
+	public ReviewChangeDetectionDTO checkNeedsUpdate(Concert concert, AiSummaryConditionProperties condition) {
 		// 현재 유효한 리뷰 목록을 데이터베이스에서 조회
 		List<Review> currentReviews = reviewRepository.findValidReviewsForAiSummary(concert.getConcertId());
 		Integer currentCount = currentReviews.size();

@@ -109,50 +109,62 @@ public class SecurityConfig {
                 // URL 별 접근 권한 설정
                 .authorizeHttpRequests(auth -> auth
 
+                                //------------인증 없이 접근 허용할 경로들 (permitAll())------------
+                                // 로그인/회원가입/토큰 갱신 등 인증 관련 API 및 페이지
+                                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                                .requestMatchers("/api/auth/**").permitAll()    // 인증(로그인, 회원가입) 관련 API 경로 허용 (인증 불필요)
+                                .requestMatchers("/auth/**").permitAll() // login.html, register.html 등
+                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger UI 및 API 문서
 
-                                // LoginFilter가 처리하는 정확한 로그인 경로를 모든 규칙보다 가장 먼저 permitAll()
-                                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll() // <-- 이 라인을 가장 위로 이동 및 HttpMethod.POST 명시
-
-                                // -----------------------------------------------------------
-                                // 추가: 대기열 진입 API (POST /api/queue/enter)를 permitAll()
+                                // 대기열 진입 API (인증 전에도 진입 가능)
                                 .requestMatchers(HttpMethod.POST, "/api/queue/enter").permitAll()
 
+                                // 콘서트 정보 조회 (목록, 검색, 필터링, 상세, AI 요약, 리뷰/기대평 목록) - 공개 API
+                                .requestMatchers(HttpMethod.GET, "/api/concerts", "/api/concerts/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/concerts/{id}/**").permitAll() // 상세 조회, AI 요약
+                                .requestMatchers(HttpMethod.GET, "/api/concerts/{id}/reviews").permitAll() // 리뷰 목록 조회
+                                .requestMatchers(HttpMethod.GET, "/api/concerts/{id}/expectations").permitAll() // 기대평 목록 조회
 
-                                //------------인증 없이 접근 허용할 경로들 (permitAll())------------
-//                                .requestMatchers("/", "/index.html").permitAll()
-                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()   // Swagger UI 및 API 문서 경로 허용
-                                // .requestMatchers("/api/auth/login").permitAll() // <-- 이 부분을 수정 (기존 /auth/login 또는 /api/auth/** permitAll과 중복 가능성 있으나 명시적 지정)
-                                .requestMatchers("/api/auth/**").permitAll()    // 인증(로그인, 회원가입) 관련 API 경로 허용 (인증 불필요)
+                                // 좌석 상태 조회 (로그인 없이 확인 가능)
+                                .requestMatchers(HttpMethod.GET, "/api/seats/concerts/{concertId}/status").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/seats/concerts/{concertId}/seats/{seatId}/status").permitAll()
+
+                                // 결제 콜백 및 웹훅 API (외부 시스템에서 호출하므로 permitAll)
+                                .requestMatchers("/api/v1/payments/success", "/api/v1/payments/fail").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/toss/payment-updates").permitAll()
+
+                                // 기본 루트 URL
+                                .requestMatchers("/").permitAll()
+                                // .requestMatchers("/index.html").permitAll() // 필요시 주석 해제
+
+                                // 기타
                                 // .requestMatchers("/test/upload/**").permitAll()     // 파일 업로드 테스트용 API 경로 허용 (개발/테스트 목적)
                                 // .requestMatchers("/profile/image/**").permitAll()   // 프로필 이미지 접근/업로드 관련 API 경로 허용 (필요하다면 유지)
 
 
                                 //------------특정 역할이 필요한 경로들 (hasRole())------------
-                                // 판매자 권한 신청 관련 API 경로 허용 (로그인된 사용자라면 누구나 접근 가능해야 함)
-                                .requestMatchers("/api/users/me/seller-status").authenticated() // 판매자 권한 UI 접근 시 로그인 사용자의 권한 상태 조회 (API-03-05)
-                                .requestMatchers("/api/users/me/seller-requests").authenticated() // 판매자 권한 요청 등록 (API-03-06)
-                                .requestMatchers("/api/users/me/role").authenticated() // 판매자 본인의 권한 철회 (API-03-07)
+                                // 관리자 전용 경로 - ADMIN 역할만 접근 허용 (관리자 페이지 및 API)
+                                .requestMatchers("/admin/**").hasRole("ADMIN")
+                                .requestMatchers("/api/admin/seats/**").hasRole("ADMIN")
 
                                 // 실제 판매자 기능 (콘서트 CRUD) - SELLER 역할만 접근 허용
-                                // 콘서트 CRUD 및 판매자별 콘서트 개수 조회 API
                                 .requestMatchers("/api/seller/concerts/**").hasRole("SELLER")
-                                .requestMatchers("/api/seller/count").hasRole("SELLER")
 
-                                // 관리자 전용 경로 - ADMIN 역할만 접근 허용
-                                // 이 부분은 ADMIN 권한 구현 완료 후 주석 해제하여 사용합니다.(관리자 페이지)
-                                // .requestMatchers("/admin/**").hasRole("ADMIN")
+                                // 판매자 권한 신청 관련 API 경로 허용 (로그인된 사용자라면 누구나 접근 가능해야 함) - .anyRequest().authenticated()에 포함됨(주석처리)
+                                // .requestMatchers("/api/users/me/seller-status").authenticated() // 판매자 권한 UI 접근 시 로그인 사용자의 권한 상태 조회 (API-03-05)
+                                // .requestMatchers("/api/users/me/seller-requests").authenticated() // 판매자 권한 요청 등록 (API-03-06)
+                                // .requestMatchers("/api/users/me/role").authenticated() // 판매자 본인의 권한 철회 (API-03-07)
 
-                                //------------나머지 모든 요청에 대한 접근 권한 설정(티켓팅, 예매, 마이페이지 등 필요하다면 추후 수정 예정)------------
-                                // 위에서 정의되지 않은 나머지 모든 요청은 인증만 되면 접근 허용
-//                                .anyRequest().authenticated() // JWT 인증 완료된 사용자만 접근 가능
+                                //------------나머지 모든 요청에 대한 접근 권한 설정 (authenticated())------------
+                                // 위에서 정의되지 않은 나머지 모든 요청은 인증(로그인)만 되면 접근 허용
+                                .anyRequest().authenticated()
 
-                                // <추후 추가될 수 있는 인가 설정>
-                                // .requestMatchers("/api/some-specific-path").hasAuthority("SOME_PERMISSION") // 특정 권한 필요
-                                // .requestMatchers("/api/public/**").permitAll() // 추가적인 공개 API 경로
+                        // <추후 추가될 수 있는 인가 설정>
+                        // .requestMatchers("/api/some-specific-path").hasAuthority("SOME_PERMISSION") // 특정 권한 필요
+                        // .requestMatchers("/api/public/**").permitAll() // 추가적인 공개 API 경로
 
-
-                                // 전체 인증 없이 API 테스트 가능(초기 개발 단계 / 추후 JWT 완성 시 주석 처리)
-                                .anyRequest().permitAll()  // CORS 문제 임시 조치 -> 추후에 문제 해결 시 .anyRequest().authenticated() 활성화 예정
+                        // 전체 인증 없이 API 테스트 가능(초기 개발 단계 / 추후 JWT 완성 시 주석 처리)
+                        // .anyRequest().permitAll()  // CORS 문제 임시 조치 -> 추후에 문제 해결 시 .anyRequest().authenticated() 활성화 예정
                 )
                 // OAuth2 Login
                 .oauth2Login(oauth -> oauth

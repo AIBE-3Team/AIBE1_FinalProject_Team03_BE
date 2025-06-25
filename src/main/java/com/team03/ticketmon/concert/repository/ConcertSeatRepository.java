@@ -26,12 +26,16 @@ public interface ConcertSeatRepository extends JpaRepository<ConcertSeat, Long> 
 	List<ConcertSeat> findAvailableSeatsByConcertId(@Param("concertId") Long concertId);
 
 	/**
-	 * 특정 콘서트 ID에 해당하는 모든 ConcertSeat 정보를 조회
-	 * N+1 문제를 방지하기 위해 'seat' 엔티티를 함께 fetch join
+	 * 특정 콘서트의 모든 좌석 조회 (예매 상태 포함) - ✨ 좌석 관리 기능에서 새로 추가
+	 * Fetch Join을 사용하여 N+1 문제 방지
 	 *
-	 * @param concertId 조회할 콘서트의 ID
-	 * @return 해당 콘서트의 모든 ConcertSeat 리스트
+	 * @param concertId 콘서트 ID
+	 * @return 콘서트의 모든 좌석 정보 (Seat, Ticket 포함)
 	 */
-	@Query("SELECT cs FROM ConcertSeat cs JOIN FETCH cs.seat WHERE cs.concert.concertId = :concertId")
-	List<ConcertSeat> findAllByConcertIdWithSeat(@Param("concertId") Long concertId);
+	@Query("SELECT cs FROM ConcertSeat cs " +
+			"LEFT JOIN FETCH cs.seat s " +
+			"LEFT JOIN FETCH cs.ticket t " +
+			"WHERE cs.concert.concertId = :concertId " +
+			"ORDER BY s.section, s.seatRow, s.seatNumber")
+	List<ConcertSeat> findByConcertIdWithDetails(@Param("concertId") Long concertId);
 }

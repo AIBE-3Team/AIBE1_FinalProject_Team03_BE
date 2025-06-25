@@ -5,6 +5,7 @@ import com.team03.ticketmon.seat.domain.SeatStatus.SeatStatusEnum;
 import com.team03.ticketmon.seat.exception.SeatReservationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBucket;
 import org.redisson.api.RLock;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -26,23 +27,29 @@ import java.util.stream.Collectors;
 public class SeatStatusService {
 
     private final RedissonClient redissonClient;
+    private final SeatStatusEventPublisher eventPublisher;
 
     // Redis 키 패턴
     private static final String SEAT_STATUS_KEY_PREFIX = "seat:status:";
     private static final String SEAT_LOCK_KEY_PREFIX = "seat:lock:";
+    private static final String SEAT_TTL_KEY_PREFIX = "seat:expire:"; // TTL 키 패턴
 
     // 분산 락 타임아웃 설정
     private static final long LOCK_WAIT_TIME = 3; // 락 획득 대기 시간 (초)
     private static final long LOCK_LEASE_TIME = 10; // 락 보유 시간 (초)
 
+    // TTL 설정
+    private static final long SEAT_RESERVATION_TTL_MINUTES = 5; // 좌석 선점 유지 시간 (분)
+
     /**
      * 특정 콘서트의 전체 좌석 상태 조회
+     * ⚠️ 자동 해제 로직 임시 비활성화
      */
     public Map<Long, SeatStatus> getAllSeatStatus(Long concertId) {
         String key = SEAT_STATUS_KEY_PREFIX + concertId;
         RMap<String, SeatStatus> seatMap = redissonClient.getMap(key);
 
-        // String 키를 Long으로 변환하여 반환
+        // String 키를 Long으로 변환하여 반환 (자동 해제 로직 제거)
         return seatMap.readAllMap().entrySet().stream()
                 .collect(Collectors.toMap(
                         entry -> Long.valueOf(entry.getKey()),
@@ -52,6 +59,7 @@ public class SeatStatusService {
 
     /**
      * 특정 좌석 상태 조회
+     * ⚠️ 자동 해제 로직 임시 비활성화
      */
     public Optional<SeatStatus> getSeatStatus(Long concertId, Long seatId) {
         String key = SEAT_STATUS_KEY_PREFIX + concertId;
@@ -62,21 +70,85 @@ public class SeatStatusService {
     }
 
     /**
-     * 좌석 상태 업데이트
+     * 좌석 상태 업데이트 (기본 버전 - TTL 로직 제거)
+     * - Redis Hash에 좌석 상태 저장
+     * - 실시간 이벤트 발행으로 다른 사용자들에게 변경사항 알림
      */
     public void updateSeatStatus(SeatStatus seatStatus) {
         String key = SEAT_STATUS_KEY_PREFIX + seatStatus.getConcertId();
         RMap<String, SeatStatus> seatMap = redissonClient.getMap(key);
 
+        // 1. Redis에 좌석 상태 저장
         seatMap.put(seatStatus.getSeatId().toString(), seatStatus);
+
+        // 2. 실시간 이벤트 발행 (실패해도 좌석 상태 저장에는 영향 없음)
+        try {
+            eventPublisher.publishSeatUpdate(seatStatus);
+        } catch (Exception e) {
+            log.warn("좌석 상태 이벤트 발행 실패 (서비스 계속 진행): concertId={}, seatId={}",
+                    seatStatus.getConcertId(), seatStatus.getSeatId(), e);
+        }
+
         log.info("좌석 상태 업데이트: concertId={}, seatId={}, status={}",
                 seatStatus.getConcertId(), seatStatus.getSeatId(), seatStatus.getStatus());
+    }
+
+    /**
+     * 좌석 TTL 키 생성
+     * - Redis Key Expiration Event를 위한 TTL 키 생성
+     * - 좌석 선점 시간과 동일한 TTL 설정 (5분)
+     *
+     * @param concertId 콘서트 ID
+     * @param seatId 좌석 ID
+     */
+    private void createSeatTTLKey(Long concertId, Long seatId) {
+        try {
+            String ttlKey = SEAT_TTL_KEY_PREFIX + concertId + ":" + seatId;
+            RBucket<String> bucket = redissonClient.getBucket(ttlKey);
+
+            // 단순 마커 키로 사용 (값은 중요하지 않음)
+            bucket.set("reserved", SEAT_RESERVATION_TTL_MINUTES, TimeUnit.MINUTES);
+
+            log.debug("좌석 TTL 키 생성: key={}, ttl={}분", ttlKey, SEAT_RESERVATION_TTL_MINUTES);
+
+        } catch (Exception e) {
+            log.error("좌석 TTL 키 생성 실패: concertId={}, seatId={}", concertId, seatId, e);
+            // TTL 키 생성 실패가 좌석 선점 자체를 막지 않도록 예외를 던지지 않음
+        }
+    }
+
+    /**
+     * 좌석 TTL 키 삭제
+     * - 좌석 해제 시 TTL 키 정리
+     * - 불필요한 만료 이벤트 방지
+     *
+     * @param concertId 콘서트 ID
+     * @param seatId 좌석 ID
+     */
+    private void removeSeatTTLKey(Long concertId, Long seatId) {
+        try {
+            String ttlKey = SEAT_TTL_KEY_PREFIX + concertId + ":" + seatId;
+            RBucket<String> bucket = redissonClient.getBucket(ttlKey);
+
+            boolean deleted = bucket.delete();
+
+            if (deleted) {
+                log.debug("좌석 TTL 키 삭제 완료: key={}", ttlKey);
+            } else {
+                log.debug("좌석 TTL 키 삭제 시도 - 키가 존재하지 않음: key={}", ttlKey);
+            }
+
+        } catch (Exception e) {
+            log.error("좌석 TTL 키 삭제 실패: concertId={}, seatId={}", concertId, seatId, e);
+            // TTL 키 삭제 실패는 치명적이지 않으므로 예외를 던지지 않음
+        }
     }
 
     /**
      * 좌석 임시 선점 (원자적 처리, 분산 락 사용)
      * - 좌석 가용성 확인과 선점 처리를 원자적으로 수행
      * - Race Condition 방지 및 중복 예약 차단
+     * - TTL 키 생성으로 자동 만료 처리 지원
      *
      * @param concertId 콘서트 ID
      * @param seatId 좌석 ID
@@ -136,7 +208,7 @@ public class SeatStatusService {
 
             // 2. 새로운 선점 처리
             LocalDateTime now = LocalDateTime.now();
-            LocalDateTime expiresAt = now.plusMinutes(5); // 5분 후 만료
+            LocalDateTime expiresAt = now.plusMinutes(SEAT_RESERVATION_TTL_MINUTES); // 5분 후 만료
 
             SeatStatus reservedStatus = SeatStatus.builder()
                     .id(concertId + "-" + seatId)
@@ -151,6 +223,9 @@ public class SeatStatusService {
 
             // 3. Redis에 원자적 저장
             updateSeatStatus(reservedStatus);
+
+            // 4. TTL 키 생성 (자동 만료 처리를 위함)
+            createSeatTTLKey(concertId, seatId);
 
             log.info("좌석 선점 완료: concertId={}, seatId={}, userId={}, expiresAt={}",
                     concertId, seatId, userId, expiresAt);
@@ -185,6 +260,7 @@ public class SeatStatusService {
      * 좌석 선점 해제 (AVAILABLE로 변경)
      * - 선점한 사용자만 해제 가능
      * - RESERVED 상태의 좌석만 해제 가능
+     * - TTL 키 삭제로 불필요한 만료 이벤트 방지
      *
      * @param concertId 콘서트 ID
      * @param seatId 좌석 ID
@@ -229,6 +305,10 @@ public class SeatStatusService {
                 .build();
 
         updateSeatStatus(updatedStatus);
+
+        // 4. TTL 키 삭제 (불필요한 만료 이벤트 방지)
+        removeSeatTTLKey(concertId, seatId);
+
         log.info("좌석 선점 해제 완료: concertId={}, seatId={}, userId={}", concertId, seatId, userId);
     }
 
@@ -236,6 +316,7 @@ public class SeatStatusService {
      * 관리자용 좌석 강제 해제 (권한 검증 없음)
      * - 만료된 선점 정리 등 시스템 운영 목적
      * - 일반 사용자 접근 차단 필요
+     * - TTL 키도 함께 삭제
      */
     public void forceReleaseSeat(Long concertId, Long seatId) {
         Optional<SeatStatus> currentStatus = getSeatStatus(concertId, seatId);
@@ -255,6 +336,10 @@ public class SeatStatusService {
                     .build();
 
             updateSeatStatus(updatedStatus);
+
+            // TTL 키 삭제 (관리자 강제 해제 시에도 TTL 키 정리)
+            removeSeatTTLKey(concertId, seatId);
+
             log.info("좌석 강제 해제 완료 (관리자): concertId={}, seatId={}, previousUserId={}",
                     concertId, seatId, currentSeat.getUserId());
         }
@@ -264,6 +349,7 @@ public class SeatStatusService {
      * 좌석 예매 완료 처리
      * - 선점된 좌석만 예매 완료 처리 가능
      * - 비즈니스 규칙: RESERVED 상태의 좌석만 BOOKED로 전환
+     * - TTL 키 삭제 (예매 완료 시 만료 처리 불필요)
      */
     public void bookSeat(Long concertId, Long seatId) {
         Optional<SeatStatus> currentStatus = getSeatStatus(concertId, seatId);
@@ -291,6 +377,10 @@ public class SeatStatusService {
                     .build();
 
             updateSeatStatus(bookedStatus);
+
+            // TTL 키 삭제 (예매 완료 시 자동 만료 처리 불필요)
+            removeSeatTTLKey(concertId, seatId);
+
             log.info("좌석 예매 완료: concertId={}, seatId={}, userId={}",
                     concertId, seatId, currentSeat.getUserId());
 

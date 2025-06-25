@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -33,44 +32,43 @@ public class SeatAdminController {
     private final SeatStatusService seatStatusService;
 
     /**
-     * 좌석 캐시 초기화 (🔴 고위험 - 실제 서비스에서는 권한 활성화 필요)
-     * DB의 좌석 정보를 읽어와 Redis 캐시를 생성(Warm-up)합니다.
+     * ✨ DB 기반 좌석 캐시 초기화 - 새로 추가된 API
+     * 실제 DB 데이터를 기반으로 좌석 상태 캐시를 초기화합니다.
      */
-    @Operation(summary = "좌석 캐시 초기화", description = "특정 콘서트의 좌석 상태 캐시를 초기화합니다")
+    @Operation(summary = "DB 기반 좌석 캐시 초기화",
+            description = "실제 DB의 콘서트 좌석 데이터를 기반으로 캐시를 초기화합니다. 예매 완료된 좌석은 BOOKED 상태로, 나머지는 AVAILABLE 상태로 설정됩니다.")
     // @PreAuthorize("hasRole('ADMIN')") // ← 📌 실제 서비스에서는 주석 해제
-    @PostMapping("/concerts/{concertId}/cache/init")
-    public ResponseEntity<SuccessResponse<String>> initSeatCache(
+    @PostMapping("/concerts/{concertId}/cache/init-from-db")
+    public ResponseEntity<SuccessResponse<String>> initSeatCacheFromDB(
             @Parameter(description = "콘서트 ID", example = "1")
             @PathVariable Long concertId) {
 
         try {
-            // 더미 데이터 생성 메서드 대신 DB 기반 메서드 호출
+            // DB 기반 캐시 초기화 실행
             seatCacheInitService.initializeSeatCacheFromDB(concertId);
 
-            log.info("좌석 캐시 초기화 요청 처리 완료: concertId={}", concertId);
-            return ResponseEntity.ok(SuccessResponse.of("좌석 캐시 초기화 성공", "SUCCESS"));
+            log.info("DB 기반 좌석 캐시 초기화 완료: concertId={}", concertId);
+            return ResponseEntity.ok(SuccessResponse.of("DB 기반 좌석 캐시 초기화 성공", "SUCCESS"));
 
         } catch (Exception e) {
-            log.error("좌석 캐시 초기화 중 오류: concertId={}", concertId, e);
+            log.error("DB 기반 좌석 캐시 초기화 중 오류: concertId={}", concertId, e);
             return ResponseEntity.status(500)
-                    .body(SuccessResponse.of("좌석 캐시 초기화 중 오류가 발생했습니다.", null));
+                    .body(SuccessResponse.of("DB 기반 캐시 초기화 중 오류가 발생했습니다: " + e.getMessage(), "ERROR"));
         }
     }
 
     /**
-     * 좌석 캐시 상태 조회 (🟡 위험 - 실제 서비스에서는 권한 활성화 필요)
+     * 좌석 캐시 상태 조회 - 기존 API
      */
-    @Operation(summary = "좌석 캐시 상태 조회", description = "특정 콘서트의 캐시 상태를 조회합니다")
-    // @PreAuthorize("hasRole('ADMIN')") // ← 📌 실제 서비스에서는 주석 해제
+    @Operation(summary = "좌석 캐시 상태 조회", description = "특정 콘서트의 좌석 캐시 상태를 조회합니다")
     @GetMapping("/concerts/{concertId}/cache/status")
     public ResponseEntity<SuccessResponse<Map<String, Object>>> getCacheStatus(
             @Parameter(description = "콘서트 ID", example = "1")
             @PathVariable Long concertId) {
 
         try {
-            Map<String, Object> cacheStatus = seatCacheInitService.getCacheStatus(concertId);
-
-            return ResponseEntity.ok(SuccessResponse.of("캐시 상태 조회 성공", cacheStatus));
+            Map<String, Object> status = seatCacheInitService.getCacheStatus(concertId);
+            return ResponseEntity.ok(SuccessResponse.of("캐시 상태 조회 성공", status));
 
         } catch (Exception e) {
             log.error("캐시 상태 조회 중 오류: concertId={}", concertId, e);
@@ -80,9 +78,9 @@ public class SeatAdminController {
     }
 
     /**
-     * 좌석 캐시 삭제 (🔴 고위험 - 실제 서비스에서는 권한 활성화 필요)
+     * 좌석 캐시 삭제 - 기존 API
      */
-    @Operation(summary = "좌석 캐시 삭제 (관리자 전용)", description = "특정 콘서트의 좌석 캐시를 삭제합니다")
+    @Operation(summary = "좌석 캐시 삭제", description = "특정 콘서트의 좌석 캐시를 삭제합니다")
     // @PreAuthorize("hasRole('ADMIN')") // ← 📌 실제 서비스에서는 주석 해제
     @DeleteMapping("/concerts/{concertId}/cache")
     public ResponseEntity<SuccessResponse<String>> clearSeatCache(
@@ -90,26 +88,22 @@ public class SeatAdminController {
             @PathVariable Long concertId) {
 
         try {
-            String resultMessage = seatCacheInitService.clearSeatCache(concertId);
-
-            log.info("좌석 캐시 삭제 요청 처리 완료: concertId={}, result={}",
-                    concertId, resultMessage);
-
-            return ResponseEntity.ok(SuccessResponse.of(resultMessage, "SUCCESS"));
+            String result = seatCacheInitService.clearSeatCache(concertId);
+            return ResponseEntity.ok(SuccessResponse.of(result, "SUCCESS"));
 
         } catch (Exception e) {
             log.error("좌석 캐시 삭제 중 오류: concertId={}", concertId, e);
             return ResponseEntity.status(500)
-                    .body(SuccessResponse.of("좌석 캐시 삭제 중 오류가 발생했습니다.", null));
+                    .body(SuccessResponse.of("좌석 캐시 삭제 중 오류가 발생했습니다.", "ERROR"));
         }
     }
 
     /**
-     * 만료된 선점 좌석 정리 (🔴 고위험 - 실제 서비스에서는 권한 활성화 필요)
+     * 만료된 선점 좌석 정리 - 기존 API
      */
-    @Operation(summary = "만료된 선점 좌석 정리 (관리자 전용)", description = "만료된 선점 좌석들을 일괄 정리합니다")
+    @Operation(summary = "만료된 선점 좌석 정리", description = "특정 콘서트의 만료된 선점 좌석들을 일괄 정리합니다")
     // @PreAuthorize("hasRole('ADMIN')") // ← 📌 실제 서비스에서는 주석 해제
-    @PostMapping("/concerts/{concertId}/cleanup")
+    @PostMapping("/concerts/{concertId}/cleanup-expired")
     public ResponseEntity<SuccessResponse<String>> cleanupExpiredReservations(
             @Parameter(description = "콘서트 ID", example = "1")
             @PathVariable Long concertId) {
@@ -118,12 +112,12 @@ public class SeatAdminController {
             seatStatusService.cleanupExpiredReservations(concertId);
 
             log.info("만료된 선점 좌석 정리 완료: concertId={}", concertId);
-            return ResponseEntity.ok(SuccessResponse.of("만료된 선점 좌석 정리 성공", "SUCCESS"));
+            return ResponseEntity.ok(SuccessResponse.of("만료된 선점 좌석 정리 완료", "SUCCESS"));
 
         } catch (Exception e) {
             log.error("만료된 선점 좌석 정리 중 오류: concertId={}", concertId, e);
             return ResponseEntity.status(500)
-                    .body(SuccessResponse.of("만료된 선점 좌석 정리 중 오류가 발생했습니다.", null));
+                    .body(SuccessResponse.of("만료된 선점 좌석 정리 중 오류가 발생했습니다.", "ERROR"));
         }
     }
 }

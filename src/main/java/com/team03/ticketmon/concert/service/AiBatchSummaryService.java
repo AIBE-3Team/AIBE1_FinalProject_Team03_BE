@@ -8,12 +8,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.team03.ticketmon._global.config.AiSummaryConditionProperties;
 import com.team03.ticketmon._global.exception.BusinessException;
 import com.team03.ticketmon._global.exception.ErrorCode;
 import com.team03.ticketmon.concert.domain.Concert;
 import com.team03.ticketmon.concert.domain.Review;
 import com.team03.ticketmon.concert.dto.AiBatchSummaryResultDTO;
-import com.team03.ticketmon.concert.dto.AiSummaryUpdateConditionDTO;
 import com.team03.ticketmon.concert.dto.ReviewChangeDetectionDTO;
 import com.team03.ticketmon.concert.repository.ConcertRepository;
 import com.team03.ticketmon.concert.repository.ReviewRepository;
@@ -50,6 +50,9 @@ public class AiBatchSummaryService {
 	@Autowired
 	private ReviewChecksumGenerator checksumGenerator;
 
+	@Autowired
+	private AiSummaryConditionProperties conditionProperties;
+
 	/**
 	 * 🕒 매일 새벽 2시에 AI 배치 요약 처리 실행
 	 *
@@ -61,8 +64,9 @@ public class AiBatchSummaryService {
 
 		try {
 			// 1단계: 사전 필터링 - 최소 리뷰 개수 이상인 콘서트들만 선별
-			AiSummaryUpdateConditionDTO condition = getUpdateCondition();
-			List<Concert> candidateConcerts = concertRepository.findConcertsWithMinimumReviews(condition.getMinReviewCount());
+			List<Concert> candidateConcerts = concertRepository.findConcertsWithMinimumReviews(
+				conditionProperties.getMinReviewCount()
+			);
 
 			log.info("AI 배치 처리 대상 콘서트 수: {}", candidateConcerts.size());
 
@@ -73,7 +77,7 @@ public class AiBatchSummaryService {
 			for (Concert concert : candidateConcerts) {
 				try {
 					// 2-1. 업데이트 필요성 체크
-					ReviewChangeDetectionDTO detection = conditionService.checkNeedsUpdate(concert, condition);
+					ReviewChangeDetectionDTO detection = conditionService.checkNeedsUpdate(concert, conditionProperties);
 
 					if (detection.getNeedsUpdate()) {
 						// 2-2. AI 요약 처리 실행
@@ -247,20 +251,5 @@ public class AiBatchSummaryService {
 			log.error("AI 요약 실패 정보 저장 중 오류 발생: concertId={}",
 				concert.getConcertId(), saveException);
 		}
-	}
-
-	/**
-	 * ⚙️ AI 요약 업데이트 조건 설정
-	 *
-	 * @return 업데이트 조건 DTO
-	 */
-	private AiSummaryUpdateConditionDTO getUpdateCondition() {
-		return AiSummaryUpdateConditionDTO.builder()
-			.minReviewCount(10)                    // 최소 10개 리뷰 필요
-			.significantCountChange(3)             // 3개 이상 리뷰 변화 시 업데이트
-			.significantCountChangeRatio(0.2)      // 20% 이상 리뷰 변화 시 업데이트
-			.updateOnAnyContentChange(true)        // 리뷰 내용 변경 시 업데이트
-			.maxUpdateIntervalHours(168L)         // 최대 7일(168시간)마다 강제 업데이트
-			.build();
 	}
 }

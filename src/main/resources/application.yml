@@ -31,3 +31,12 @@ toss:
   api:
     url: https://api.tosspayments.com/v1/payments/ # 토스페이먼츠 API의 기본 경로
     confirm-url: ${toss.api.url}confirm # 결제 승인 API 엔드포인트 (${toss.api.url} 재사용)
+
+ai:
+  summary:
+    condition:
+      min-review-count: 10
+      significant-count-change: 3
+      significant-count-change-ratio: 0.2
+      update-on-any-content-change: true
+      max-update-interval-hours: 168

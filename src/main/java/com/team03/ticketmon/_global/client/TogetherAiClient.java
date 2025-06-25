@@ -25,6 +25,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@SuppressWarnings("unchecked")
 public class TogetherAiClient {
 
 	private final AiServiceProperties aiProperties;

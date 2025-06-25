@@ -34,24 +34,24 @@ public class SeatAdminController {
 
     /**
      * 좌석 캐시 초기화 (🔴 고위험 - 실제 서비스에서는 권한 활성화 필요)
+     * DB의 좌석 정보를 읽어와 Redis 캐시를 생성(Warm-up)합니다.
      */
     @Operation(summary = "좌석 캐시 초기화", description = "특정 콘서트의 좌석 상태 캐시를 초기화합니다")
     // @PreAuthorize("hasRole('ADMIN')") // ← 📌 실제 서비스에서는 주석 해제
     @PostMapping("/concerts/{concertId}/cache/init")
     public ResponseEntity<SuccessResponse<String>> initSeatCache(
             @Parameter(description = "콘서트 ID", example = "1")
-            @PathVariable Long concertId,
-            @Parameter(description = "총 좌석 수", example = "100")
-            @RequestParam(defaultValue = "100") int totalSeats) {
+            @PathVariable Long concertId) {
 
         try {
-            seatCacheInitService.initializeSeatCache(concertId, totalSeats);
+            // 더미 데이터 생성 메서드 대신 DB 기반 메서드 호출
+            seatCacheInitService.initializeSeatCacheFromDB(concertId);
 
-            log.info("좌석 캐시 초기화 완료: concertId={}, totalSeats={}", concertId, totalSeats);
+            log.info("좌석 캐시 초기화 요청 처리 완료: concertId={}", concertId);
             return ResponseEntity.ok(SuccessResponse.of("좌석 캐시 초기화 성공", "SUCCESS"));
 
         } catch (Exception e) {
-            log.error("좌석 캐시 초기화 중 오류: concertId={}, totalSeats={}", concertId, totalSeats, e);
+            log.error("좌석 캐시 초기화 중 오류: concertId={}", concertId, e);
             return ResponseEntity.status(500)
                     .body(SuccessResponse.of("좌석 캐시 초기화 중 오류가 발생했습니다.", null));
         }

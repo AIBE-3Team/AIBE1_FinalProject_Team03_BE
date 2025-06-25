@@ -2,8 +2,8 @@
 package com.team03.ticketmon.seat.controller;
 
 import com.team03.ticketmon._global.exception.SuccessResponse;
+import com.team03.ticketmon.auth.jwt.CustomUserDetails;
 import com.team03.ticketmon.seat.domain.SeatStatus;
-import com.team03.ticketmon.seat.dto.SeatReserveRequest;
 import com.team03.ticketmon.seat.dto.SeatStatusResponse;
 import com.team03.ticketmon.seat.exception.SeatReservationException;
 import com.team03.ticketmon.seat.service.SeatStatusService;
@@ -16,8 +16,11 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +57,7 @@ public class SeatReservationController {
             @PathVariable Long concertId,
             @Parameter(description = "좌석 ID", example = "1")
             @PathVariable Long seatId,
-            @RequestBody SeatReserveRequest request) {
+            @AuthenticationPrincipal CustomUserDetails user) {
 
         // 컨트롤러 레벨에서 분산 락 적용
         String lockKey = SEAT_CONTROLLER_LOCK_PREFIX + concertId + ":" + seatId;
@@ -66,13 +69,13 @@ public class SeatReservationController {
 
             if (!acquired) {
                 log.warn("좌석 선점 락 획득 실패 (컨트롤러): concertId={}, seatId={}, userId={}",
-                        concertId, seatId, request.userId());
+                        concertId, seatId, user.getUserId());
                 return ResponseEntity.status(423) // 423 Locked
                         .body(SuccessResponse.of("다른 사용자가 처리 중입니다. 잠시 후 다시 시도해주세요.", null));
             }
 
             log.debug("좌석 선점 락 획득 성공 (컨트롤러): concertId={}, seatId={}, userId={}",
-                    concertId, seatId, request.userId());
+                    concertId, seatId, user.getUserId());
 
             // === 임계 구역 시작 ===
 
@@ -88,9 +91,9 @@ public class SeatReservationController {
                     seatStatusService.forceReleaseSeat(concertId, seatId);
                 } else if (seat.isReserved()) {
                     // 동일 사용자의 재요청 확인
-                    if (request.userId().equals(seat.getUserId())) {
+                    if (user.getUserId().equals(seat.getUserId())) {
                         log.info("동일 사용자 재선점 요청: concertId={}, seatId={}, userId={}",
-                                concertId, seatId, request.userId());
+                                concertId, seatId, user.getUserId());
                         SeatStatusResponse response = SeatStatusResponse.from(seat);
                         return ResponseEntity.ok(SuccessResponse.of("이미 선점한 좌석입니다", response));
                     } else {
@@ -109,12 +112,12 @@ public class SeatReservationController {
 
             // 3. 좌석 선점 처리 (서비스 레이어의 원자적 처리 활용)
             SeatStatus reservedSeat = seatStatusService.reserveSeat(
-                    concertId, seatId, request.userId(), seatInfo);
+                    concertId, seatId, user.getUserId(), seatInfo);
 
             SeatStatusResponse response = SeatStatusResponse.from(reservedSeat);
 
             log.info("좌석 선점 완료 (컨트롤러): concertId={}, seatId={}, userId={}",
-                    concertId, seatId, request.userId());
+                    concertId, seatId, user.getUserId());
 
             return ResponseEntity.ok(SuccessResponse.of("좌석 선점 성공", response));
 
@@ -123,17 +126,17 @@ public class SeatReservationController {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("좌석 선점 처리 중 인터럽트 (컨트롤러): concertId={}, seatId={}, userId={}",
-                    concertId, seatId, request.userId(), e);
+                    concertId, seatId, user.getUserId(), e);
             return ResponseEntity.status(500)
                     .body(SuccessResponse.of("좌석 선점 처리가 중단되었습니다.", null));
         } catch (SeatReservationException e) {
             log.warn("좌석 선점 실패 (비즈니스 로직): concertId={}, seatId={}, userId={}, message={}",
-                    concertId, seatId, request.userId(), e.getMessage());
+                    concertId, seatId, user.getUserId(), e.getMessage());
             return ResponseEntity.badRequest()
                     .body(SuccessResponse.of(e.getMessage(), null));
         } catch (Exception e) {
             log.error("좌석 선점 처리 중 예기치 않은 오류 (컨트롤러): concertId={}, seatId={}, userId={}",
-                    concertId, seatId, request.userId(), e);
+                    concertId, seatId, user.getUserId(), e);
             return ResponseEntity.status(500)
                     .body(SuccessResponse.of("좌석 선점 처리 중 오류가 발생했습니다.", null));
         } finally {
@@ -141,7 +144,7 @@ public class SeatReservationController {
             if (lock.isHeldByCurrentThread()) {
                 lock.unlock();
                 log.debug("좌석 선점 락 해제 완료 (컨트롤러): concertId={}, seatId={}, userId={}",
-                        concertId, seatId, request.userId());
+                        concertId, seatId, user.getUserId());
             }
         }
     }
@@ -152,29 +155,28 @@ public class SeatReservationController {
             @Parameter(description = "콘서트 ID", example = "1")
             @PathVariable Long concertId,
             @Parameter(description = "좌석 ID", example = "1")
-            @PathVariable Long seatId) {
+            @PathVariable Long seatId,
+            @AuthenticationPrincipal CustomUserDetails user) {
 
         try {
             // 현재 인증된 사용자 정보 획득
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated()) {
-                log.warn("인증되지 않은 사용자의 좌석 해제 시도: concertId={}, seatId={}", concertId, seatId);
-                return ResponseEntity.status(401)
-                        .body(SuccessResponse.of("인증이 필요합니다.", null));
-            }
+//            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//            if (authentication == null || !authentication.isAuthenticated()) {
+//                log.warn("인증되지 않은 사용자의 좌석 해제 시도: concertId={}, seatId={}", concertId, seatId);
+//                return ResponseEntity.status(401)
+//                        .body(SuccessResponse.of("인증이 필요합니다.", null));
+//            }
 
-            // 사용자 ID 추출 (실제 구현에서는 JWT 토큰에서 추출)
-            Long currentUserId = extractUserIdFromAuthentication(authentication);
-            if (currentUserId == null) {
+            if (user.getUserId() == null) {
                 log.warn("사용자 ID를 확인할 수 없는 좌석 해제 시도: concertId={}, seatId={}", concertId, seatId);
                 return ResponseEntity.status(400)
                         .body(SuccessResponse.of("사용자 정보를 확인할 수 없습니다.", null));
             }
 
             // 권한 검증을 포함한 좌석 해제
-            seatStatusService.releaseSeat(concertId, seatId, currentUserId);
+            seatStatusService.releaseSeat(concertId, seatId, user.getUserId());
 
-            log.info("좌석 선점 해제 성공: concertId={}, seatId={}, userId={}", concertId, seatId, currentUserId);
+            log.info("좌석 선점 해제 성공: concertId={}, seatId={}, userId={}", concertId, seatId, user.getUserId());
             return ResponseEntity.ok(SuccessResponse.of("좌석 선점 해제 성공", "SUCCESS"));
 
         } catch (SeatReservationException e) {

@@ -38,12 +38,15 @@ public class loginAPIController {
     @ApiResponse(responseCode = "200", description = "사용자 인증 정보 전달 완료")
     @ApiResponse(responseCode = "401", description = "인증 미통과")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
-        if(authentication == null || !authentication.isAuthenticated())
+        if (authentication == null || !authentication.isAuthenticated())
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        if (!(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
-        String role = userDetails.getAuthorities().iterator().next().getAuthority();
+        String role = userDetails.getAuthorities().isEmpty() ?
+                "UNKNOWN" : userDetails.getAuthorities().iterator().next().getAuthority();
 
         UserResponseDTO dto = new UserResponseDTO(
                 userDetails.getUserId(),

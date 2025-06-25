@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -20,6 +21,8 @@ import java.util.Collection;
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
     private final UserEntityService userEntityService;
     private final CookieUtil cookieUtil;
 
@@ -45,6 +48,6 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         cookieUtil.generateAndSetJwtCookies(userId, username, role, response);
 
         response.setStatus(HttpServletResponse.SC_OK);
-        response.sendRedirect("http://localhost:5173");
+        response.sendRedirect(frontendUrl);
     }
 }

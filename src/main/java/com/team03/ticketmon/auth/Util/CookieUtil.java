@@ -38,6 +38,15 @@ public class CookieUtil {
                 .build();
     }
 
+    // Access Token과 Refresh Token 쿠키 삭제 (로그아웃)
+    public void deleteJwtCookies(Long userId, HttpServletResponse response) {
+        refreshTokenService.deleteRefreshToken(userId);
+        ResponseCookie accessCookie = deleteCookie(jwtTokenProvider.CATEGORY_ACCESS);
+        ResponseCookie refreshCookie = deleteCookie(jwtTokenProvider.CATEGORY_REFRESH);
+
+        addJwtCookiesToResponse(accessCookie, refreshCookie, response);
+    }
+
     // Access Token과 Refresh Token 쿠키 생성
     public void generateAndSetJwtCookies(Long userId, String username, String role, HttpServletResponse response) {
         String newAccessToken = generateAccessToken(userId, username, role);

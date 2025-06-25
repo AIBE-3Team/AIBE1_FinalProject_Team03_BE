@@ -21,8 +21,6 @@ import java.util.Collection;
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserEntityService userEntityService;
-    private final RefreshTokenService refreshTokenService;
-    private final JwtTokenProvider jwtTokenProvider;
     private final CookieUtil cookieUtil;
 
     @Override
@@ -46,6 +44,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         cookieUtil.generateAndSetJwtCookies(userId, username, role, response);
 
-        response.sendRedirect("/");
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.sendRedirect("http://localhost:5173");
     }
 }

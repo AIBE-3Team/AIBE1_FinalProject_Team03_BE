@@ -44,9 +44,8 @@ public class CustomLogoutFilter extends GenericFilterBean {
             Long userId = jwtTokenProvider.getUserId(refreshToken);
 
             refreshTokenService.validateRefreshToken(refreshToken, true);
-            refreshTokenService.deleteRefreshToken(userId);
-            cookieUtil.deleteCookie(jwtTokenProvider.CATEGORY_ACCESS);
-            cookieUtil.deleteCookie(jwtTokenProvider.CATEGORY_REFRESH);
+
+            cookieUtil.deleteJwtCookies(userId, response);
 
             response.setStatus(HttpServletResponse.SC_OK);
         } catch (Exception e) {

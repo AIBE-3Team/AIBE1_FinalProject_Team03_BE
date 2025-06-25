@@ -175,7 +175,7 @@ public class SecurityConfig {
                 // Login Filter 적용
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, reissueService, cookieUtil), LoginFilter.class)
                 .addFilterBefore(new CustomLogoutFilter(jwtTokenProvider, refreshTokenService, cookieUtil), LogoutFilter.class)
-                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtTokenProvider, refreshTokenService, cookieUtil), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), cookieUtil), UsernamePasswordAuthenticationFilter.class)
 
                 // 인증/인가 실패(인증 실패(401), 권한 부족(403)) 시 반환되는 예외 응답 설정
                 .exceptionHandling(exception -> exception
@@ -248,7 +248,7 @@ public class SecurityConfig {
      */
     @Bean
     public OAuth2LoginSuccessHandler oAuth2SuccessHandler() {
-        return new OAuth2LoginSuccessHandler(userEntityService, refreshTokenService, jwtTokenProvider, cookieUtil);
+        return new OAuth2LoginSuccessHandler(userEntityService, cookieUtil);
     }
 
     /**

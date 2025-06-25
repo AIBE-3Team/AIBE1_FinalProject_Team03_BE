@@ -13,6 +13,7 @@ public class CustomUserDetails implements UserDetails {
 
     private final Long userId;
     private final String username;
+    private final String nickname;
     private final String password;
     private final Collection<? extends GrantedAuthority> authorities;
 }

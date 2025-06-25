@@ -22,11 +22,12 @@ public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
         if (exception instanceof OAuth2AuthenticationException) {
             OAuth2AuthenticationException ex = (OAuth2AuthenticationException) exception;
             if (NEED_SIGNUP_ERROR_CODE.equals(ex.getError().getErrorCode())) {
-                response.sendRedirect(REGISTER_URL);
+                response.setStatus(HttpServletResponse.SC_NON_AUTHORITATIVE_INFORMATION);
                 return;
             }
         }
         // 기본 실패 처리
-        response.sendRedirect(LOGIN_ERROR_URL);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.sendRedirect("http://localhost:51173/auth/login");
     }
 }

@@ -135,7 +135,7 @@ public class JwtTokenProvider {
                 .map(SimpleGrantedAuthority::new)
                 .toList();
 
-        CustomUserDetails user = new CustomUserDetails(userid, username, "", authorities);
+        CustomUserDetails user = new CustomUserDetails(userid, username, "", "", authorities);
         return new UsernamePasswordAuthenticationToken(user, null, authorities);
     }
 

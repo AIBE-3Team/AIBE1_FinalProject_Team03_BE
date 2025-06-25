@@ -17,14 +17,10 @@ import java.io.IOException;
 public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final RefreshTokenService refreshTokenService;
     private final CookieUtil cookieUtil;
 
-    public LoginFilter(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider, RefreshTokenService refreshTokenService, CookieUtil cookieUtil) {
+    public LoginFilter(AuthenticationManager authenticationManager, CookieUtil cookieUtil) {
         this.authenticationManager = authenticationManager;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.refreshTokenService = refreshTokenService;
         this.cookieUtil = cookieUtil;
         setFilterProcessesUrl("/api/auth/login");
     }
@@ -60,7 +56,6 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     // 로그인 실패시 실행하는 메소드
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) throws IOException {
-        response.sendRedirect("/auth/login?error");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
 }

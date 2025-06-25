@@ -73,7 +73,8 @@ public enum ErrorCode {
     INVALID_SEAT_SELECTION(400, "B007", "선택한 좌석 중 일부를 찾을 수 없습니다."),
     BOOKING_NOT_FOUND(404, "B008", "요청한 예매 정보를 찾을 수 없습니다."),
     ALREADY_CANCELED_BOOKING(409, "B009", "이미 취소 처리된 예매입니다."),
-    ALREADY_COMPLETE_BOOKING(409, "B010", "이미 관람(사용)이 완료된 예매는 취소할 수 없습니다."),
+    CANNOT_CANCEL_COMPLETED_BOOKING(409, "B010", "이미 관람(사용)이 완료된 예매는 취소할 수 없습니다."),
+    CANCELLATION_PERIOD_EXPIRED(403, "B011", "예매 취소 가능 기간이 지났습니다."),
 
     // Review & Expectation (후기 및 기대평) - 새롭게 추가된 도메인
     REVIEW_ALREADY_EXISTS(409, "R001", "이미 후기를 작성했습니다."), // 추가: 중복 후기 방지
@@ -90,7 +91,8 @@ public enum ErrorCode {
 
     // Payment (결제)
     PAYMENT_AMOUNT_MISMATCH(400, "M001", "주문 금액이 일치하지 않습니다."),
-    PAYMENT_FAILED(402, "M002", "결제에 실패했습니다.");
+    PAYMENT_FAILED(402, "M002", "결제에 실패했습니다."),
+    INVALID_BOOKING_STATUS_FOR_PAYMENT(409, "M003", "결제를 진행할 수 없는 예매 상태입니다.");
 
     /**
      * HTTP 상태 코드 (예: 400, 404, 500 등)

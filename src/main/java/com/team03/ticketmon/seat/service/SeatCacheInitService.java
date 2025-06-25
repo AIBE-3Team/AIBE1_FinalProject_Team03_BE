@@ -1,7 +1,11 @@
 package com.team03.ticketmon.seat.service;
 
+import com.team03.ticketmon.booking.repository.TicketRepository;
+import com.team03.ticketmon.concert.domain.ConcertSeat;
+import com.team03.ticketmon.concert.repository.ConcertSeatRepository;
 import com.team03.ticketmon.seat.domain.SeatStatus;
 import com.team03.ticketmon.seat.domain.SeatStatus.SeatStatusEnum;
+import com.team03.ticketmon.venue.domain.Seat;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMap;
@@ -11,7 +15,6 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 좌석 상태 캐시 초기화 서비스
@@ -25,6 +28,8 @@ public class SeatCacheInitService {
 
     private final RedissonClient redissonClient;
     private static final String SEAT_STATUS_KEY_PREFIX = "seat:status:";
+    private final TicketRepository ticketRepository;
+    private final ConcertSeatRepository concertSeatRepository;
 
     /**
      * 특정 콘서트의 좌석 캐시 초기화 (성능 최적화 버전)
@@ -69,48 +74,55 @@ public class SeatCacheInitService {
     }
 
     /**
-     * 실제 운영에서 사용할 DB 기반 캐시 초기화 메서드 (구조만 제공)
-     * TODO: 실제 DB 연동 시 구현 필요
+     * 실제 DB 데이터를 기반으로 특정 콘서트의 좌석 캐시를 초기화(Warm-up)합니다.
+     * Redis 성능을 위해 모든 좌석 상태를 Map으로 만든 후 한 번에 저장합니다.
+     *
+     * @param concertId 캐시를 초기화할 콘서트의 ID
      */
     public void initializeSeatCacheFromDB(Long concertId) {
         log.info("DB 기반 좌석 캐시 초기화 시작: concertId={}", concertId);
 
-        // TODO: 실제 구현 시 아래 단계 수행
-        // 1. DB에서 concert_seats 테이블 조회 (concert_id 기준)
-        // 2. 각 좌석의 현재 상태 확인 (tickets 테이블 확인)
-        // 3. Redis Hash에 좌석 상태 배치 저장
+        // 1. DB에서 해당 콘서트의 모든 좌석 정보를 조회 (N+1 방지)
+        List<ConcertSeat> concertSeats = concertSeatRepository.findAllByConcertIdWithSeat(concertId);
+        if (concertSeats.isEmpty()) {
+            log.warn("캐시를 초기화할 좌석 정보가 DB에 존재하지 않습니다. concertId: {}", concertId);
+            return;
+        }
 
-        // 예시 구조 (배치 처리 최적화 적용):
-        /*
-        List<ConcertSeat> concertSeats = concertSeatRepository.findByConcertId(concertId);
         String key = SEAT_STATUS_KEY_PREFIX + concertId;
         RMap<String, SeatStatus> seatMap = redissonClient.getMap(key);
 
-        // 로컬 맵에 모든 좌석 상태 준비
+        // 2. 로컬 Map에 모든 좌석 상태를 미리 준비 (Redis 네트워크 호출 최소화)
         Map<String, SeatStatus> batchSeatData = new HashMap<>();
-
         for (ConcertSeat concertSeat : concertSeats) {
-            // 예매 여부 확인
-            boolean isBooked = ticketRepository.existsByConcertSeatId(concertSeat.getId());
+            // 2-1. 티켓 존재 여부를 확인하여 좌석의 현재 상태 결정
+            boolean isBooked = ticketRepository.existsByConcertSeat_ConcertSeatId(concertSeat.getConcertSeatId());
+            SeatStatusEnum currentStatus = isBooked ? SeatStatusEnum.BOOKED : SeatStatusEnum.AVAILABLE;
+
+            Seat physicalSeat = concertSeat.getSeat();
+            String seatInfo = String.format("%s-%s-%d",
+                    physicalSeat.getSection(),
+                    physicalSeat.getSeatRow(),
+                    physicalSeat.getSeatNumber());
 
             SeatStatus seatStatus = SeatStatus.builder()
-                    .id(concertId + "-" + concertSeat.getSeat().getId())
+                    .id(concertId + "-" + physicalSeat.getSeatId())
                     .concertId(concertId)
-                    .seatId(concertSeat.getSeat().getId())
-                    .status(isBooked ? SeatStatusEnum.BOOKED : SeatStatusEnum.AVAILABLE)
-                    .seatInfo(concertSeat.getSeat().getSection() + "-" + concertSeat.getSeat().getSeatNumber())
+                    .seatId(physicalSeat.getSeatId())
+                    .status(currentStatus)
+                    .userId(null) // 초기화 시점에는 선점자가 없음
+                    .seatInfo(seatInfo)
                     .build();
-
-            // 로컬 맵에 누적
-            batchSeatData.put(concertSeat.getSeat().getId().toString(), seatStatus);
+            // 2-2. 로컬 맵에 누적
+            batchSeatData.put(String.valueOf(physicalSeat.getSeatId()), seatStatus);
         }
 
-        // 한 번의 Redis 호출로 모든 데이터 일괄 저장
+        // 3. 기존 캐시를 모두 지우고, 한 번의 Redis 호출로 모든 데이터 일괄 저장 (원자성 보장)
+        seatMap.clear();
         seatMap.putAll(batchSeatData);
 
-        log.info("DB 기반 좌석 캐시 초기화 완료 (배치 처리): concertId={}, batchSize={}",
+        log.info("DB 기반 좌석 캐시 초기화 완료 (배치 처리): concertId={}, 총 좌석 수={}",
                 concertId, batchSeatData.size());
-        */
     }
 
     /**

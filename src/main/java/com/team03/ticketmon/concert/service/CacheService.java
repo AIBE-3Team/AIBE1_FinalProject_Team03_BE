@@ -50,7 +50,7 @@ public class CacheService {
 	 */
 	public <T> void cacheConcertDetail(Long concertId, T concertData) {
 		String key = "concert:detail:" + concertId;
-		setCache(key, concertData, Duration.ofMinutes(30));
+		setCache(key, concertData, Duration.ofMinutes(120));
 	}
 
 	/**
@@ -66,7 +66,7 @@ public class CacheService {
 	 */
 	public <T> void cacheSearchResults(String keyword, T searchResults) {
 		String key = "search:" + keyword.toLowerCase();
-		setCache(key, searchResults, Duration.ofMinutes(15));
+		setCache(key, searchResults, Duration.ofMinutes(60));
 	}
 
 	/**

@@ -92,7 +92,12 @@ public enum ErrorCode {
     // Payment (결제)
     PAYMENT_AMOUNT_MISMATCH(400, "M001", "주문 금액이 일치하지 않습니다."),
     PAYMENT_FAILED(402, "M002", "결제에 실패했습니다."),
-    INVALID_BOOKING_STATUS_FOR_PAYMENT(409, "M003", "결제를 진행할 수 없는 예매 상태입니다.");
+    INVALID_BOOKING_STATUS_FOR_PAYMENT(409, "M003", "결제를 진행할 수 없는 예매 상태입니다."),
+
+    // AI Service (AI 서비스 관련)
+    AI_SERVICE_UNAVAILABLE(503, "AI001", "AI 서비스가 일시적으로 사용할 수 없습니다."),
+    AI_RESPONSE_INVALID(502, "AI002", "AI 서비스 응답 형식이 올바르지 않습니다."),
+    AI_REQUEST_INVALID(400, "AI003", "AI 서비스 요청이 올바르지 않습니다.");
 
     /**
      * HTTP 상태 코드 (예: 400, 404, 500 등)

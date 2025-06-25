@@ -143,6 +143,15 @@ toss:
   client-key: ${TOSS_CLIENT_KEY} # 환경 변수에서 주입
   secret-key: ${TOSS_SECRET_KEY} # 환경 변수에서 주입
 
+# Together API 설정
+ai:
+  together:
+    api-key: ${TOGETHER_API_KEY} # 환경 변수에서 주입
+    api-url: https://api.together.xyz/v1/chat/completions
+    model: meta-llama/Llama-3.3-70B-Instruct-Turbo-Free
+    timeout-seconds: 30
+    max-retries: 3
+
 #운영환경 도메인
 app:
   base-url: ${BASE_URL} # 운영 환경 도메인

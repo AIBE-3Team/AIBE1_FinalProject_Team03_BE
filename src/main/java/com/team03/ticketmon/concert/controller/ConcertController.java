@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
 import lombok.RequiredArgsConstructor;
@@ -26,14 +27,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -193,7 +191,7 @@ public class ConcertController {
 			)
 		)
 	})
-	@GetMapping(params = "search")
+	@GetMapping("/search")
 	public ResponseEntity<SuccessResponse<List<ConcertDTO>>> searchConcerts(
 		@Parameter(
 			description = """
@@ -204,21 +202,21 @@ public class ConcertController {
 			example = "아이유",
 			schema = @Schema(minLength = 1, maxLength = 100)
 		)
-		@RequestParam String search) {
+		@RequestParam String query) {
 
 		// 캐시 조회 시도
-		Optional<List<ConcertDTO>> cachedResult = cacheService.getCachedSearchResults(search, ConcertDTO.class);
+		Optional<List<ConcertDTO>> cachedResult = cacheService.getCachedSearchResults(query, ConcertDTO.class);
 		if (cachedResult.isPresent()) {
 			return ResponseEntity.ok(SuccessResponse.of(cachedResult.get()));
 		}
 
 		// 캐시 미스 시 실제 검색
 		ConcertSearchDTO searchDTO = new ConcertSearchDTO();
-		searchDTO.setKeyword(search);
+		searchDTO.setKeyword(query);
 		List<ConcertDTO> concerts = concertService.searchConcerts(searchDTO);
 
 		// 검색 결과 캐싱
-		cacheService.cacheSearchResults(search, concerts);
+		cacheService.cacheSearchResults(query, concerts);
 
 		return ResponseEntity.ok(SuccessResponse.of(concerts));
 	}
@@ -287,13 +285,8 @@ public class ConcertController {
 	})
 
 	@GetMapping("/filter")
-	public ResponseEntity<SuccessResponse<List<ConcertDTO>>> filterConcerts(
-		@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-		@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-		@RequestParam(required = false) BigDecimal priceMin,
-		@RequestParam(required = false) BigDecimal priceMax) {
+	public ResponseEntity<SuccessResponse<List<ConcertDTO>>> filterConcerts(@Valid @ModelAttribute ConcertFilterDTO filterDTO) {
 
-		ConcertFilterDTO filterDTO = new ConcertFilterDTO(startDate, endDate, priceMin, priceMax);
 		List<ConcertDTO> concerts = concertService.applyFilters(filterDTO);
 		return ResponseEntity.ok(SuccessResponse.of(concerts));
 	}

@@ -18,10 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -108,12 +105,10 @@ public class SeatReservationController {
                 }
             }
 
-            // 2. 좌석 정보 생성 (실제로는 DB에서 조회)
-            String seatInfo = generateSeatInfo(seatId.intValue());
 
-            // 3. 좌석 선점 처리 (서비스 레이어의 원자적 처리 활용)
+            // 2. 좌석 선점 처리 (서비스 레이어의 원자적 처리 활용)
             SeatStatus reservedSeat = seatStatusService.reserveSeat(
-                    concertId, seatId, user.getUserId(), seatInfo);
+                    concertId, seatId, user.getUserId());
 
             SeatStatusResponse response = SeatStatusResponse.from(reservedSeat);
 
@@ -150,9 +145,8 @@ public class SeatReservationController {
         }
     }
 
-    // ✅ 핵심 수정: @PostMapping → @DeleteMapping으로 변경
     @Operation(summary = "좌석 선점 해제", description = "임시 선점된 좌석을 해제합니다 (권한 검증 포함)")
-    @DeleteMapping("/concerts/{concertId}/seats/{seatId}/release")
+    @PostMapping("/concerts/{concertId}/seats/{seatId}/release")
     public ResponseEntity<SuccessResponse<String>> releaseSeat(
             @Parameter(description = "콘서트 ID", example = "1")
             @PathVariable Long concertId,

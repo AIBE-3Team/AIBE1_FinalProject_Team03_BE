@@ -159,9 +159,10 @@ public class SeatCacheInitService {
         }
 
         String section = seat.getSection() != null ? seat.getSection() : "?";
-        Integer seatNumber = seat.getSeatNumber() != null ? seat.getSeatNumber() : 0;
+        String seatRow = seat.getSeatRow() != null ? seat.getSeatRow() : "?";
+        int seatNumber = seat.getSeatNumber() != null ? seat.getSeatNumber() : 0;
 
-        return section + "-" + seatNumber;
+        return section + "-" + seatRow + "-" + seatNumber;
     }
 
     /**

@@ -79,6 +79,10 @@ public class BookingService {
 
     @Transactional
     public List<Booking> findBookingList(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
         return bookingRepository.findByUserId(userId);
     }
 

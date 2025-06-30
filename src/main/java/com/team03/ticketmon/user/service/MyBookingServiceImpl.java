@@ -22,8 +22,9 @@ public class MyBookingServiceImpl implements MyBookingService {
 
     @Override
     public List<UserBookingSummaryDTO> findBookingList(Long userId) {
-        userEntityService.findUserEntityByUserId(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원 정보가 없습니다."));
+        if(!userEntityService.existsById(userId)) {
+            throw new EntityNotFoundException("회원 정보가 없습니다.");
+        }
 
         return bookingService.findBookingList(userId).stream()
                 .map(booking -> new UserBookingSummaryDTO(

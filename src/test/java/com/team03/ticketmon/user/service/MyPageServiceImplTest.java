@@ -131,15 +131,18 @@ class MyPageServiceImplTest {
     void 마이페이지_비밀번호_변경_정상_테스트() {
         // given
         UpdatePasswordDTO dto = new UpdatePasswordDTO("password", "newPassword");
+        String encodedNewPassword = "encodedNewPassword";
         given(userEntityService.findUserEntityByUserId(userId)).willReturn(Optional.of(user));
         given(passwordEncoder.matches(dto.currentPassword(), user.getPassword())).willReturn(true);
+        given(passwordEncoder.encode(dto.newPassword())).willReturn(encodedNewPassword);
 
         // when
         myPageService.updatePassword(1L, dto);
 
         // then
-        assertEquals(user.getPassword(), dto.newPassword());
+        assertEquals(encodedNewPassword, user.getPassword());
         verify(userEntityService).save(user);
+        verify(passwordEncoder).encode(dto.newPassword());
     }
 
     @Test

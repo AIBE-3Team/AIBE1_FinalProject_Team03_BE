@@ -63,6 +63,7 @@ public class WaitingQueueService {
 
             if (!queue.addIfAbsent(uniqueScore, userId)) {
                 log.warn("[userId: {}] 이미 대기열에 등록된 상태", userId);
+                // TODO: 전역 에러 처리 vs 자체 에러 처리 ( EnterResponse DTO 에러 메시지)
                 throw new BusinessException(ErrorCode.QUEUE_ALREADY_JOINED);
             }
 

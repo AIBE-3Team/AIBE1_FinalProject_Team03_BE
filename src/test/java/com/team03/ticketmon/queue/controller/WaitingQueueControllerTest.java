@@ -38,7 +38,7 @@ class WaitingQueueControllerTest {
     @MockitoBean private ReissueService reissueService;
     @MockitoBean private RefreshTokenService refreshTokenService;
     @MockitoBean private UserEntityService userEntityService;
-    @MockitoBean private SocialUserService socialUserService;    // ← 요놈도 추가해야 합니다!
+    @MockitoBean private SocialUserService socialUserService;
     @MockitoBean private CookieUtil cookieUtil;
     @MockitoBean private ClientRegistrationRepository clientRegistrationRepository;
 

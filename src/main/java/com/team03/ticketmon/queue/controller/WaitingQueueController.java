@@ -1,5 +1,6 @@
 package com.team03.ticketmon.queue.controller;
 
+import com.team03.ticketmon._global.exception.SuccessResponse;
 import com.team03.ticketmon.queue.dto.EnterResponse;
 import com.team03.ticketmon.queue.service.WaitingQueueService;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +34,7 @@ public class WaitingQueueController {
      * @return HTTP 200 OK와 함께 대기열 상태 정보
      */
     @PostMapping("/enter")
-    public ResponseEntity<EnterResponse> enterQueue(
+    public ResponseEntity<SuccessResponse<EnterResponse>> enterQueue(
             @RequestParam Long concertId,
             @AuthenticationPrincipal CustomUserDetails user
     ) {
@@ -42,6 +43,6 @@ public class WaitingQueueController {
         EnterResponse response = waitingQueueService.apply(concertId, user.getUserId());
 
         log.info("[userId: {}] 대기열 진입 처리 완료. 결과 상태: {}", user.getUserId(), response.status());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(SuccessResponse.of("대기열 진입 처리 완료", response));
     }
 }

@@ -1,6 +1,7 @@
 package com.team03.ticketmon.user.service;
 
 import com.team03.ticketmon.user.domain.entity.UserEntity;
+import com.team03.ticketmon.user.dto.UpdatePasswordDTO;
 import com.team03.ticketmon.user.dto.UpdateUserProfileDTO;
 import com.team03.ticketmon.user.dto.UserProfileDTO;
 import jakarta.persistence.EntityNotFoundException;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -24,6 +26,8 @@ class MyPageServiceImplTest {
 
     @Mock
     private UserEntityService userEntityService;
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private MyPageServiceImpl myPageService;
@@ -37,6 +41,7 @@ class MyPageServiceImplTest {
                 .id(userId)
                 .email("test@test.com")
                 .username("testuser")
+                .password("password")
                 .name("홍길동")
                 .nickname("길동")
                 .phone("010-1234-5678")
@@ -120,5 +125,36 @@ class MyPageServiceImplTest {
 
         // then
         assertEquals("회원 정보가 없습니다.", ex.getMessage());
+    }
+
+    @Test
+    void 마이페이지_비밀번호_변경_정상_테스트() {
+        // given
+        UpdatePasswordDTO dto = new UpdatePasswordDTO("password", "newPassword");
+        given(userEntityService.findUserEntityByUserId(userId)).willReturn(Optional.of(user));
+        given(passwordEncoder.matches(dto.currentPassword(), user.getPassword())).willReturn(true);
+
+        // when
+        myPageService.updatePassword(1L, dto);
+
+        // then
+        assertEquals(user.getPassword(), dto.newPassword());
+        verify(userEntityService).save(user);
+    }
+
+    @Test
+    void 마이페이지_비밀번호_변경_비밀번호_불일치_예외_테스트() {
+        // given
+        UpdatePasswordDTO dto = new UpdatePasswordDTO("ppwd", "newPassword");
+        given(userEntityService.findUserEntityByUserId(userId)).willReturn(Optional.of(user));
+        given(passwordEncoder.matches(dto.currentPassword(), user.getPassword())).willReturn(false);
+
+        // when
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            myPageService.updatePassword(userId, dto);
+        });
+
+        // then
+        assertEquals("비밀번호가 일치하지 않습니다.", ex.getMessage());
     }
 }

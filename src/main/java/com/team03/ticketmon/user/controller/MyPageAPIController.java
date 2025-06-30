@@ -1,6 +1,7 @@
 package com.team03.ticketmon.user.controller;
 
 import com.team03.ticketmon.auth.jwt.CustomUserDetails;
+import com.team03.ticketmon.user.dto.UpdatePasswordDTO;
 import com.team03.ticketmon.user.dto.UpdateUserProfileDTO;
 import com.team03.ticketmon.user.dto.UserProfileDTO;
 import com.team03.ticketmon.user.service.MyPageService;
@@ -57,5 +58,26 @@ public class MyPageAPIController {
         UserProfileDTO updatedProfile = myPageService.getUserProfile(userId);
 
         return ResponseEntity.ok(updatedProfile);
+    }
+
+    @PostMapping("/changePwd")
+    @Operation(summary = "사용자 비밀번호 변경", description = "현재 로그인된 사용자의 비밀번호를 변경합니다. 소문자, 숫자, 특수문자 포함, 8자 이상")
+    @ApiResponse(responseCode = "200", description = "비밀번호 변경 성공")
+    @ApiResponse(responseCode = "400", description = "비밀번호 형식 불일치")
+    public ResponseEntity<?> changePassword(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Validated UpdatePasswordDTO dto,
+            BindingResult bindingResult) {
+
+        if (userDetails == null)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        if (bindingResult.hasErrors())
+            return ResponseEntity.badRequest().body(bindingResult.getAllErrors());
+
+        Long userId = userDetails.getUserId();
+        myPageService.updatePassword(userId, dto);
+
+        return ResponseEntity.ok("비밀번호 변경 성공");
     }
 }

@@ -23,6 +23,7 @@ public class WithMockCustomUserSecurityContextFactory implements WithSecurityCon
                 annotation.userId(),
                 "testuser", // username은 테스트에서 중요하지 않다면 고정값 사용
                 "",       // password는 사용하지 않으므로 비워둠
+                "",
                 authorities
         );
 

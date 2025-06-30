@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 	Optional<Booking> findByBookingNumber(String bookingNumber);
-
+	List<Booking> findByUserId(Long userId);
 	List<Booking> findByStatus(BookingStatus status); // 💡 이 줄을 추가합니다.
 
 }

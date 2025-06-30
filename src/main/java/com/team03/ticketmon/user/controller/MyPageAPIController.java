@@ -3,7 +3,9 @@ package com.team03.ticketmon.user.controller;
 import com.team03.ticketmon.auth.jwt.CustomUserDetails;
 import com.team03.ticketmon.user.dto.UpdatePasswordDTO;
 import com.team03.ticketmon.user.dto.UpdateUserProfileDTO;
+import com.team03.ticketmon.user.dto.UserBookingSummaryDTO;
 import com.team03.ticketmon.user.dto.UserProfileDTO;
+import com.team03.ticketmon.user.service.MyBookingService;
 import com.team03.ticketmon.user.service.MyPageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,6 +19,8 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "마이페이지")
 @RestController
 @RequestMapping("/api/mypage")
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 public class MyPageAPIController {
 
     private final MyPageService myPageService;
+    private final MyBookingService myBookingService;
 
     @GetMapping("/profile")
     @Operation(summary = "사용자 프로필 조회", description = "현재 로그인된 사용자의 프로필을 조회합니다.")
@@ -85,5 +90,16 @@ public class MyPageAPIController {
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
+    }
+
+    @GetMapping("/booking")
+    @Operation(summary = "사용자 예매 내역 조회", description = "현재 로그인된 사용자의 예매 내역을 불러옵니다.")
+    public ResponseEntity<?> getBookingList(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        if (userDetails == null)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        List<UserBookingSummaryDTO> booking = myBookingService.findBookingList(userDetails.getUserId());
+
+        return ResponseEntity.ok().body(booking);
     }
 }

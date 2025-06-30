@@ -78,7 +78,7 @@ class AdmissionFlowIntegrationTest {
     @DisplayName("입장 이벤트가 Redis에 발행되면, WebSocketHandler가 해당 사용자에게 입장 메시지를 전송한다.")
     void fullAdmissionFlowTest() throws Exception {
         // GIVEN: 테스트를 위한 환경과 데이터를 설정합니다.
-        String userId = "user-to-admit";
+        Long userId = 1L;
         String accessKey = "new-access-key";
         AdmissionEvent event = new AdmissionEvent(userId, accessKey);
 

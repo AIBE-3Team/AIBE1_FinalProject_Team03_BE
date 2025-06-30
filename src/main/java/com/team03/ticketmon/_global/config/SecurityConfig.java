@@ -117,7 +117,7 @@ public class SecurityConfig {
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger UI 및 API 문서
 
                     // 대기열 진입 API (인증 전에도 진입 가능)
-                    .requestMatchers(HttpMethod.POST, "/api/queue/enter").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/queue/enter").authenticated()
 
                     // 콘서트 정보 조회 (목록, 검색, 필터링, 상세, AI 요약, 리뷰/기대평 목록) - 공개 API
                     .requestMatchers(HttpMethod.GET, "/api/concerts", "/api/concerts/**").permitAll()

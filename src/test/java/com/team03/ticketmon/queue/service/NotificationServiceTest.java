@@ -64,7 +64,7 @@ class NotificationServiceTest {
     @DisplayName("입장 알림을 보내면, Redis Pub/Sub 토픽으로 AdmissionEvent 메시지가 발행된다.")
     void sendAdmissionNotification() throws InterruptedException, IOException {
         // given: 테스트용 데이터와 비동기 메시지 수신을 위한 환경 설정
-        String userId = "user-test";
+        Long userId = 1L;
         String accessKey = "key-test";
 
         // CountDownLatch: 비동기 작업(메시지 수신)이 완료될 때까지 메인 스레드를 기다리게 하는 도구

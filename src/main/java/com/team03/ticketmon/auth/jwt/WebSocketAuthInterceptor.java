@@ -33,7 +33,7 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
         Long userId = jwtTokenProvider.getUserId(accessToken);
 
         // 3. WebSocket 세션의 attributes에 사용자 ID를 저장
-        attributes.put("userId", userId.toString());
+        attributes.put("userId", userId);
 
         return true; // 핸드셰이크 성공, 연결 허용
     }

@@ -2,16 +2,21 @@ package com.team03.ticketmon.queue.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team03.ticketmon._global.config.SecurityConfig;
+import com.team03.ticketmon.auth.Util.CookieUtil;
 import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
 import com.team03.ticketmon.auth.service.RefreshTokenService;
 import com.team03.ticketmon.auth.service.ReissueService;
+import com.team03.ticketmon.queue.dto.EnterResponse;
 import com.team03.ticketmon.queue.service.WaitingQueueService;
 import com.team03.ticketmon.support.WithMockCustomUser;
+import com.team03.ticketmon.user.service.SocialUserService;
+import com.team03.ticketmon.user.service.UserEntityService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -25,24 +30,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SecurityConfig.class) // Security 설정을 가져와 필터 체인을 활성화
 class WaitingQueueControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc; // HTTP 요청을 모의로 실행하는 객체
+    @Autowired private MockMvc mockMvc; // HTTP 요청을 모의로 실행하는 객체
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @MockitoBean private WaitingQueueService waitingQueueService;
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private ReissueService reissueService;
+    @MockitoBean private RefreshTokenService refreshTokenService;
+    @MockitoBean private UserEntityService userEntityService;
+    @MockitoBean private SocialUserService socialUserService;    // ← 요놈도 추가해야 합니다!
+    @MockitoBean private CookieUtil cookieUtil;
+    @MockitoBean private ClientRegistrationRepository clientRegistrationRepository;
 
-    @MockitoBean // WaitingQueueService를 가짜 객체(Mock)로 주입
-    private WaitingQueueService waitingQueueService;
-
-    // SecurityConfig가 필요로 하는 빈들도 MockBean으로 등록
-    @MockitoBean
-    private JwtTokenProvider jwtTokenProvider;
-    @MockitoBean
-    private ReissueService reissueService;
-
-    // Add the missing mock bean for RefreshTokenService
-    @MockitoBean
-    private RefreshTokenService refreshTokenService;
 
     @Test
     @DisplayName("성공: 인증된 사용자가 대기열 진입 요청시 200 OK와 순위를 반환한다")
@@ -51,17 +50,16 @@ class WaitingQueueControllerTest {
         // GIVEN: 서비스 계층의 동작을 미리 정의
         long concertId = 1L;
         long expectedRank = 100L;
-        String expectedUserId = "123";
+        long expectedUserId = 123L;
 
         // waitingQueueService.apply(1L, "123")이 호출되면, 100L을 반환하도록 설정
-        given(waitingQueueService.apply(concertId, expectedUserId)).willReturn(expectedRank);
+        given(waitingQueueService.apply(concertId, expectedUserId)).willReturn(EnterResponse.waiting(expectedRank));
 
         // WHEN: 실제 HTTP 요청을 시뮬레이션
         mockMvc.perform(post("/api/queue/enter")
                 .param("concertId", String.valueOf(concertId)))
             .andDo(print())
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.userId").value(expectedUserId))
             .andExpect(jsonPath("$.rank").value(expectedRank))
             .andExpect(jsonPath("$.status").value("WAITING"));
     }

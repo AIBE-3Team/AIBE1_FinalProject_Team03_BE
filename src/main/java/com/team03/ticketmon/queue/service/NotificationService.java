@@ -28,7 +28,7 @@ public class NotificationService {
      * @param userId    알림을 받을 사용자 ID
      * @param accessKey 사용자에게 부여된 고유 입장 허가 키
      */
-    public void sendAdmissionNotification(String userId, String accessKey) {
+    public void sendAdmissionNotification(Long userId, String accessKey) {
         AdmissionEvent event = new AdmissionEvent(userId, accessKey);
         try {
             // 1. 이벤트 객체를 JSON 문자열로 직렬화

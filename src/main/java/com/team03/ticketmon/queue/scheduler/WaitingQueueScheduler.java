@@ -88,7 +88,7 @@ public class WaitingQueueScheduler {
             }
 
             // WaitingQueueService를 통해 빈자리 수만큼 사용자를 원자적으로 추출.
-            List<String> admittedUsers = waitingQueueService.poll(CONCERT_ID, (int) availableSlots);
+            List<Long> admittedUsers = waitingQueueService.poll(CONCERT_ID, (int) availableSlots);
 
             if (admittedUsers.isEmpty()) {
                 log.info("===== 새로 입장할 대기 인원이 없습니다. 스케줄러 작업을 종료 =====");
@@ -118,14 +118,14 @@ public class WaitingQueueScheduler {
      *
      * @param admittedUsers 입장 허가된 사용자 ID 리스트
      */
-    private void grantAccessToUsers(List<String> admittedUsers) {
+    private void grantAccessToUsers(List<Long> admittedUsers) {
         log.info("{}명의 신규 사용자 입장 처리 시작: {}", admittedUsers.size(), admittedUsers);
 
         // 모든 신규 입장자에게 동일한 만료 시간을 적용하기 위해 현재 시간을 기준으로 만료 타임스탬프를 계산.
-        RScoredSortedSet<String> activeSessions = redissonClient.getScoredSortedSet(ACTIVE_SESSIONS_KEY);
+        RScoredSortedSet<Long> activeSessions = redissonClient.getScoredSortedSet(ACTIVE_SESSIONS_KEY);
         long expiryTimestamp = System.currentTimeMillis() + accessKeyTtlMinutes * 60 * 1000;
 
-        for (String userId : admittedUsers) {
+        for (Long userId : admittedUsers) {
             // 1. 사용자별로 예측 불가능한 고유 AccessKey를 발급하여, 다른 사용자가 키를 추측하여 부정 사용하는 것을 방지.
             String accessKey = UUID.randomUUID().toString();
             RBucket<String> accessKeyBucket = redissonClient.getBucket(ACCESS_KEY_PREFIX + userId);

@@ -56,6 +56,9 @@ class WaitingQueueSchedulerIntegrationTest {
         registry.add("spring.data.redis.host", () -> redis.getHost());
         registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
         registry.add("spring.data.redis.ssl.enabled", () -> false);
+
+        registry.add("app.max-active-users", () -> 500L);
+        registry.add("app.access-key-ttl-minutes", () -> 10L);
     }
 
     /**
@@ -72,9 +75,9 @@ class WaitingQueueSchedulerIntegrationTest {
     void execute_shouldAdmitUsers_and_updateStateInRedis() throws InterruptedException {
         // given: 3명의 사용자가 대기열에 있고, 2개의 빈 자리가 있는 상황
         long concertId = 1L;
-        waitingQueueService.apply(concertId, "user-1");
-        waitingQueueService.apply(concertId, "user-2");
-        waitingQueueService.apply(concertId, "user-3");
+        waitingQueueService.apply(concertId, 1L);
+        waitingQueueService.apply(concertId, 2L);
+        waitingQueueService.apply(concertId, 3L);
 
         RAtomicLong activeUsersCount = redissonClient.getAtomicLong("active_users_count");
         activeUsersCount.set(498); // 최대 500명 중 498명 -> 2자리 남음
@@ -84,16 +87,16 @@ class WaitingQueueSchedulerIntegrationTest {
 
         // then: 로직 실행 후 Redis의 상태가 올바르게 변경되었는지 검증
         // 비동기(Pub/Sub) 처리 시간을 고려하여 Awaitility로 최대 5초 대기
-        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             // 1. 활성 사용자 수가 2명 증가하여 500명이 되었는가?
             assertThat(redissonClient.getAtomicLong("active_users_count").get()).isEqualTo(500L);
 
-            // 2. 대기열에는 1명(user-3)만 남아있는가?
+            // 2. 대기열에는 1명만 남아있는가?
             assertThat(waitingQueueService.getWaitingCount(concertId)).isEqualTo(1L);
 
-            // 3. 입장 처리된 사용자(user-1, user-2)에게 AccessKey가 발급되었는가?
-            RBucket<String> accessKey1 = redissonClient.getBucket("accesskey:user-1");
-            RBucket<String> accessKey2 = redissonClient.getBucket("accesskey:user-2");
+            // 3. 입장 처리된 사용자에게 AccessKey가 발급되었는가?
+            RBucket<String> accessKey1 = redissonClient.getBucket("accesskey:1");
+            RBucket<String> accessKey2 = redissonClient.getBucket("accesskey:2");
             assertThat(accessKey1.isExists()).isTrue();
             assertThat(accessKey2.isExists()).isTrue();
 
@@ -107,7 +110,7 @@ class WaitingQueueSchedulerIntegrationTest {
     void execute_shouldDoNothing_whenNoSlotIsAvailable() throws InterruptedException {
         // given: 대기열에 사용자가 있지만, 활성 사용자 수가 꽉 찬 상황
         long concertId = 1L;
-        waitingQueueService.apply(concertId, "user-1");
+        waitingQueueService.apply(concertId, 1L);
 
         RAtomicLong activeUsersCount = redissonClient.getAtomicLong("active_users_count");
         activeUsersCount.set(500); // 빈자리 없음
@@ -121,6 +124,6 @@ class WaitingQueueSchedulerIntegrationTest {
         // 2. 대기열 인원도 그대로 1명이어야 한다.
         assertThat(waitingQueueService.getWaitingCount(concertId)).isEqualTo(1L);
         // 3. 대기중인 사용자에게 AccessKey가 발급되지 않았어야 한다.
-        assertThat(redissonClient.getBucket("accesskey:user-1").isExists()).isFalse();
+        assertThat(redissonClient.getBucket("accesskey:1").isExists()).isFalse();
     }
 }

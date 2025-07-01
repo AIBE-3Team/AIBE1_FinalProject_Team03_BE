@@ -1,10 +1,7 @@
 package com.team03.ticketmon._global.config;
 
 import com.team03.ticketmon.auth.Util.CookieUtil;
-import com.team03.ticketmon.auth.jwt.JwtAuthenticationFilter;
-import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
-import com.team03.ticketmon.auth.jwt.LoginFilter;
-import com.team03.ticketmon.auth.jwt.CustomLogoutFilter;
+import com.team03.ticketmon.auth.jwt.*;
 import com.team03.ticketmon.auth.oauth2.OAuth2LoginFailureHandler;
 import com.team03.ticketmon.auth.oauth2.OAuth2LoginSuccessHandler;
 import com.team03.ticketmon.auth.service.CustomOAuth2UserService;
@@ -14,6 +11,7 @@ import com.team03.ticketmon.user.service.SocialUserService;
 import com.team03.ticketmon.user.service.UserEntityService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RedissonClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -62,6 +60,7 @@ public class SecurityConfig {
     private final UserEntityService userEntityService;
     private final SocialUserService socialUserService;
     private final CookieUtil cookieUtil;
+    private final RedissonClient redissonClient;
 
     /**
      * <b>AuthenticationManager 빈 설정</b> <br>
@@ -183,8 +182,9 @@ public class SecurityConfig {
             .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, reissueService, cookieUtil), LoginFilter.class)
             .addFilterBefore(new CustomLogoutFilter(jwtTokenProvider, refreshTokenService, cookieUtil), LogoutFilter.class)
             .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), cookieUtil), UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(new AccessKeyFilter(redissonClient), JwtAuthenticationFilter.class)
 
-            // 인증/인가 실패(인증 실패(401), 권한 부족(403)) 시 반환되는 예외 응답 설정
+        // 인증/인가 실패(인증 실패(401), 권한 부족(403)) 시 반환되는 예외 응답 설정
             .exceptionHandling(exception -> exception
                 // 인증 실패 (401 Unauthorized) 시 처리
                 .authenticationEntryPoint((request, response, authException) -> {
@@ -225,7 +225,7 @@ public class SecurityConfig {
         // 요청 시 허용할 헤더  (인증 관련 헤더 포함)
         config.setAllowedHeaders(Arrays.asList(
             "Authorization", "Content-Type", "X-Requested-With", "Accept",
-            "Origin", "X-CSRF-Token", "Cookie", "Set-Cookie"
+            "Origin", "X-CSRF-Token", "Cookie", "Set-Cookie", "X-Access-Key"
         ));
 
         // 인증 정보(쿠키, HTTP 인증 헤더) 포함한 요청 허용 (프론트엔드에서 credentials: 'include' 필요)

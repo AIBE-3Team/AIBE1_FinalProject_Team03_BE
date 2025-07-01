@@ -105,8 +105,17 @@ public class CustomWebSocketHandler extends TextWebSocketHandler {
     }
 
     // 테스트와 외부에서 세션을 추가하기 위한 public 메서드
-    public void addSession(Long userId, WebSocketSession session) {
-        sessions.put(userId, session);
+    public void addSession(Long userId, WebSocketSession newSession) {
+        WebSocketSession oldSession = sessions.put(userId, newSession);
+        if (oldSession != null && oldSession.isOpen()) {
+            try {
+                oldSession.close(CloseStatus.NORMAL);
+                log.info("기존 WebSocket 세션 강제 종료: 사용자={}, 세션ID={}", userId, oldSession.getId());
+            } catch (IOException e) {
+                log.warn("기존 WebSocket 세션 종료 실패: 사용자={}, 세션ID={}", userId, oldSession.getId(), e);
+            }
+        }
+        log.info("새 WebSocket 세션 등록: 사용자={}, 세션ID={}", userId, newSession.getId());
     }
 
     public void sendMessage(WebSocketSession session, TextMessage message) throws IOException {

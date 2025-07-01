@@ -1,10 +1,11 @@
 package com.team03.ticketmon.user.controller;
 
+import com.team03.ticketmon._global.exception.BusinessException;
+import com.team03.ticketmon._global.exception.ErrorCode;
+import com.team03.ticketmon._global.exception.ErrorResponse;
+import com.team03.ticketmon._global.exception.GlobalExceptionHandler;
 import com.team03.ticketmon.auth.jwt.CustomUserDetails;
-import com.team03.ticketmon.user.dto.UpdatePasswordDTO;
-import com.team03.ticketmon.user.dto.UpdateUserProfileDTO;
-import com.team03.ticketmon.user.dto.UserBookingSummaryDTO;
-import com.team03.ticketmon.user.dto.UserProfileDTO;
+import com.team03.ticketmon.user.dto.*;
 import com.team03.ticketmon.user.service.MyBookingService;
 import com.team03.ticketmon.user.service.MyPageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +30,7 @@ public class MyPageAPIController {
 
     private final MyPageService myPageService;
     private final MyBookingService myBookingService;
+    private final GlobalExceptionHandler globalExceptionHandler;
 
     @GetMapping("/profile")
     @Operation(summary = "사용자 프로필 조회", description = "현재 로그인된 사용자의 프로필을 조회합니다.")
@@ -101,5 +103,23 @@ public class MyPageAPIController {
         List<UserBookingSummaryDTO> booking = myBookingService.findBookingList(userDetails.getUserId());
 
         return ResponseEntity.ok().body(booking);
+    }
+
+    @GetMapping("/bookingDetail/{bookingNumber}")
+    @Operation(summary = "사용자 예매 상세 내역 조회", description = "현재 로그인된 사용자의 예매 상세 내역을 불러옵니다.")
+    public ResponseEntity<?> getBookingDetail(
+            @AuthenticationPrincipal CustomUserDetails userDetails, @RequestParam String bookingNumber) {
+
+        if (userDetails == null)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        UserBookingDetailDto bookingDto = null;
+        try {
+            bookingDto = myBookingService.findBookingDetail(bookingNumber);
+        } catch (BusinessException e) {
+            return globalExceptionHandler.handleBusinessException(e);
+        }
+
+        return ResponseEntity.ok().body(bookingDto);
     }
 }

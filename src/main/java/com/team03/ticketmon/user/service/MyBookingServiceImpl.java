@@ -1,7 +1,10 @@
 package com.team03.ticketmon.user.service;
 
+import com.team03.ticketmon._global.exception.BusinessException;
+import com.team03.ticketmon._global.exception.ErrorCode;
 import com.team03.ticketmon.booking.domain.Booking;
 import com.team03.ticketmon.booking.service.BookingService;
+import com.team03.ticketmon.user.dto.UserBookingDetailDto;
 import com.team03.ticketmon.user.dto.UserBookingSummaryDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -33,12 +37,36 @@ public class MyBookingServiceImpl implements MyBookingService {
                         booking.getConcert().getConcertDate(),
                         booking.getConcert().getVenueName(),
                         booking.getConcert().getVenueAddress(),
-                        booking.getStatus().toString(),
+                        booking.getStatus().name(),
                         booking.getTotalAmount(),
                         booking.getConcert().getPosterImageUrl(),
                         getSeatList(booking)
                 ))
                 .toList();
+    }
+
+    @Override
+    public UserBookingDetailDto findBookingDetail(String bookingNumber) {
+        Booking booking = bookingService.findBookingDetail(bookingNumber)
+                .orElseThrow(() -> new BusinessException(ErrorCode.BOOKING_NOT_FOUND));
+
+        return new UserBookingDetailDto(
+                booking.getBookingNumber(),
+                booking.getConcert().getTitle(),
+                booking.getConcert().getArtist(),
+                booking.getConcert().getConcertDate(),
+                booking.getConcert().getStartTime(),
+                booking.getConcert().getEndTime(),
+                booking.getConcert().getVenueName(),
+                booking.getConcert().getVenueAddress(),
+                booking.getTotalAmount(),
+                booking.getStatus().name(),
+                booking.getPayment().getStatus().name(),
+                booking.getPayment().getPaymentMethod(),
+                getSeatList(booking),
+                booking.getConcert().getPosterImageUrl(),
+                booking.getCreatedAt()
+        );
     }
 
     @Override

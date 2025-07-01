@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 예매(Booking)와 관련된 핵심 비즈니스 로직을 처리하는 서비스
@@ -84,6 +85,11 @@ public class BookingService {
         }
 
         return bookingRepository.findByUserId(userId);
+    }
+
+    @Transactional
+    public Optional<Booking> findBookingDetail(String bookingNumber) {
+        return bookingRepository.findByBookingNumber(bookingNumber);
     }
 
     /**

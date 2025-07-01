@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -26,7 +25,7 @@ public class MyBookingServiceImpl implements MyBookingService {
 
     @Override
     public List<UserBookingSummaryDTO> findBookingList(Long userId) {
-        if(!userEntityService.existsById(userId)) {
+        if (!userEntityService.existsById(userId)) {
             throw new EntityNotFoundException("회원 정보가 없습니다.");
         }
 
@@ -46,8 +45,8 @@ public class MyBookingServiceImpl implements MyBookingService {
     }
 
     @Override
-    public UserBookingDetailDto findBookingDetail(String bookingNumber) {
-        Booking booking = bookingService.findBookingDetail(bookingNumber)
+    public UserBookingDetailDto findBookingDetail(Long userId, String bookingNumber) {
+        Booking booking = bookingService.findBookingDetail(userId, bookingNumber)
                 .orElseThrow(() -> new BusinessException(ErrorCode.BOOKING_NOT_FOUND));
 
         return new UserBookingDetailDto(

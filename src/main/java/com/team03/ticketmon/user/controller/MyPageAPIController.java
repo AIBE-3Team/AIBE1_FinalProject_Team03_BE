@@ -108,17 +108,12 @@ public class MyPageAPIController {
     @GetMapping("/bookingDetail/{bookingNumber}")
     @Operation(summary = "사용자 예매 상세 내역 조회", description = "현재 로그인된 사용자의 예매 상세 내역을 불러옵니다.")
     public ResponseEntity<?> getBookingDetail(
-            @AuthenticationPrincipal CustomUserDetails userDetails, @RequestParam String bookingNumber) {
+            @AuthenticationPrincipal CustomUserDetails userDetails, @PathVariable String bookingNumber) {
 
         if (userDetails == null)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-        UserBookingDetailDto bookingDto = null;
-        try {
-            bookingDto = myBookingService.findBookingDetail(bookingNumber);
-        } catch (BusinessException e) {
-            return globalExceptionHandler.handleBusinessException(e);
-        }
+        UserBookingDetailDto bookingDto = myBookingService.findBookingDetail(userDetails.getUserId(), bookingNumber);
 
         return ResponseEntity.ok().body(bookingDto);
     }

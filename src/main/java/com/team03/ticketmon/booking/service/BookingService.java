@@ -88,7 +88,10 @@ public class BookingService {
     }
 
     @Transactional
-    public Optional<Booking> findBookingDetail(String bookingNumber) {
+    public Optional<Booking> findBookingDetail(Long userId, String bookingNumber) {
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
         return bookingRepository.findByBookingNumber(bookingNumber);
     }
 

@@ -1,9 +1,5 @@
 package com.team03.ticketmon.user.controller;
 
-import com.team03.ticketmon._global.exception.BusinessException;
-import com.team03.ticketmon._global.exception.ErrorCode;
-import com.team03.ticketmon._global.exception.ErrorResponse;
-import com.team03.ticketmon._global.exception.GlobalExceptionHandler;
 import com.team03.ticketmon.auth.jwt.CustomUserDetails;
 import com.team03.ticketmon.user.dto.*;
 import com.team03.ticketmon.user.service.MyBookingService;
@@ -30,7 +26,6 @@ public class MyPageAPIController {
 
     private final MyPageService myPageService;
     private final MyBookingService myBookingService;
-    private final GlobalExceptionHandler globalExceptionHandler;
 
     @GetMapping("/profile")
     @Operation(summary = "사용자 프로필 조회", description = "현재 로그인된 사용자의 프로필을 조회합니다.")
@@ -116,5 +111,19 @@ public class MyPageAPIController {
         UserBookingDetailDto bookingDto = myBookingService.findBookingDetail(userDetails.getUserId(), bookingNumber);
 
         return ResponseEntity.ok().body(bookingDto);
+    }
+
+    @DeleteMapping("/bookingDetail/cancel/{bookingId}")
+    @Operation(summary = "사용자 예매 취소", description = "현재 로그인된 사용자의 예매를 취소합니다.")
+    public ResponseEntity<?> cancelBooking(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long bookingId) {
+
+        if (userDetails == null)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        myBookingService.cancelBooking(userDetails.getUserId(), bookingId);
+
+        return ResponseEntity.ok().body("예매가 성공적으로 취소되었습니다.");
     }
 }

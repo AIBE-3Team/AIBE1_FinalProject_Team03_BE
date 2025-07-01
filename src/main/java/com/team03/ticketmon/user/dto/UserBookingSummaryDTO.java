@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record UserBookingSummaryDTO(
+        Long bookingId,
         String bookingNumber,
         String concertTitle,
         LocalDate concertDate,

@@ -31,6 +31,7 @@ public class MyBookingServiceImpl implements MyBookingService {
 
         return bookingService.findBookingList(userId).stream()
                 .map(booking -> new UserBookingSummaryDTO(
+                        booking.getBookingId(),
                         booking.getBookingNumber(),
                         booking.getConcert().getTitle(),
                         booking.getConcert().getConcertDate(),
@@ -50,6 +51,7 @@ public class MyBookingServiceImpl implements MyBookingService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.BOOKING_NOT_FOUND));
 
         return new UserBookingDetailDto(
+                booking.getBookingId(),
                 booking.getBookingNumber(),
                 booking.getConcert().getTitle(),
                 booking.getConcert().getArtist(),
@@ -70,7 +72,8 @@ public class MyBookingServiceImpl implements MyBookingService {
 
     @Override
     public void cancelBooking(Long userId, Long bookingId) {
-        // TODO. 예매 취소 로직 구현 예정
+        Booking booking = bookingService.validateCancellableBooking(bookingId, userId);
+        bookingService.finalizeCancellation(booking);
     }
 
     // 좌석 정보 가져오기

@@ -7,6 +7,7 @@ import java.time.LocalTime;
 import java.util.List;
 
 public record UserBookingDetailDto(
+        Long bookingId,
         String bookingNumber,
         String concertTitle,
         String artistName,

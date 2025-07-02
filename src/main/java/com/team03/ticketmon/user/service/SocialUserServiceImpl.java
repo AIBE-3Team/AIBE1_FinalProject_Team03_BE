@@ -19,10 +19,7 @@ public class SocialUserServiceImpl implements SocialUserService {
     private final UserRepository userRepository;
 
     @Override
-    public void saveSocialUser(OAuthAttributes attributes) {
-        UserEntity user = userRepository.findByEmail(attributes.getEmail())
-                .orElseThrow(() -> new EntityNotFoundException("유저 정보가 없습니다."));
-
+    public void saveSocialUser(UserEntity user, OAuthAttributes attributes) {
         SocialUser socialUser = SocialUser.builder()
                 .provider(attributes.getProvider())
                 .providerId(attributes.getProviderId())

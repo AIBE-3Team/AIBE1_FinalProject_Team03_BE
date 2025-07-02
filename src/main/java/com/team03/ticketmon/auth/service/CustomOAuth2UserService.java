@@ -1,6 +1,7 @@
 package com.team03.ticketmon.auth.service;
 
 import com.team03.ticketmon.auth.oauth2.OAuthAttributes;
+import com.team03.ticketmon.user.domain.entity.UserEntity;
 import com.team03.ticketmon.user.service.SocialUserService;
 import com.team03.ticketmon.user.service.UserEntityService;
 import jakarta.servlet.http.HttpSession;
@@ -18,6 +19,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Collections;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
@@ -34,16 +36,35 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String regId = request.getClientRegistration().getRegistrationId();
         OAuthAttributes attr = OAuthAttributes.of(regId, oAuth2User.getAttributes());
 
+        // 이메일 유효성 확인
         checkUserEmail(attr);
 
-        if (!socialUserService.existSocialUser(attr.getProvider(), attr.getProviderId()))
-            socialUserService.saveSocialUser(attr);
+        // 소셜 계정이 이미 존재
+        if (socialUserService.existSocialUser(attr.getProvider(), attr.getProviderId())) {
+            return new DefaultOAuth2User(
+                    Collections.singleton(new SimpleGrantedAuthority("USER")),
+                    attr.getAttributes(),
+                    attr.getNameAttributeKey()
+            );
+        }
 
-        return new DefaultOAuth2User(
-                Collections.singleton(new SimpleGrantedAuthority("USER")),
-                attr.getAttributes(),
-                attr.getNameAttributeKey()
-        );
+        // 이메일 기반 기존 사용자 존재 여부 확인
+        var userOpt = userEntityService.findUserEntityByEmail(attr.getEmail());
+        if (userOpt.isPresent()) {
+            UserEntity user = userOpt.get();
+            socialUserService.saveSocialUser(user, attr);
+
+            return new DefaultOAuth2User(
+                    Collections.singleton(new SimpleGrantedAuthority(user.getRole().getRoleName())),
+                    attr.getAttributes(),
+                    attr.getNameAttributeKey()
+            );
+        }
+
+        // 신규 사용자 -> 회원가입 유도
+        newAccountSave(attr);
+        OAuth2Error oauth2Error = new OAuth2Error("need_signup", "유저 정보가 없어 회원가입이 필요합니다.", null);
+        throw new OAuth2AuthenticationException(oauth2Error, oauth2Error.toString());
     }
 
     private void checkUserEmail(OAuthAttributes attr) {
@@ -51,17 +72,13 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             OAuth2Error oauth2Error = new OAuth2Error("missing_email", "이메일 정보가 제공되지 않았습니다.", null);
             throw new OAuth2AuthenticationException(oauth2Error, oauth2Error.toString());
         }
+    }
 
-        if (!userEntityService.existsByEmail(attr.getEmail())) {
-            // UserEntity에 email 정보가 없으면 세션에 OAuthAttributes 저장 후 회원 가입 유도
-            RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-            if (requestAttributes != null) {
-                HttpSession session = ((ServletRequestAttributes) requestAttributes).getRequest().getSession();
-                session.setAttribute("oauthAttributes", attr);
-            }
-
-            OAuth2Error oauth2Error = new OAuth2Error("need_signup", "유저 정보가 없어 회원가입이 필요합니다.", null);
-            throw new OAuth2AuthenticationException(oauth2Error, oauth2Error.toString());
+    private void newAccountSave(OAuthAttributes attr) {
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (requestAttributes != null) {
+            HttpSession session = ((ServletRequestAttributes) requestAttributes).getRequest().getSession();
+            session.setAttribute("oauthAttributes", attr);
         }
     }
 }

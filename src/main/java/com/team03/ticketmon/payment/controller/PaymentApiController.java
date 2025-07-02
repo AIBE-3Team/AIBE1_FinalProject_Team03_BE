@@ -49,12 +49,12 @@ public class PaymentApiController {
 			PaymentConfirmRequest confirmRequest = PaymentConfirmRequest.builder()
 				.paymentKey(paymentKey).orderId(orderId).amount(amount).build();
 			paymentService.confirmPayment(confirmRequest);
-			String reactSuccessUrl = "http://localhost:3000/payment/result/success";
+			String reactSuccessUrl = "https://localhost:3000/payment/result/success";
 			return "redirect:" + reactSuccessUrl + "?orderId=" + orderId;
 		} catch (Exception e) {
 			log.error("결제 승인 처리 중 오류 발생: orderId={}, error={}", orderId, e.getMessage());
 			String encodedMessage = UriUtils.encode(e.getMessage(), StandardCharsets.UTF_8);
-			String reactFailUrl = "http://localhost:3000/payment/result/fail";
+			String reactFailUrl = "https://localhost:3000/payment/result/fail";
 			return "redirect:" + reactFailUrl + "?orderId=" + orderId + "&message=" + encodedMessage;
 		}
 	}
@@ -66,7 +66,7 @@ public class PaymentApiController {
 		log.warn("결제 실패 리다이렉트 수신: orderId={}, code={}, message={}", orderId, code, message);
 		paymentService.handlePaymentFailure(orderId, code, message);
 		String encodedMessage = UriUtils.encode(message, StandardCharsets.UTF_8);
-		String reactFailUrl = "http://localhost:3000/payment/result/fail";
+		String reactFailUrl = "https://localhost:3000/payment/result/fail";
 		return "redirect:" + reactFailUrl + "?orderId=" + orderId + "&code=" + code + "&message=" + encodedMessage;
 	}
 

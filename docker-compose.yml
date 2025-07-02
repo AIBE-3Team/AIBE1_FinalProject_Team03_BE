@@ -108,15 +108,15 @@ services:
   #      context: .  # 현재 디렉토리에서 Dockerfile을 찾음
   #      dockerfile: Dockerfile  # 사용할 Dockerfile 명시 (생략 가능하지만 명확하게 표시)
   #      args:     # Docker 빌드 시 전달할 환경변수 (Dockerfile의 ARG와 연결됨)
-  #        GITHUB_PACKAGES_USER: ${GITHUB_PACKAGES_USER} # GitHub Maven 인증용 사용자명
-  #        GITHUB_PACKAGES_TOKEN: ${GITHUB_PACKAGES_TOKEN} # GitHub Maven 인증용 PAT (repo + read:packages 권한 필요)
+  #        GH_PACKAGES_USER: ${GH_PACKAGES_USER} # GitHub Maven 인증용 사용자명
+  #        GH_PACKAGES_TOKEN: ${GH_PACKAGES_TOKEN} # GitHub Maven 인증용 PAT (repo + read:packages 권한 필요)
   #    ports:
   #      - "8080:8080"   # 호스트의 8080 포트를 컨테이너의 8080 포트에 연결 (개발용)
   #    env_file:
   #      - .env    # 로컬 환경 변수 파일 (.env) 로드
   #    environment:
-  #      - GITHUB_PACKAGES_USER=${GITHUB_PACKAGES_USER}  # 컨테이너 실행 시 내부 환경변수로 전달
-  #      - GITHUB_PACKAGES_TOKEN=${GITHUB_PACKAGES_TOKEN}  # (예: Spring 설정, 로그 출력용 등에서 사용 가능)
+  #      - GH_PACKAGES_USER=${GH_PACKAGES_USER}  # 컨테이너 실행 시 내부 환경변수로 전달
+  #      - GH_PACKAGES_TOKEN=${GH_PACKAGES_TOKEN}  # (예: Spring 설정, 로그 출력용 등에서 사용 가능)
   #      # - .env 파일의 SPRING_PROFILES_ACTIVE 값을 사용하도록 설정
   #      # - 로컬 개발 시에는 .env의 'dev'가, 운영 환경 배포 시에는 외부 주입된 'prod'가 적용됩니다.
   #      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}  # .env 파일에서 읽어온 값 사용

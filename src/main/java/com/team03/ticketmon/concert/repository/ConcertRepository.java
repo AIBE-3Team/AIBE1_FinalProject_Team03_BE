@@ -83,6 +83,7 @@ public interface ConcertRepository extends JpaRepository<Concert, Long> {
 
 	List<Concert> findByStatusInOrderByConcertDateAsc(List<ConcertStatus> statuses);
 
+	@EntityGraph(attributePaths = {"concertSeats"})
 	Page<Concert> findByStatusInOrderByConcertDateAsc(List<ConcertStatus> statuses, Pageable pageable);
 
 	/**
@@ -146,11 +147,11 @@ public interface ConcertRepository extends JpaRepository<Concert, Long> {
 	 * @return 예매 시작이 임박한 콘서트 목록
 	 */
 	@Query("SELECT c FROM Concert c WHERE " +
-			"c.status = 'SCHEDULED' AND " +
-			"c.bookingStartDate BETWEEN :startTime AND :endTime " +
-			"ORDER BY c.bookingStartDate ASC")
+		"c.status = 'SCHEDULED' AND " +
+		"c.bookingStartDate BETWEEN :startTime AND :endTime " +
+		"ORDER BY c.bookingStartDate ASC")
 	List<Concert> findUpcomingBookingStarts(@Param("startTime") LocalDateTime startTime,
-											@Param("endTime") LocalDateTime endTime);
+		@Param("endTime") LocalDateTime endTime);
 
 	/**
 	 * 예매 시작 시간 기준으로 특정 시간 이후에 시작되는 콘서트들 조회
@@ -159,9 +160,9 @@ public interface ConcertRepository extends JpaRepository<Concert, Long> {
 	 * @return 기준 시간 이후에 예매가 시작되는 콘서트 목록
 	 */
 	@Query("SELECT c FROM Concert c WHERE " +
-			"c.status = 'SCHEDULED' AND " +
-			"c.bookingStartDate > :afterTime " +
-			"ORDER BY c.bookingStartDate ASC")
+		"c.status = 'SCHEDULED' AND " +
+		"c.bookingStartDate > :afterTime " +
+		"ORDER BY c.bookingStartDate ASC")
 	List<Concert> findConcertsBookingStartsAfter(@Param("afterTime") LocalDateTime afterTime);
 
 	/**
@@ -172,11 +173,12 @@ public interface ConcertRepository extends JpaRepository<Concert, Long> {
 	 * @return 오늘 예매가 시작되는 콘서트 목록
 	 */
 	@Query("SELECT c FROM Concert c WHERE " +
-			"c.status = 'SCHEDULED' AND " +
-			"c.bookingStartDate BETWEEN :todayStart AND :todayEnd " +
-			"ORDER BY c.bookingStartDate ASC")
+		"c.status = 'SCHEDULED' AND " +
+		"c.bookingStartDate BETWEEN :todayStart AND :todayEnd " +
+		"ORDER BY c.bookingStartDate ASC")
 	List<Concert> findTodayBookingStarts(@Param("todayStart") LocalDateTime todayStart,
-										 @Param("todayEnd") LocalDateTime todayEnd);
+		@Param("todayEnd") LocalDateTime todayEnd);
+}
 
 	/**
 	 * 현재 예매 가능하고, 상태가 ON_SALE인 모든 콘서트의 ID 목록을 조회합니다.

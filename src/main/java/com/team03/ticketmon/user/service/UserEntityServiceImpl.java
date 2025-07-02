@@ -29,6 +29,11 @@ public class UserEntityServiceImpl implements UserEntityService {
     }
 
     @Override
+    public boolean existsById(Long userId) {
+        return userRepository.existsById(userId);
+    }
+
+    @Override
     public UserEntity save(UserEntity user) {
         return userRepository.save(user);
     }

@@ -5,6 +5,9 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+import java.util.List; // List 임포트
+import com.team03.ticketmon.user.domain.entity.UserEntity; // UserEntity 임포트
+
 @Entity
 @Table(name = "seller_applications")
 @Getter
@@ -18,9 +21,11 @@ public class SellerApplication {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;    // 신청서 고유 ID (PK)
 
-    // userId의 UNIQUE 제약 조건 제거 (한 유저가 여러 신청서를 가질 수 있도록)
-    @Column(nullable = false)
-    private Long userId; // 신청 유저 ID (FK -> users.id)
+    // UserEntity와의 ManyToOne 관계 설정
+    // 기존 Long userId 필드를 제거하고 UserEntity 객체 참조로 대체
+    @ManyToOne(fetch = FetchType.LAZY) // 지연 로딩 (필요할 때만 로드)
+    @JoinColumn(name = "user_id", nullable = false) // 실제 DB 컬럼명 user_id를 외래 키로 사용
+    private UserEntity user; // 신청 유저 (UserEntity 객체 자체를 참조)
 
     @Column(nullable = false, length = 100)
     private String companyName; // 업체명 (기회사명/거래처명 등)
@@ -52,6 +57,12 @@ public class SellerApplication {
 
     @Column(nullable = true)
     private LocalDateTime deletedAt; // uploaded_file_url이 가리키는 실제 파일이 스토리지에서 삭제된 시점
+
+    // SellerApprovalHistory와의 OneToMany 관계 추가 (양방향 매핑)
+    // mappedBy는 연관관계의 주인이 아닌 쪽에 설정. SellerApprovalHistory의 sellerApplication 필드에 의해 매핑됨
+    @OneToMany(mappedBy = "sellerApplication", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default // 빌더 사용 시 기본값으로 빈 리스트 초기화
+    private List<SellerApprovalHistory> approvalHistories = new java.util.ArrayList<>();
 
     // 새로운 SellerApplicationStatus Enum 정의
     public enum SellerApplicationStatus {

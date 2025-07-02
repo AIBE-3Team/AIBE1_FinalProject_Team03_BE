@@ -24,7 +24,14 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * Booking Entity
@@ -35,6 +42,7 @@ import lombok.*;
 @Table(name = "bookings")
 @Builder
 @Getter
+@Setter
 @ToString(exclude = {"concert", "tickets", "payment"})
 @EqualsAndHashCode(of = "bookingNumber", callSuper = false)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -63,12 +71,11 @@ public class Booking extends BaseTimeEntity {
 	private BookingStatus status;
 
 	@Builder.Default
-	@OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-	private List<Ticket> tickets = new ArrayList<>(); // NPE 방지를 위한 초기화
+	@OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<Ticket> tickets = new ArrayList<>();
 
 	@OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	private Payment payment;
-
 
 	/**
 	 * 예매 상태를 '확정'으로 변경
@@ -108,6 +115,14 @@ public class Booking extends BaseTimeEntity {
 	}
 
 	/**
+	 * Booking과 Payment 간의 양방향 관계를 설정하는 헬퍼 메서드
+	 * @param payment 이 Booking에 연결할 Payment 엔티티
+	 */
+	public void setPayment(Payment payment) {
+		this.payment = payment;
+	}
+
+	/**
 	 * 예매의 총 금액과 상태를 업데이트
 	 * 부분 취소/환불과 같은 시나리오에서 사용될 수 있음
 	 * @param newAmount 새로 계산된 총 금액
@@ -129,24 +144,37 @@ public class Booking extends BaseTimeEntity {
 	public static Booking createBooking(Long userId, Concert concert, List<ConcertSeat> selectedSeats) {
 		// 1. 선택된 좌석들로 Ticket들을 생성하고, Booking과의 관계 설정
 		List<Ticket> tickets = selectedSeats.stream()
-				.map(Ticket::createTicket) // Ticket 생성 시 Booking 정보도 함께 전달
-				.toList();
+			.map(Ticket::createTicket)
+			.toList();
 
 		// 2. Booking 뼈대 생성
 		Booking booking = Booking.builder()
-				.userId(userId)
-				.concert(concert)
-				.bookingNumber(UUID.randomUUID().toString())
-				.status(BookingStatus.PENDING_PAYMENT)
-				.totalAmount(tickets.stream()
-						.map(Ticket::getPrice)
-						.reduce(BigDecimal.ZERO, BigDecimal::add)
-				)
-				.build();
+			.userId(userId)
+			.concert(concert)
+			.bookingNumber(UUID.randomUUID().toString())
+			.status(BookingStatus.PENDING_PAYMENT)
+			.totalAmount(tickets.stream()
+				.map(Ticket::getPrice)
+				.reduce(BigDecimal.ZERO, BigDecimal::add)
+			)
+			.build();
 
 		// 3. 생성된 Booking에 Ticket 목록 설정 (양방향 관계 확립)
 		booking.setTickets(tickets);
-
 		return booking;
+	}
+
+	/**
+	 * Helper to clear all associated tickets and break bidirectional links,
+	 * triggering orphanRemoval for tickets and releasing concertSeat linkage.
+	 */
+	public void removeAllTickets() {
+		for (Ticket ticket : new ArrayList<>(tickets)) {
+			ticket.setBooking(null);
+			if (ticket.getConcertSeat() != null) {
+				ticket.getConcertSeat().releaseTicket();
+			}
+		}
+		tickets.clear();
 	}
 }

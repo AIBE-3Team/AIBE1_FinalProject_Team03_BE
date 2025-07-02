@@ -24,7 +24,6 @@ public record RegisterUserEntityDTO(
         // 휴대폰 번호 형식: 010 또는 011/016~019로 시작하며, 가운데는 3~4자리, 마지막은 4자리 숫자
         String phone,
         @NotBlank(message = "사용자 주소는 필수입니다.")
-        String address,
-        String profileImage
+        String address
 ) {
 }

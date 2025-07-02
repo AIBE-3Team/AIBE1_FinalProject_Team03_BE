@@ -7,15 +7,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class ExampleProfileImageService {
 
     private final StorageUploader storageUploader;
 
-    public UploadResponseDTO uploadProfileImage(Long userId, MultipartFile file) {
-        String fileExtension = getExtension(file.getOriginalFilename());
-        String path = UploadPathUtil.getProfilePath(userId, fileExtension);
+    public UploadResponseDTO uploadProfileImage(String uuid, MultipartFile file) {
+        String fileExtension = getExtension(Objects.requireNonNull(file.getOriginalFilename()));
+        String path = UploadPathUtil.getProfilePath(uuid, fileExtension);
         String url = storageUploader.uploadFile(file, "ticketmon-dev-profile-imgs", path);
         return new UploadResponseDTO(file.getOriginalFilename(), url);
     }

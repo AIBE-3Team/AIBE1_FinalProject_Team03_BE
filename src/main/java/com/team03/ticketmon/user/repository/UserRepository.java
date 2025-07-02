@@ -15,7 +15,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     @NotNull Optional<UserEntity> findById(@NotNull Long id);
     Optional<UserEntity> findByUsername(String username);
     Optional<UserEntity> findByEmail(String email);
-
+    Optional<UserEntity> findFirstByUsernameOrEmailOrNickname(String username, String email, String nickname);
 
     // 특정 Role을 가진 UserEntity 목록을 조회 (AdminSellerService에서 사용)
     List<UserEntity> findByRole(UserEntity.Role role);

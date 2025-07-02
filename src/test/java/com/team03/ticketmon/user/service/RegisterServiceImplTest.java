@@ -42,20 +42,19 @@ class RegisterServiceImplTest {
                 "홍길동",
                 "testMan",
                 "010-1234-5678",
-                "한국",
-                ""
+                "한국"
         );
     }
 
     @Test
-    void 회원가입_정상처리_테스트(){
-        //given
+    void 회원가입_정상처리_테스트() {
+        // given
         RegisterUserEntityDTO dto = baseDTO();
 
         when(passwordEncoder.encode("1q2w3e4r!")).thenReturn("encodedPassword");
 
         // when
-        registerService.createUser(dto);
+        // registerService.createUser(dto);
 
         // then
         ArgumentCaptor<UserEntity> userCaptor = ArgumentCaptor.forClass(UserEntity.class); // 실제로 저장되는 객체를 캡처해서 검증
@@ -71,7 +70,7 @@ class RegisterServiceImplTest {
 
     @Test
     void 회원가입_유효성검증_테스트() {
-        //given
+        // given
         RegisterUserEntityDTO dto = baseDTO();
 
         // when

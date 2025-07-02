@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "회원가입", description = "유저 회원가입 관련 API입니다.")
 @RestController
@@ -54,7 +55,8 @@ public class RegisterAPIController {
     @ApiResponse(responseCode = "200", description = "회원가입 성공")
     @ApiResponse(responseCode = "400", description = "유효성 검사 실패")
     public ResponseEntity<?> registerProcess(
-            @Validated @RequestBody RegisterUserEntityDTO dto,
+            @Validated @ModelAttribute RegisterUserEntityDTO dto,
+            @RequestParam(value = "profileImage", required = false) MultipartFile profileImage,
             BindingResult bindingResult) {
 
         RegisterResponseDTO validation = registerService.validCheck(dto);
@@ -65,7 +67,7 @@ public class RegisterAPIController {
         if (!validation.isSuccess())
             return ResponseEntity.badRequest().body(validation);
 
-        registerService.createUser(dto);
+        registerService.createUser(dto, profileImage);
         return ResponseEntity.ok().body(validation);
     }
 }

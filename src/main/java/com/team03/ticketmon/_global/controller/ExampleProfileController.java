@@ -17,6 +17,6 @@ public class ExampleProfileController {
     @PostMapping("/profile/image")
     public ResponseEntity<UploadResponseDTO> uploadProfileImage(@RequestParam("file") MultipartFile file) {
         // TODO: 현재는 userId를 임의로 1L 고정 (추후 로그인 사용자 ID로 대체 필요)
-        return ResponseEntity.ok(exampleProfileImageService.uploadProfileImage(1L, file));
+        return ResponseEntity.ok(exampleProfileImageService.uploadProfileImage("Example", file));
     }
 }

@@ -115,8 +115,7 @@ public class SecurityConfig {
 
 					//------------인증 없이 접근 허용할 경로들 (permitAll())------------
 					// 로그인/회원가입/토큰 갱신 등 인증 관련 API 및 페이지
-					.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-					.requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/register/social").permitAll()    // 인증(로그인, 회원가입) 관련 API 경로 허용 (인증 불필요)
+					.requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll() // 인증(로그인, 회원가입) 관련 API 경로 허용 (인증 불필요)
 					.requestMatchers("/auth/**").permitAll() // login.html, register.html 등
 					.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger UI 및 API 문서
 

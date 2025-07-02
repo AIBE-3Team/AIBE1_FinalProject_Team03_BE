@@ -4,7 +4,6 @@ import com.team03.ticketmon._global.util.RedisKeyGenerator;
 import com.team03.ticketmon.concert.domain.enums.ConcertStatus;
 import com.team03.ticketmon.concert.repository.ConcertRepository;
 import com.team03.ticketmon.queue.service.AdmissionService;
-import com.team03.ticketmon.queue.service.NotificationService;
 import com.team03.ticketmon.queue.service.WaitingQueueService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,7 +54,7 @@ public class WaitingQueueScheduler {
             boolean isLocked = lock.tryLock(0, -1, TimeUnit.SECONDS);
 
             if (!isLocked) {
-                log.info("===== 다른 대기열 스케줄러 인스턴스에서 스케줄러가 실행 중이므로, 현재 스케줄러는 건너뜁니다.");
+                log.debug("===== 다른 대기열 스케줄러 인스턴스에서 스케줄러가 실행 중이므로, 현재 스케줄러는 건너뜁니다.");
                 return;
             }
 
@@ -63,19 +62,17 @@ public class WaitingQueueScheduler {
             List<Long> activeConcertIds = concertRepository.findConcertIdsByStatus(ConcertStatus.ON_SALE);
 
             if (activeConcertIds.isEmpty()) {
-                log.info("===== 현재 처리할 ON_SALE 상태의 콘서트가 없습니다.");
+                log.debug("===== 현재 처리할 ON_SALE 상태의 콘서트가 없습니다.");
                 return;
             }
 
             log.info("===== 대기열 스케줄러 실행 시작 (처리 대상 콘서트 대기열: {}개) =====", activeConcertIds.size());
-
 
             // [STEP 2] 각 콘서트 ID에 대해 대기열 처리 로직을 실행
             for (Long concertId : activeConcertIds) {
                 processQueueForConcert(concertId);
             }
 
-            log.info("===== 대기열 스케줄러 실행 종료 =====");
         } catch (InterruptedException e) {
             // 스레드가 중단 신호를 받으면, 현재 스레드의 중단 상태를 다시 설정하여 상위 코드가 인지할 수 있도록 함.
             Thread.currentThread().interrupt();
@@ -85,6 +82,7 @@ public class WaitingQueueScheduler {
             if  (lock.isHeldByCurrentThread()) {
                 lock.unlock();
             }
+            log.info("===== 대기열 스케줄러 실행 종료 =====");
         }
     }
 
@@ -93,7 +91,7 @@ public class WaitingQueueScheduler {
      * @param concertId 처리할 콘서트의 ID
      */
     private void processQueueForConcert(Long concertId) {
-        log.info("===== [콘서트 ID: {}] 대기열 처리 시작. =====", concertId);
+        log.debug("===== [콘서트 ID: {}] 대기열 처리 시작. =====", concertId);
 
         // [STEP 3] 입장 가능한 총 빈자리(slot) 계산
         String activeUserCountKey = "active_users_count:concert:" + concertId;
@@ -105,10 +103,10 @@ public class WaitingQueueScheduler {
         long availableSlots = maxActiveUsers - currentActiveUsers;
 
         //log.debug("활성 사용자 현황: {} / {} (빈자리: {})", currentActiveUsers, maxActiveUsers, availableSlots);
-        log.info("===== [콘서트 ID: {}] 활성 사용자 현황: {} / {} (빈자리: {}) =====", concertId, currentActiveUsers, maxActiveUsers, availableSlots);
+        log.debug("===== [콘서트 ID: {}] 활성 사용자 현황: {} / {} (빈자리: {}) =====", concertId, currentActiveUsers, maxActiveUsers, availableSlots);
 
         if (availableSlots <= 0) {
-            log.info("===== [콘서트 ID: {}] 입장 가능한 자리가 없습니다. 대기열 처리 스킵 =====", concertId);
+            log.debug("===== [콘서트 ID: {}] 입장 가능한 자리가 없습니다. 대기열 처리 스킵 =====", concertId);
             return;
         }
 
@@ -116,7 +114,7 @@ public class WaitingQueueScheduler {
         List<Long> admittedUserIds = waitingQueueService.poll(concertId, (int) availableSlots);
 
         if (admittedUserIds.isEmpty()) {
-            log.info("===== [콘서트 ID: {}] 새로 입장할 대기 인원이 없습니다. 스케줄러 작업을 종료 =====", concertId);
+            log.debug("===== [콘서트 ID: {}] 새로 입장할 대기 인원이 없습니다. 스케줄러 작업을 종료 =====", concertId);
             return;
         }
 

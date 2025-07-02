@@ -65,7 +65,7 @@ public class WaitingQueueService {
                 throw new BusinessException(ErrorCode.QUEUE_ALREADY_JOINED);
             }
 
-            log.info("[userId: {}] 대기열 신규 신청. [콘서트: {}, 대기열 키: {}, 부여된 점수: {}]", userId, concertId, queueKey, uniqueScore);
+            log.debug("[userId: {}] 대기열 신규 신청. [콘서트: {}, 대기열 키: {}, 부여된 점수: {}]", userId, concertId, queueKey, uniqueScore);
             Integer rankIndex = queue.rank(userId);
 
             if (rankIndex == null) {
@@ -77,7 +77,7 @@ public class WaitingQueueService {
 
         } else {
             // [2-2단계] 대기열이 비활성화된 경우: 즉시 입장 처리
-            log.info("[userId: {}] 대기열 비활성 상태. 즉시 입장 처리 시작.", userId);
+            log.debug("[userId: {}] 대기열 비활성 상태. 즉시 입장 처리 시작.", userId);
 
             return EnterResponse.immediateEntry(admissionService.grantAccess(concertId, userId));
         }

@@ -32,7 +32,7 @@ public class CustomWebSocketHandler extends TextWebSocketHandler {
         Long userId = extractUserId(session);
         if (userId != null) {
             addSession(userId, session);
-            log.info("WebSocket 연결됨. 사용자: {}, 세션 ID: {}", userId, session.getId());
+            log.debug("WebSocket 연결됨. 사용자: {}, 세션 ID: {}", userId, session.getId());
         } else {
             // WARN 레벨: 비정상적인 접근 시도일 수 있으므로 경고 로그
             log.warn("사용자 ID 없이 WebSocket 연결 시도됨. 세션 ID: {}, URI: {}", session.getId(), session.getUri());
@@ -49,8 +49,7 @@ public class CustomWebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         Long userId = extractUserId(session);
-//        log.debug("메시지 수신. 사용자: {}, 내용: {}", userId, message.getPayload());
-        log.info("메시지 수신. 사용자: {}, 내용: {}", userId, message.getPayload());
+        log.debug("메시지 수신. 사용자: {}, 내용: {}", userId, message.getPayload());
         // 여기에 클라이언트가 보낸 메시지를 처리하는 로직 추가 가능
     }
 
@@ -65,7 +64,7 @@ public class CustomWebSocketHandler extends TextWebSocketHandler {
         Long userId = extractUserId(session);
         if (userId != null) {
             sessions.remove(userId);
-            log.info("WebSocket 연결 종료됨. 사용자: {}, 세션 ID: {}, 상태: {}", userId, session.getId(), status);
+            log.debug("WebSocket 연결 종료됨. 사용자: {}, 세션 ID: {}, 상태: {}", userId, session.getId(), status);
         }
     }
 
@@ -81,7 +80,7 @@ public class CustomWebSocketHandler extends TextWebSocketHandler {
             try {
                 String message = objectMapper.writeValueAsString(payload);
                 session.sendMessage(new TextMessage(message));
-                log.info("메시지 전송 성공. 사용자: {}, 내용: {}", userId, message);
+                log.debug("메시지 전송 성공. 사용자: {}, 내용: {}", userId, message);
             } catch (IOException e) {
                 log.error("WebSocket 메시지 전송 실패! 사용자: {}", userId, e);
             }
@@ -110,12 +109,12 @@ public class CustomWebSocketHandler extends TextWebSocketHandler {
         if (oldSession != null && oldSession.isOpen()) {
             try {
                 oldSession.close(CloseStatus.NORMAL);
-                log.info("기존 WebSocket 세션 강제 종료: 사용자={}, 세션ID={}", userId, oldSession.getId());
+                log.debug("기존 WebSocket 세션 강제 종료: 사용자={}, 세션ID={}", userId, oldSession.getId());
             } catch (IOException e) {
                 log.warn("기존 WebSocket 세션 종료 실패: 사용자={}, 세션ID={}", userId, oldSession.getId(), e);
             }
         }
-        log.info("새 WebSocket 세션 등록: 사용자={}, 세션ID={}", userId, newSession.getId());
+        log.debug("새 WebSocket 세션 등록: 사용자={}, 세션ID={}", userId, newSession.getId());
     }
 
     public void sendMessage(WebSocketSession session, TextMessage message) throws IOException {

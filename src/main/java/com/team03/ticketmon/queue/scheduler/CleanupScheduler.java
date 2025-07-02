@@ -31,14 +31,14 @@ public class CleanupScheduler {
             // 1. 분산 락 획득 시도
             boolean isLocked = lock.tryLock(100, 5, TimeUnit.SECONDS);
             if (!isLocked) {
-                log.info("===== 다른 세션 정리 스케줄러 인스턴스에서 스케줄러가 실행 중이므로, 현재 스케줄러는 건너뜁니다.");
+                log.debug("===== 다른 세션 정리 스케줄러 인스턴스에서 스케줄러가 실행 중이므로, 현재 스케줄러는 건너뜁니다.");
                 return;
             }
 
             // 2. 현재 ON_SALE 상태인 모든 콘서트 ID 목록을 가져옴
             List<Long> activeConcertIds = concertRepository.findConcertIdsByStatus(ConcertStatus.ON_SALE);
             if (activeConcertIds.isEmpty()) {
-                log.info("===== 현재 처리할 ON_SALE 상태의 콘서트가 없습니다.");
+                log.debug("===== 현재 처리할 ON_SALE 상태의 콘서트가 없습니다.");
                 return;
             }
 
@@ -68,11 +68,9 @@ public class CleanupScheduler {
                     if (newCount < 0) {
                         redissonClient.getAtomicLong(activeUserCountKey).set(0);
                     }
-                    log.info("[콘서트 ID: {}] {}개의 세션 정리 완료. 남은 활성 사용자 수: {}", concertId, expiredCount, Math.max(0, newCount));
+                    log.debug("[콘서트 ID: {}] {}개의 세션 정리 완료. 남은 활성 사용자 수: {}", concertId, expiredCount, Math.max(0, newCount));
                 }
             }
-
-            log.info("===== 세션 정리 스케줄러 실행 종료 =====");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("세션 정리 스케줄러 락 획득 중 인터럽트 발생", e);
@@ -80,6 +78,7 @@ public class CleanupScheduler {
             if (lock.isHeldByCurrentThread()) {
                 lock.unlock();
             }
+            log.info("===== 세션 정리 스케줄러 실행 종료 =====");
         }
     }
 }

@@ -37,12 +37,11 @@ public class RedisMessageSubscriber {
 
         // 메시지를 수신했을 때 실행될 리스너를 등록.
         topic.addListener(CharSequence.class, (channel, msg) -> {
-//            log.debug("Redis 채널에서 메시지 수신. 채널: {}, 원본 메시지: {}", channel, msg);
-            log.info("Redis 채널에서 메시지 수신. 채널: {}, 원본 메시지: {}", channel, msg);
+            log.debug("Redis 채널에서 메시지 수신. 채널: {}, 원본 메시지: {}", channel, msg);
             try {
                 // 1. 수신된 JSON 메시지를 AdmissionEvent 객체로 역직렬화
                 AdmissionEvent event = objectMapper.readValue(msg.toString(), AdmissionEvent.class);
-                log.info("입장 알림 이벤트 수신 완료. 사용자: {}", event.userId());
+                log.debug("입장 알림 이벤트 수신 완료. 사용자: {}", event.userId());
 
                 // 2. WebSocket 핸들러를 통해 해당 사용자에게 전송할 메시지(Payload)를 구성
                 Map<String, Object> payload = Map.of(

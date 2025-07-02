@@ -49,7 +49,7 @@ public class AdmissionService {
             return Collections.emptyList();
         }
 
-        log.info("{}명의 신규 사용자 입장 처리 시작. 알림 발송: {}", userIds.size(), sendNotification);
+        log.debug("{}명의 신규 사용자 입장 처리 시작. 알림 발송: {}", userIds.size(), sendNotification);
 
         String activeSessionsKey = keyGenerator.getActiveSessionsKey(concertId);
         String activeUserCountKey = keyGenerator.getActiveUsersCountKey(concertId);
@@ -84,7 +84,7 @@ public class AdmissionService {
         // 배치 작업 실행
         batch.execute();
 
-        log.info("{}명 입장 처리 완료. 현재 총 활성 사용자 수: {}", userIds.size(), redissonClient.getAtomicLong(activeUserCountKey).get());
+        log.debug("{}명 입장 처리 완료. 현재 총 활성 사용자 수: {}", userIds.size(), redissonClient.getAtomicLong(activeUserCountKey).get());
         return issuedKeys;
     }
 }

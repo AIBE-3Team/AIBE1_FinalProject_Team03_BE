@@ -63,12 +63,16 @@ public class CleanupScheduler {
                     // 3-3. 활성 사용자 수 감소
                     long expiredCount = expiredUserIds.size();
                     String activeUserCountKey = keyGenerator.getActiveUsersCountKey(concertId);
-                    long newCount = redissonClient.getAtomicLong(activeUserCountKey).addAndGet(-expiredCount);
+                    RAtomicLong atomicCount = redissonClient.getAtomicLong(activeUserCountKey);
 
-                    if (newCount < 0) {
-                        redissonClient.getAtomicLong(activeUserCountKey).set(0);
-                    }
-                    log.debug("[콘서트 ID: {}] {}개의 세션 정리 완료. 남은 활성 사용자 수: {}", concertId, expiredCount, Math.max(0, newCount));
+                    // compareAndSet을 이용한 원자적 업데이트 루프
+                    long prevValue, nextValue;
+                    do {
+                        prevValue = atomicCount.get();
+                        nextValue = Math.max(0, prevValue - expiredCount);
+                    } while (!atomicCount.compareAndSet(prevValue, nextValue));
+
+                    log.info("[콘서트 ID: {}] {}개의 세션 정리 완료. 남은 활성 사용자 수: {}", concertId, expiredCount, nextValue);
                 }
             }
         } catch (InterruptedException e) {

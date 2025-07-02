@@ -133,4 +133,9 @@ public class Concert extends BaseTimeEntity {
 
 	@OneToMany(mappedBy = "concert", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	private List<Review> reviews;
+
+	public boolean isQueueActive() {
+		// 대기열은 ON_SALE 상태일 때만 활성화된다고 정책을 일단 정의
+		return this.status == ConcertStatus.ON_SALE;
+	}
 }

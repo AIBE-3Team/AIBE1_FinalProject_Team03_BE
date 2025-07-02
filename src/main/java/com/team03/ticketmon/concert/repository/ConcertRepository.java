@@ -83,7 +83,6 @@ public interface ConcertRepository extends JpaRepository<Concert, Long> {
 
 	List<Concert> findByStatusInOrderByConcertDateAsc(List<ConcertStatus> statuses);
 
-	@EntityGraph(attributePaths = {"concertSeats"})
 	Page<Concert> findByStatusInOrderByConcertDateAsc(List<ConcertStatus> statuses, Pageable pageable);
 
 	/**
@@ -178,5 +177,14 @@ public interface ConcertRepository extends JpaRepository<Concert, Long> {
 			"ORDER BY c.bookingStartDate ASC")
 	List<Concert> findTodayBookingStarts(@Param("todayStart") LocalDateTime todayStart,
 										 @Param("todayEnd") LocalDateTime todayEnd);
-}
 
+	/**
+	 * 현재 예매 가능하고, 상태가 ON_SALE인 모든 콘서트의 ID 목록을 조회합니다.
+	 * 스케줄러가 대기열을 처리할 대상을 찾기 위해 사용됩니다.
+	 * @param status 조회할 콘서트 상태 (ConcertStatus.ON_SALE)
+	 * @return 콘서트 ID 리스트
+	 */
+	@Query("SELECT c.concertId FROM Concert c WHERE c.status = :status")
+	List<Long> findConcertIdsByStatus(ConcertStatus status);
+
+}

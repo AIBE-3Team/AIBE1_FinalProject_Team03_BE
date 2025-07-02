@@ -10,6 +10,8 @@ import com.team03.ticketmon.concert.repository.ConcertSeatRepository;
 import com.team03.ticketmon._global.exception.BusinessException;
 import com.team03.ticketmon._global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
  * Concert Service
  * 콘서트 비즈니스 로직 처리
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -336,5 +339,13 @@ public class ConcertService {
 			concert.getPosterImageUrl(),
 			concert.getAiSummary()
 		);
+	}
+
+	@Cacheable(value = "concertQueueStatus", key = "#concertId")
+	public boolean isQueueActive(Long concertId) {
+		log.info("Cache miss! DB에서 concertId {}의 대기열 상태를 조회합니다.", concertId);
+		return concertRepository.findById(concertId)
+				.map(Concert::isQueueActive) // 위에서 추가한 편의 메서드 사용
+				.orElse(false); // 콘서트가 없으면 비활성
 	}
 }

@@ -2,20 +2,21 @@ package com.team03.ticketmon.queue.service;
 
 import com.team03.ticketmon._global.exception.BusinessException;
 import com.team03.ticketmon._global.exception.ErrorCode;
+import com.team03.ticketmon._global.util.RedisKeyGenerator;
+import com.team03.ticketmon.concert.service.ConcertService;
 import com.team03.ticketmon.queue.dto.EnterResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RAtomicLong;
-import org.redisson.api.RBucket;
 import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.LongCodec;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Redis Sorted Set을 이용해 콘서트 대기열을 관리하는 서비스입니다.
@@ -28,15 +29,13 @@ import java.util.UUID;
 public class WaitingQueueService {
 
     private final RedissonClient redissonClient;
-    // private final ConcertRepository concertRepository; // 콘서트 정보 조회를 위해 주입 필요
-    // private final AdmissionService admissionService; // 즉시 입장 로직을 분리했다면 주입
+    private final ConcertService concertService;
+    private final AdmissionService admissionService;
+    private final RedisKeyGenerator keyGenerator;
 
-    private static final String QUEUE_KEY_PREFIX = "waitqueue:";
     private static final String SEQUENCE_KEY_SUFFIX = ":seq:";
 
-    // 시퀀스를 저장할 비트 수 (21비트 = 약 210만)
     private static final int SEQUENCE_BITS = 21;
-    // 시퀀스 최대값 (2^21 - 1)
     private static final long MAX_SEQUENCE = (1L << SEQUENCE_BITS) - 1;
 
     /**
@@ -50,16 +49,15 @@ public class WaitingQueueService {
     public EnterResponse apply(Long concertId, Long userId) {
 
         // [1단계] 콘서트 정보를 조회하여 대기열 활성화 여부 확인
-        // TODO: Concert 엔티티와 Repository를 통해 실제 DB에서 isQueueActive 값을 가져와야 함
-        boolean isQueueActive = true; // 임시로 true 설정. 실제로는 DB에서 조회.
+        boolean isQueueActive = concertService.isQueueActive(concertId);; // 임시로 true 설정. 실제로는 DB에서 조회.
 
 
         if (isQueueActive) {
             // [2-1단계] 대기열이 활성화된 경우: 기존 대기열 등록 로직 수행
             String queueKey = generateKey(concertId);
-            RScoredSortedSet<Long> queue = redissonClient.getScoredSortedSet(queueKey);
+            RScoredSortedSet<Long> queue = redissonClient.getScoredSortedSet(queueKey, LongCodec.INSTANCE);
 
-            long uniqueScore = generateUniqueScore(concertId);
+            long uniqueScore = generateUniqueScore(queueKey);
 
             if (!queue.addIfAbsent(uniqueScore, userId)) {
                 log.warn("[userId: {}] 이미 대기열에 등록된 상태", userId);
@@ -67,7 +65,7 @@ public class WaitingQueueService {
                 throw new BusinessException(ErrorCode.QUEUE_ALREADY_JOINED);
             }
 
-            log.info("[userId: {}] 대기열 신규 신청. [대기열 키: {}, 부여된 점수: {}]", userId, queueKey, uniqueScore);
+            log.info("[userId: {}] 대기열 신규 신청. [콘서트: {}, 대기열 키: {}, 부여된 점수: {}]", userId, concertId, queueKey, uniqueScore);
             Integer rankIndex = queue.rank(userId);
 
             if (rankIndex == null) {
@@ -81,20 +79,7 @@ public class WaitingQueueService {
             // [2-2단계] 대기열이 비활성화된 경우: 즉시 입장 처리
             log.info("[userId: {}] 대기열 비활성 상태. 즉시 입장 처리 시작.", userId);
 
-            // TODO: WaitingQueueScheduler에 있던 AccessKey 발급 및 활성 사용자 수 증가 로직을
-            // 별도의 AdmissionService.grantImmediateAccess(userId) 같은 메서드로 추출하여 호출하는 것이 이상적.
-            // 우선 여기에 임시로 로직을 구현
-
-            String accessKey = UUID.randomUUID().toString(); // 임시 AccessKey 발급
-            long accessKeyTtlMinutes = 10; // 임시 TTL
-
-            RBucket<String> accessKeyBucket = redissonClient.getBucket("accesskey:" + userId);
-            accessKeyBucket.set(accessKey, Duration.ofMinutes(accessKeyTtlMinutes));
-
-            // 활성 사용자 수 증가 및 세션 추가 로직 필요
-            redissonClient.getAtomicLong("active_users_count").incrementAndGet();
-
-            return EnterResponse.immediateEntry(accessKey);
+            return EnterResponse.immediateEntry(admissionService.grantAccess(concertId, userId));
         }
 
     }
@@ -102,14 +87,14 @@ public class WaitingQueueService {
     /**
      * 타임스탬프와 원자적 시퀀스를 조합하여 유니크한 score를 생성합니다.
      * 예: (timestamp << 22) | sequence
-     * @param concertId 콘서트 ID
+     * @param queueKey queueKey
      * @return 유니크한 score(long)
      */
-    private long generateUniqueScore(Long concertId) {
+    private long generateUniqueScore(String queueKey) {
         long timestamp = System.currentTimeMillis();
 
         // 1ms 단위로 시퀀스 키를 생성하여 자동으로 초기화되도록 함
-        String sequenceKey = QUEUE_KEY_PREFIX + concertId + SEQUENCE_KEY_SUFFIX + timestamp;
+        String sequenceKey = queueKey + SEQUENCE_KEY_SUFFIX + timestamp;
         RAtomicLong sequence = redissonClient.getAtomicLong(sequenceKey);
 
         // 키가 처음 생성될 때 2초의 만료 시간을 설정 (메모리 릭 방지)
@@ -135,7 +120,7 @@ public class WaitingQueueService {
      * @return 입장 처리된 사용자 ID 리스트 (순서 보장)
      */
     public List<Long> poll(Long concertId, int count) {
-        RScoredSortedSet<Long> queue = redissonClient.getScoredSortedSet(generateKey(concertId));
+        RScoredSortedSet<Long> queue = redissonClient.getScoredSortedSet(generateKey(concertId), LongCodec.INSTANCE);
 
         // pollFirst(count)는 가장 점수가 낮은(오래된) N개의 원소를 Set에서 원자적으로 제거하고 반환
         Collection<Long> polledItems = queue.pollFirst(count);
@@ -161,6 +146,6 @@ public class WaitingQueueService {
      * @return "waitqueue:{concertId}" 형식의 Redis 키
      */
     private String generateKey(Long concertId) {
-        return QUEUE_KEY_PREFIX + concertId;
+        return keyGenerator.getWaitQueueKey(concertId);
     }
 }

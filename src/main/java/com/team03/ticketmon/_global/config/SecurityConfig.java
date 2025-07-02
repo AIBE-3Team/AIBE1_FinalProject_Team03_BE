@@ -1,5 +1,6 @@
 package com.team03.ticketmon._global.config;
 
+import com.team03.ticketmon._global.util.RedisKeyGenerator;
 import com.team03.ticketmon.auth.Util.CookieUtil;
 import com.team03.ticketmon.auth.jwt.*;
 import com.team03.ticketmon.auth.oauth2.OAuth2LoginFailureHandler;
@@ -9,6 +10,7 @@ import com.team03.ticketmon.auth.service.RefreshTokenService;
 import com.team03.ticketmon.auth.service.ReissueService;
 import com.team03.ticketmon.user.service.SocialUserService;
 import com.team03.ticketmon.user.service.UserEntityService;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RedissonClient;
@@ -61,6 +63,7 @@ public class SecurityConfig {
     private final SocialUserService socialUserService;
     private final CookieUtil cookieUtil;
     private final RedissonClient redissonClient;
+    private final RedisKeyGenerator keyGenerator;
 
     /**
      * <b>AuthenticationManager 빈 설정</b> <br>
@@ -111,12 +114,9 @@ public class SecurityConfig {
                     //------------인증 없이 접근 허용할 경로들 (permitAll())------------
                     // 로그인/회원가입/토큰 갱신 등 인증 관련 API 및 페이지
                     .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                    .requestMatchers("/api/auth/**").permitAll()    // 인증(로그인, 회원가입) 관련 API 경로 허용 (인증 불필요)
+                    .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/register/social").permitAll()    // 인증(로그인, 회원가입) 관련 API 경로 허용 (인증 불필요)
                     .requestMatchers("/auth/**").permitAll() // login.html, register.html 등
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger UI 및 API 문서
-
-                    // 대기열 진입 API (인증 전에도 진입 가능)
-                    .requestMatchers(HttpMethod.POST, "/api/queue/enter").authenticated()
 
                     // 콘서트 정보 조회 (목록, 검색, 필터링, 상세, AI 요약, 리뷰/기대평 목록) - 공개 API
                     .requestMatchers(HttpMethod.GET, "/api/concerts", "/api/concerts/**").permitAll()
@@ -125,8 +125,8 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/api/concerts/{id}/expectations").permitAll() // 기대평 목록 조회
 
                     // 좌석 상태 조회 (로그인 없이 확인 가능)
-                    .requestMatchers(HttpMethod.GET, "/api/seats/concerts/{concertId}/status").permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/seats/concerts/{concertId}/seats/{seatId}/status").permitAll()
+//                    .requestMatchers(HttpMethod.GET, "/api/seats/concerts/{concertId}/status").permitAll()
+//                    .requestMatchers(HttpMethod.GET, "/api/seats/concerts/{concertId}/seats/{seatId}/status").permitAll()
 
                     // 결제 콜백 및 웹훅 API (외부 시스템에서 호출하므로 permitAll)
                     .requestMatchers("/api/v1/payments/success", "/api/v1/payments/fail").permitAll()
@@ -160,6 +160,8 @@ public class SecurityConfig {
                     // .requestMatchers("/api/users/me/seller-requests").authenticated() // 판매자 권한 요청 등록 (API-03-06)
                     // .requestMatchers("/api/users/me/role").authenticated() // 판매자 본인의 권한 철회 (API-03-07)
 
+                    .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+
                     //------------나머지 모든 요청에 대한 접근 권한 설정 (authenticated())------------
                     // 위에서 정의되지 않은 나머지 모든 요청은 인증(로그인)만 되면 접근 허용
                     .anyRequest().authenticated()
@@ -179,10 +181,10 @@ public class SecurityConfig {
                 .failureHandler(oAuth2LoginFailureHandler()))
 
             // Login Filter 적용
-            .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, reissueService, cookieUtil), LoginFilter.class)
-            .addFilterBefore(new CustomLogoutFilter(jwtTokenProvider, refreshTokenService, cookieUtil), LogoutFilter.class)
             .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), cookieUtil), UsernamePasswordAuthenticationFilter.class)
-            .addFilterAfter(new AccessKeyFilter(redissonClient), JwtAuthenticationFilter.class)
+            .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, reissueService, cookieUtil), UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(new AccessKeyFilter(redissonClient, keyGenerator), JwtAuthenticationFilter.class)
+            .addFilterBefore(new CustomLogoutFilter(jwtTokenProvider, refreshTokenService, cookieUtil), LogoutFilter.class)
 
         // 인증/인가 실패(인증 실패(401), 권한 부족(403)) 시 반환되는 예외 응답 설정
             .exceptionHandling(exception -> exception
@@ -194,7 +196,6 @@ public class SecurityConfig {
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);   // HTTP 403 상태 코드
                     response.getWriter().write("Access Denied: " + accessDeniedException.getMessage()); // 응답 메시지
-
                 })
             );
 

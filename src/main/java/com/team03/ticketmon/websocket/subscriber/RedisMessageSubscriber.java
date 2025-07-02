@@ -1,6 +1,7 @@
 package com.team03.ticketmon.websocket.subscriber;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.team03.ticketmon._global.util.RedisKeyGenerator;
 import com.team03.ticketmon.queue.dto.AdmissionEvent;
 import com.team03.ticketmon.websocket.handler.CustomWebSocketHandler;
 import jakarta.annotation.PostConstruct;
@@ -25,7 +26,7 @@ public class RedisMessageSubscriber {
     private final RedissonClient redissonClient;
     private final ObjectMapper objectMapper;
     private final CustomWebSocketHandler webSocketHandler;
-    private static final String ADMISSION_TOPIC = "admission-channel";
+    private static final String ADMISSION_TOPIC = RedisKeyGenerator.ADMISSION_TOPIC;
 
     /**
      * 빈(Bean)이 생성되고 의존성 주입이 완료된 후, 자동으로 Redis 토픽 구독을 시작

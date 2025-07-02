@@ -1,12 +1,18 @@
 package com.team03.ticketmon.queue.scheduler;
 
+import com.team03.ticketmon._global.util.RedisKeyGenerator;
+import com.team03.ticketmon.concert.domain.enums.ConcertStatus;
+import com.team03.ticketmon.concert.repository.ConcertRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RAtomicLong;
-import org.redisson.api.RScoredSortedSet;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
+import org.redisson.client.codec.LongCodec;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -14,36 +20,66 @@ import org.springframework.stereotype.Component;
 public class CleanupScheduler {
 
     private final RedissonClient redissonClient;
-    private static final String ACTIVE_USERS_COUNT_KEY = "active_users_count";
-    private static final String ACTIVE_SESSIONS_KEY = "active_sessions";
+    private final ConcertRepository concertRepository;
+    private final RedisKeyGenerator keyGenerator;
 
 
     @Scheduled(fixedDelay = 10000)
     public void cleanupExpiredSessions() {
-        log.info("===== CleanupScheduler - 만료된 세션 정리 작업 시작=====");
+        RLock lock = redissonClient.getLock(RedisKeyGenerator.CLEANUP_SCHEDULER_LOCK_KEY);
+        try {
+            // 1. 분산 락 획득 시도
+            boolean isLocked = lock.tryLock(100, 5, TimeUnit.SECONDS);
+            if (!isLocked) {
+                log.info("===== 다른 세션 정리 스케줄러 인스턴스에서 스케줄러가 실행 중이므로, 현재 스케줄러는 건너뜁니다.");
+                return;
+            }
 
-        // 1. active_sessions Set을 가져온다.
-        RScoredSortedSet<String> activeSessions = redissonClient.getScoredSortedSet(ACTIVE_SESSIONS_KEY);
+            // 2. 현재 ON_SALE 상태인 모든 콘서트 ID 목록을 가져옴
+            List<Long> activeConcertIds = concertRepository.findConcertIdsByStatus(ConcertStatus.ON_SALE);
+            if (activeConcertIds.isEmpty()) {
+                log.info("===== 현재 처리할 ON_SALE 상태의 콘서트가 없습니다.");
+                return;
+            }
 
-        // 2. 현재 시간보다 점수(만료 시간)가 낮은 모든 멤버를 찾아 삭제한다.
-        int expiredCount = activeSessions.removeRangeByScore(0, true, System.currentTimeMillis(), true);
+            log.info("===== 세션 정리 스케줄러 실행 시작 (대상 콘서트 : {}개) =====", activeConcertIds.size());
 
-        if (expiredCount > 0) {
-            // 3. 삭제된 수만큼 활성 사용자 수를 감소시킨다.
-            RAtomicLong activeUsersCount = redissonClient.getAtomicLong(ACTIVE_USERS_COUNT_KEY);
-            long newCount, currentCount;
+            // 3. 각 콘서트별로 세션 정리 작업을 수행
+            for (Long concertId : activeConcertIds) {
+                String activeSessionsKey = keyGenerator.getActiveSessionsKey(concertId);
+                RScoredSortedSet<Long> activeSessions = redissonClient.getScoredSortedSet(activeSessionsKey, LongCodec.INSTANCE);
 
-            // compareAndSet을 사용한 루프: 다른 스레드와 경합이 발생해도 재시도하여 데이터 정합성을 보장
-            do {
-                currentCount = activeUsersCount.get();
-                // 뺄셈 결과가 0보다 작으면 0으로 보정
-                newCount = Math.max(0, currentCount - expiredCount);
-            } while (!activeUsersCount.compareAndSet(currentCount, newCount));
+                // 락이 걸려 있으므로, '조회'와 '삭제'를 순차적으로 실행해도 안전
+                // 3-1. 만료된 멤버들을 조회
+                Collection<Long> expiredUserIds = activeSessions.valueRange(
+                        0, true,                  // 0점부터 (포함)
+                        System.currentTimeMillis(), true // 현재 시간까지 (포함)
+                );
 
-            log.info("{}개의 만료된 세션을 정리했습니다. 현재 활성 사용자 수: {}", expiredCount, newCount);
-        } else {
-            log.info("만료된 세션이 없습니다.");
+                if (expiredUserIds != null && !expiredUserIds.isEmpty()) {
+                    // 3-2. 조회된 멤버들을 삭제
+                    activeSessions.removeAll(expiredUserIds);
+
+                    // 3-3. 활성 사용자 수 감소
+                    long expiredCount = expiredUserIds.size();
+                    String activeUserCountKey = keyGenerator.getActiveUsersCountKey(concertId);
+                    long newCount = redissonClient.getAtomicLong(activeUserCountKey).addAndGet(-expiredCount);
+
+                    if (newCount < 0) {
+                        redissonClient.getAtomicLong(activeUserCountKey).set(0);
+                    }
+                    log.info("[콘서트 ID: {}] {}개의 세션 정리 완료. 남은 활성 사용자 수: {}", concertId, expiredCount, Math.max(0, newCount));
+                }
+            }
+
+            log.info("===== 세션 정리 스케줄러 실행 종료 =====");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("세션 정리 스케줄러 락 획득 중 인터럽트 발생", e);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
-        log.info("===== CleanupScheduler - 만료된 세션 정리 작업 종료=====");
     }
 }

@@ -1,5 +1,6 @@
 package com.team03.ticketmon.auth.jwt;
 
+import com.team03.ticketmon._global.util.RedisKeyGenerator;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,25 +17,31 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RequiredArgsConstructor
 public class AccessKeyFilter extends OncePerRequestFilter {
 
     private final RedissonClient redissonClient;
+    private final RedisKeyGenerator keyGenerator;
+
     private static final String ACCESS_KEY_HEADER = "X-Access-Key";
-    private static final String ACCESS_KEY_PREFIX = "accesskey:";
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
     private final List<String> pathsToSecure = List.of(
-            "/api/reserve/**",
-            "/api/bookings/**",
-            "/api/seats/concerts/*/seats/**"
+            "/api/seats/concerts/{concertId}/**"
     );
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+
+        Long concertId = getConcertIdIfSecurePath(request);
+        if (concertId == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         boolean isSecurePath = pathsToSecure.stream()
                 .anyMatch(pattern -> pathMatcher.match(pattern, request.getRequestURI()));
@@ -43,38 +50,63 @@ public class AccessKeyFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        // 1. 요청 헤더에서 AccessKey 추출
-        String clientAccessKey = request.getHeader(ACCESS_KEY_HEADER);
 
-        // 2. AccessKey가 없으면 필터를 통과 (이후 로직에서 접근이 거부될 것임)
+
+        // 1. 인증 정보 확인 (Fail Test: 인증부터 확인)
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+            log.error("인증 정보가 유효하지 않습니다. URI: {}", request.getRequestURI());
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "인증 정보가 유효하지 않습니다.");
+            return;
+        }
+        Long userId = userDetails.getUserId();
+
+        // 2. AccessKey 헤더 확인
+        String clientAccessKey = request.getHeader(ACCESS_KEY_HEADER);
         if (!StringUtils.hasText(clientAccessKey)) {
             log.warn("AccessKey가 헤더에 없습니다. URI: {}", request.getRequestURI());
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "접근 권한 증명(AccessKey)이 없습니다.");
             return;
         }
 
-        // 3. 현재 인증된 사용자 정보 가져오기
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
-            log.error("인증 정보가 유효하지 않습니다.");
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "인증 정보가 유효하지 않습니다.");
-            return;
-        }
-        Long userId = userDetails.getUserId();
-
-        // 4. Redis에서 해당 사용자의 AccessKey 조회
-        RBucket<String> accessKeyBucket = redissonClient.getBucket(ACCESS_KEY_PREFIX + userId);
+        // 3. Redis에서 AccessKey 조회
+        String accessKeyRedisKey = keyGenerator.getAccessKey(concertId, userId);
+        RBucket<String> accessKeyBucket = redissonClient.getBucket(accessKeyRedisKey);
         String serverAccessKey = accessKeyBucket.get();
 
-        // 5. 클라이언트가 보낸 키와 서버에 저장된 키 비교
+        // 4. 키 비교 및 검증
         if (serverAccessKey == null || !serverAccessKey.equals(clientAccessKey)) {
             log.warn("AccessKey가 유효하지 않거나 만료되었습니다. 사용자 ID: {}", userId);
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "AccessKey가 유효하지 않거나 만료되었습니다.");
             return;
         }
 
-        // 6. 검증 성공 시, 다음 필터로 체인 계속
+        // 5. 검증 성공
         log.info("AccessKey 검증 성공. 사용자 ID: {}", userId);
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * 요청 URI가 보호 대상 경로에 해당하는지 확인하고, 해당하면 concertId를 추출하여 반환합니다.
+     * @param request HttpServletRequest
+     * @return 매칭되면 concertId, 아니면 null
+     */
+    private Long getConcertIdIfSecurePath(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        for (String pattern : pathsToSecure) {
+            if (pathMatcher.match(pattern, uri)) {
+                try {
+                    Map<String, String> variables = pathMatcher.extractUriTemplateVariables(pattern, uri);
+                    return Long.parseLong(variables.get("concertId"));
+                } catch (NumberFormatException e) {
+                    log.warn("보호된 경로에서 concertId 추출 실패 (숫자 변환 오류): {}", uri);
+                    return null; // 변환 실패 시
+                } catch (Exception e) {
+                    log.warn("보호된 경로에서 concertId 추출 실패: {}", uri, e);
+                    return null;
+                }
+            }
+        }
+        return null; // 매칭되는 경로 없음
     }
 }

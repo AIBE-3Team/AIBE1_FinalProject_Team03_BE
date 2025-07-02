@@ -2,6 +2,7 @@ package com.team03.ticketmon.queue.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.team03.ticketmon._global.util.RedisKeyGenerator;
 import com.team03.ticketmon.queue.dto.AdmissionEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,7 @@ public class NotificationService {
 
     private final RedissonClient redissonClient;
     private final ObjectMapper objectMapper;
-    private static final String ADMISSION_TOPIC = "admission-channel";
+    private static final String ADMISSION_TOPIC = RedisKeyGenerator.ADMISSION_TOPIC;
 
     /**
      * 특정 사용자에게 발급된 입장 허가 키를 담아 알림 이벤트를 발행.

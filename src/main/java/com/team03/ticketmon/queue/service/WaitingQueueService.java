@@ -49,8 +49,7 @@ public class WaitingQueueService {
     public EnterResponse apply(Long concertId, Long userId) {
 
         // [1단계] 콘서트 정보를 조회하여 대기열 활성화 여부 확인
-        boolean isQueueActive = concertService.isQueueActive(concertId);; // 임시로 true 설정. 실제로는 DB에서 조회.
-
+        boolean isQueueActive = concertService.isQueueActive(concertId);
 
         if (isQueueActive) {
             // [2-1단계] 대기열이 활성화된 경우: 기존 대기열 등록 로직 수행

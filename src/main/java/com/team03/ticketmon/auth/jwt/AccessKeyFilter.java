@@ -43,15 +43,6 @@ public class AccessKeyFilter extends OncePerRequestFilter {
             return;
         }
 
-        boolean isSecurePath = pathsToSecure.stream()
-                .anyMatch(pattern -> pathMatcher.match(pattern, request.getRequestURI()));
-
-        if (!isSecurePath) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-
         // 1. 인증 정보 확인 (Fail Test: 인증부터 확인)
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {

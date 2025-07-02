@@ -62,18 +62,26 @@ public class AccessKeyFilter extends OncePerRequestFilter {
 
         // 3. Redis에서 AccessKey 조회
         String accessKeyRedisKey = keyGenerator.getAccessKey(concertId, userId);
-        RBucket<String> accessKeyBucket = redissonClient.getBucket(accessKeyRedisKey);
-        String serverAccessKey = accessKeyBucket.get();
+        String serverAccessKey;
+
+        try {
+            RBucket<String> accessKeyBucket = redissonClient.getBucket(accessKeyRedisKey);
+            serverAccessKey = accessKeyBucket.get();
+        } catch (Exception e) {
+            log.error("Redis에서 AccessKey 조회 실패. 사용자 ID: {}", hashUserId(userId), e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "시스템 오류가 발생했습니다.");
+            return;
+        }
 
         // 4. 키 비교 및 검증
         if (serverAccessKey == null || !serverAccessKey.equals(clientAccessKey)) {
-            log.warn("AccessKey가 유효하지 않거나 만료되었습니다. 사용자 ID: {}", userId);
+            log.warn("AccessKey가 유효하지 않거나 만료되었습니다. 사용자 ID: {}", hashUserId(userId));
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "AccessKey가 유효하지 않거나 만료되었습니다.");
             return;
         }
 
         // 5. 검증 성공
-        log.info("AccessKey 검증 성공. 사용자 ID: {}", userId);
+        log.debug("AccessKey 검증 성공. 사용자 ID: {}", hashUserId(userId));
         filterChain.doFilter(request, response);
     }
 
@@ -99,5 +107,9 @@ public class AccessKeyFilter extends OncePerRequestFilter {
             }
         }
         return null; // 매칭되는 경로 없음
+    }
+
+    private String hashUserId(Long userId) {
+        return "user_" + Integer.toHexString(userId.hashCode());
     }
 }

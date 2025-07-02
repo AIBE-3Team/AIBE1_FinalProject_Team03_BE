@@ -178,7 +178,6 @@ public interface ConcertRepository extends JpaRepository<Concert, Long> {
 		"ORDER BY c.bookingStartDate ASC")
 	List<Concert> findTodayBookingStarts(@Param("todayStart") LocalDateTime todayStart,
 		@Param("todayEnd") LocalDateTime todayEnd);
-}
 
 	/**
 	 * 현재 예매 가능하고, 상태가 ON_SALE인 모든 콘서트의 ID 목록을 조회합니다.
@@ -188,5 +187,4 @@ public interface ConcertRepository extends JpaRepository<Concert, Long> {
 	 */
 	@Query("SELECT c.concertId FROM Concert c WHERE c.status = :status")
 	List<Long> findConcertIdsByStatus(ConcertStatus status);
-
 }

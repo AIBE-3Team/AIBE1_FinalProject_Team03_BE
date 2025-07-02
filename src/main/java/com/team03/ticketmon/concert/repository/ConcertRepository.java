@@ -83,7 +83,6 @@ public interface ConcertRepository extends JpaRepository<Concert, Long> {
 
 	List<Concert> findByStatusInOrderByConcertDateAsc(List<ConcertStatus> statuses);
 
-	@EntityGraph(attributePaths = {"concertSeats"})
 	Page<Concert> findByStatusInOrderByConcertDateAsc(List<ConcertStatus> statuses, Pageable pageable);
 
 	/**

@@ -1,6 +1,7 @@
 package com.team03.ticketmon.auth.service;
 
 import com.team03.ticketmon.auth.oauth2.OAuthAttributes;
+import com.team03.ticketmon.user.domain.entity.SocialUser;
 import com.team03.ticketmon.user.domain.entity.UserEntity;
 import com.team03.ticketmon.user.service.SocialUserService;
 import com.team03.ticketmon.user.service.UserEntityService;
@@ -36,13 +37,16 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String regId = request.getClientRegistration().getRegistrationId();
         OAuthAttributes attr = OAuthAttributes.of(regId, oAuth2User.getAttributes());
 
-        // 이메일 유효성 확인
-        checkUserEmail(attr);
+        // 유효성 확인
+        validateOAuthAttributes(attr);
 
         // 소셜 계정이 이미 존재
-        if (socialUserService.existSocialUser(attr.getProvider(), attr.getProviderId())) {
+        Optional<SocialUser> socialOpt = socialUserService.findByProviderAndProviderId(attr.getProvider(), attr.getProviderId());
+        if (socialOpt.isPresent()) {
+            UserEntity user = socialOpt.get().getUserEntity();
+
             return new DefaultOAuth2User(
-                    Collections.singleton(new SimpleGrantedAuthority("USER")),
+                    Collections.singleton(new SimpleGrantedAuthority(user.getRole().getRoleName())),
                     attr.getAttributes(),
                     attr.getNameAttributeKey()
             );
@@ -67,7 +71,12 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         throw new OAuth2AuthenticationException(oauth2Error, oauth2Error.toString());
     }
 
-    private void checkUserEmail(OAuthAttributes attr) {
+    private void validateOAuthAttributes(OAuthAttributes attr) {
+        if (attr.getProvider() == null || attr.getProviderId() == null) {
+            OAuth2Error oauth2Error = new OAuth2Error("invalid_oauth_attributes", "OAuth 제공자 정보가 누락되었습니다.", null);
+            throw new OAuth2AuthenticationException(oauth2Error, oauth2Error.toString());
+        }
+
         if (attr.getEmail() == null || attr.getEmail().isEmpty()) {
             OAuth2Error oauth2Error = new OAuth2Error("missing_email", "이메일 정보가 제공되지 않았습니다.", null);
             throw new OAuth2AuthenticationException(oauth2Error, oauth2Error.toString());

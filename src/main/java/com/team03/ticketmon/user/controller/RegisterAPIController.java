@@ -38,9 +38,12 @@ public class RegisterAPIController {
         }
 
         RegisterSocialDTO socialDTO = new RegisterSocialDTO(
-                attr.getEmail(),
-                attr.getName()
+                attr.getEmail() != null ? attr.getEmail() : "",
+                attr.getName() != null ? attr.getName() : ""
         );
+
+        if (socialDTO.email().isEmpty() || socialDTO.name().isEmpty())
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("소셜 유저 정보가 누락되었습니다.");
 
         return ResponseEntity.ok().body(socialDTO);
     }

@@ -43,18 +43,19 @@ public class MyPageServiceImpl implements MyPageService {
         UserEntity user = userEntityService.findUserEntityByUserId(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원 정보가 없습니다."));
 
-        if (user.getProfileImage() != null && !user.getProfileImage().isEmpty() && dto.profileImage() != null)
-            userProfileService.deleteProfileImage(user.getProfileImage());
+        if (dto.profileImage() != null && !dto.profileImage().isEmpty()) {
+            // 기존 프로필 이미지가 있으면 저장소에서 삭제
+            if (user.getProfileImage() != null && !user.getProfileImage().isEmpty())
+                userProfileService.deleteProfileImage(user.getProfileImage());
 
-        String profileImageUrl = userProfileService.uploadProfileAndReturnUrl(dto.profileImage());
+            String profileImageUrl = userProfileService.uploadProfileAndReturnUrl(dto.profileImage());
+            user.setProfileImage(profileImageUrl);
+        }
 
         user.setName(dto.name());
         user.setNickname(dto.nickname());
         user.setPhone(dto.phone());
         user.setAddress(dto.address());
-
-        if (profileImageUrl != null && !profileImageUrl.isEmpty())
-            user.setProfileImage(profileImageUrl);
 
         userEntityService.save(user);
         log.info("회원 정보 변경 성공 : userId={}", userId);

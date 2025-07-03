@@ -75,6 +75,12 @@ public class RedisKeyGenerator {
      */
     public static final String ADMISSION_SCHEDULER_LOCK_KEY = "lock:admissionScheduler";
 
+    /** 🔒 `lock:consistencyCheckScheduler`<br>
+     * 정합성 체크 스케줄러 락 키입니다.
+     */
+    public static final String CONSISTENCY_CHECK_LOCK_KEY = "lock:consistencyCheckScheduler";
+
+
     // --- Pub/Sub 토픽 관련 키 ---
 
     /**

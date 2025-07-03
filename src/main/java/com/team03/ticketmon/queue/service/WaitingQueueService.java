@@ -99,10 +99,9 @@ public class WaitingQueueService {
         String sequenceKey = queueKey + SEQUENCE_KEY_SUFFIX + timestamp;
         RAtomicLong sequence = redissonClient.getAtomicLong(sequenceKey);
 
-        // 키가 처음 생성될 때 2초의 만료 시간을 설정 (메모리 릭 방지)
-        sequence.expire(Duration.ofSeconds(2));
-
         long currentSequence = sequence.incrementAndGet();
+
+        sequence.expire(Duration.ofSeconds(2));
 
         if (currentSequence > MAX_SEQUENCE) {
             log.error("1ms 내 요청 한도 초과! ({}개 이상)", MAX_SEQUENCE);

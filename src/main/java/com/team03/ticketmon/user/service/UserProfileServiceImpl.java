@@ -27,6 +27,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 
         String fileUUID = UUID.randomUUID().toString();
         String contentType = profileImage.getContentType();
+        if (contentType == null) {
+            throw new IllegalArgumentException("파일의 Content-Type을 확인할 수 없습니다.");
+        }
+
         String fileExtension = UploadPathUtil.getExtensionFromMimeType(contentType);
 
         String filePath = UploadPathUtil.getProfilePath(fileUUID, fileExtension);

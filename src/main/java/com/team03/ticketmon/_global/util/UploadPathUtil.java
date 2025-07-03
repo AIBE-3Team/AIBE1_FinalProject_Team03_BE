@@ -25,6 +25,10 @@ public class UploadPathUtil {
 
     // MIME 타입 기반 확장자 결정
     public static String getExtensionFromMimeType(String mimeType) {
-        return MIME_TO_EXT.getOrDefault(mimeType, "bin");
+        String extension = MIME_TO_EXT.get(mimeType);
+        if (extension == null) {
+            throw new IllegalArgumentException("지원하지 않는 MIME 타입입니다: " + mimeType);
+        }
+        return extension;
     }
 }

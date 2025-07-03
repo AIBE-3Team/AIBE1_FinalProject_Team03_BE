@@ -1,10 +1,10 @@
 package com.team03.ticketmon._global.util.uploader.supabase;
 
 import com.team03.ticketmon._global.exception.StorageUploadException;
+import com.team03.ticketmon._global.util.UploadPathUtil;
 import com.team03.ticketmon._global.util.uploader.StorageUploader;
 import io.supabase.StorageClient;
-//import io.supabase.common.SupabaseException;
-import io.supabase.errors.StorageException; // 1.1.0
+// import io.supabase.common.SupabaseException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,8 +12,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -114,4 +116,26 @@ public class SupabaseUploader implements StorageUploader {
         }
     }
 
+    @Override
+    public void deleteFile(String bucket, String fullPath) {
+        try {
+            log.debug("✅ [DEBUG] SupabaseUploader 파일 삭제 시작");
+            log.debug("✅ [DEBUG] bucket = {}", bucket);
+            log.debug("✅ [DEBUG] fullPath = {}", fullPath);
+
+            String deletePath = UploadPathUtil.extractPathFromPublicUrl(bucket, fullPath);
+            log.debug("✅ [DEBUG] deletePath = {}", deletePath);
+
+            if (deletePath == null || deletePath.isEmpty()) {
+                log.warn("❗ Supabase 파일 삭제 실패: {}", fullPath);
+                throw new IllegalArgumentException("파일 경로 형식이 잘못되었습니다.");
+            }
+
+            storageClient.from(bucket).delete(List.of(deletePath)).get(); // 비동기 실행 블록
+            log.info("🗑️ Supabase 파일 삭제 성공: {}", fullPath);
+        } catch (InterruptedException | ExecutionException e) {
+            log.warn("❗ Supabase 파일 삭제 실패: {}", fullPath, e);
+            throw new StorageUploadException("파일 삭제 실패", e);
+        }
+    }
 }

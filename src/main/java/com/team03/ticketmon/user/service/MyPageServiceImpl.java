@@ -43,7 +43,7 @@ public class MyPageServiceImpl implements MyPageService {
         UserEntity user = userEntityService.findUserEntityByUserId(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원 정보가 없습니다."));
 
-        if (!user.getProfileImage().isEmpty() && dto.profileImage() != null)
+        if (user.getProfileImage() != null && !user.getProfileImage().isEmpty() && dto.profileImage() != null)
             userProfileService.deleteProfileImage(user.getProfileImage());
 
         String profileImageUrl = userProfileService.uploadProfileAndReturnUrl(dto.profileImage());

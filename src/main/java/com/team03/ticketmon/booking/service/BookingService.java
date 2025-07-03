@@ -1,14 +1,5 @@
 package com.team03.ticketmon.booking.service;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.team03.ticketmon._global.exception.BusinessException;
 import com.team03.ticketmon._global.exception.ErrorCode;
 import com.team03.ticketmon.booking.domain.Booking;
@@ -25,6 +16,7 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -232,6 +224,27 @@ public class BookingService {
 
             log.info("자동 취소 처리된 예매: {}", booking.getBookingNumber());
         }
+    }
+
+    /**
+     * bookingNumber로 예매를 조회하고,
+     * 요청한 userId와 소유자가 다르면 예외를 던집니다.
+     *
+     * @param bookingNumber 예매 조회 키
+     * @param userId        요청한 사용자 ID
+     * @return 조회된 Booking 엔티티
+     */
+    @Transactional(readOnly = true)
+    public Booking findByBookingNumberForUser(String bookingNumber, Long userId) {
+        Booking booking = bookingRepository.findByBookingNumber(bookingNumber)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.RESOURCE_NOT_FOUND,
+                        "존재하지 않는 예매번호입니다: " + bookingNumber
+                ));
+        if (!booking.getUserId().equals(userId)) {
+            throw new AccessDeniedException("본인의 예매 내역만 조회할 수 있습니다.");
+        }
+        return booking;
     }
 }
 

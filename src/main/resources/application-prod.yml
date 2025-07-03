@@ -155,3 +155,7 @@ ai:
 #운영환경 도메인
 app:
   base-url: ${BASE_URL} # 운영 환경 도메인
+
+
+cors:
+  allowed-origins:

@@ -1,6 +1,7 @@
 package com.team03.ticketmon._global.config;
 
 import java.util.Arrays;
+import java.util.List;
 
 import com.team03.ticketmon._global.util.RedisKeyGenerator;
 import com.team03.ticketmon.auth.jwt.*;
@@ -66,6 +67,7 @@ public class SecurityConfig {
 	private final CookieUtil cookieUtil;
     private final RedissonClient redissonClient;
     private final RedisKeyGenerator keyGenerator;
+	private final CorsProperties corsProperties;
 
 	/**
 	 * <b>AuthenticationManager 빈 설정</b> <br>
@@ -213,14 +215,7 @@ public class SecurityConfig {
 
 		// 허용할 프론트엔드 도메인 (로컬 개발용 및 ngrok 주소)
 		// 운영 환경 배포 시에는 실제 서비스 도메인으로 변경
-		config.setAllowedOrigins(Arrays.asList(
-			"http://localhost:3000",    // 기존 React App 기본 포트
-			"http://localhost:8080",    // 백엔드 개발 서버 포트 (테스트용, 백엔드 직접 접근 시)
-			"http://localhost:5173",    // Vite React 개발 서버 기본 포트 (새 프론트엔드 레포)
-			"http://localhost:5174",    // <-- 이 부분 추가 (현재 프론트엔드 개발 서버 포트)
-			"https://ff52-222-105-3-101.ngrok-free.app", // ngrok 등 터널링 서비스 주소 (필요 시)
-			"https://localhost:3000"
-		));
+		config.setAllowedOrigins(List.of(corsProperties.getAllowedOrigins()));
 
 		// 허용할 HTTP 메서드
 		config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));

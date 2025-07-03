@@ -2,6 +2,7 @@ package com.team03.ticketmon._global.config;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import com.team03.ticketmon._global.util.RedisKeyGenerator;
 import com.team03.ticketmon.auth.jwt.*;
@@ -215,7 +216,11 @@ public class SecurityConfig {
 
 		// 허용할 프론트엔드 도메인 (로컬 개발용 및 ngrok 주소)
 		// 운영 환경 배포 시에는 실제 서비스 도메인으로 변경
-		config.setAllowedOrigins(List.of(corsProperties.getAllowedOrigins()));
+		config.setAllowedOrigins(List.of(
+				Optional.ofNullable(corsProperties.getAllowedOrigins())
+						.orElse(new String[0])
+				)
+		);
 
 		// 허용할 HTTP 메서드
 		config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));

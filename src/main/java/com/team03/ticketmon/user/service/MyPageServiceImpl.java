@@ -52,7 +52,9 @@ public class MyPageServiceImpl implements MyPageService {
         user.setNickname(dto.nickname());
         user.setPhone(dto.phone());
         user.setAddress(dto.address());
-        user.setProfileImage(profileImageUrl);
+
+        if (profileImageUrl != null && !profileImageUrl.isEmpty())
+            user.setProfileImage(profileImageUrl);
 
         userEntityService.save(user);
         log.info("회원 정보 변경 성공 : userId={}", userId);

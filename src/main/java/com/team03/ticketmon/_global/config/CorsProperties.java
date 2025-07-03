@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * ✅ CORS 설정 프로퍼티 클래스
  * <p>
- * application.yml 또는 application.properties 파일에 정의된
+ * application-dev.yml 또는 application.properties 파일에 정의된
  * cors.allowed-origins 값을 주입받아 관리합니다.
  * </p>
  *

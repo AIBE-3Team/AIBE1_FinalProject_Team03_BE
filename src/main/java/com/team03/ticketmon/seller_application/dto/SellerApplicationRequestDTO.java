@@ -1,14 +1,12 @@
 package com.team03.ticketmon.seller_application.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 판매자 권한 신청 요청 DTO
@@ -17,12 +15,12 @@ import org.springframework.web.multipart.MultipartFile;
  * </p>
  * <p>
  * 이 DTO는 사용자가 판매자 권한을 신청할 때
- * 회사 정보, 담당자 정보, 그리고 사업자 등록증과 같은 서류 파일을 담아 보냅니다.
+ * 회사 정보, 담당자 정보, 그리고 (파일 정보를 제외한) 사업자 등록증과 같은 서류 파일을 담아 보냅니다.
  * </p>
  *
  * @version 1.0
  * @see com.team03.ticketmon.seller_application.domain.SellerApplication
- * @see com.team03.ticketmon.seller_application.service.SellerApplicationService#applyForSeller(Long, SellerApplicationRequestDTO, MultipartFile)
+ * @see com.team03.ticketmon.seller_application.service.SellerApplicationService
  */
 
 @Getter
@@ -54,8 +52,4 @@ public class SellerApplicationRequestDTO {
     // 실제 DB에는 varchar(20)이므로 이보다 긴 번호도 저장 가능하나, 유효성 검사에서 통상적인 한국 번호만 허용
     @Pattern(regexp = "^0\\d{1,2}\\d{3,4}\\d{4}$", message = "유효하지 않은 전화번호 형식입니다. 숫자만 입력해주세요. (예: 01012345678)")
     private String representativePhone; // 담당자(대표자) 연락처
-
-    // 제출 서류 파일: 필수 (파일 자체의 유효성 검사는 FileValidator에서 진행)
-    @NotNull(message = "제출 서류는 필수입니다.") // 파일이 null이 아닌지 검사
-    private MultipartFile document; // 제출 서류 파일 (사업자등록증.pdf, jpg 등)
 }

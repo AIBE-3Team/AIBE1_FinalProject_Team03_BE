@@ -37,4 +37,12 @@ public class UserProfileServiceImpl implements UserProfileService {
 
         return storageUploader.uploadFile(profileImage, supabaseProperties.getProfileBucket(), filePath);
     }
+
+    @Override
+    public void deleteProfileImage(String profileImageUrl) {
+        if (profileImageUrl == null || profileImageUrl.isEmpty())
+            return;
+
+        storageUploader.deleteFile(supabaseProperties.getProfileBucket(), profileImageUrl);
+    }
 }

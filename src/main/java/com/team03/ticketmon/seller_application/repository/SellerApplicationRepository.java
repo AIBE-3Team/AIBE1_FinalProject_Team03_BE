@@ -1,7 +1,7 @@
 package com.team03.ticketmon.seller_application.repository;
 
 import com.team03.ticketmon.seller_application.domain.SellerApplication;
-import com.team03.ticketmon.seller_application.domain.SellerApplication.SellerApplicationStatus; // 새로 정의한 Enum 임포트
+import com.team03.ticketmon.seller_application.domain.SellerApplication.SellerApplicationStatus;
 import com.team03.ticketmon.user.domain.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -41,5 +41,8 @@ public interface SellerApplicationRepository extends JpaRepository<SellerApplica
 
     // REVOKED 상태이고, 개인정보 마스킹 시점(maskedAt)이 null이며, updatedAt이 특정 시간 이전인 목록 조회
     List<SellerApplication> findByStatusAndMaskedAtIsNullAndUpdatedAtBefore(SellerApplicationStatus status, LocalDateTime dateTime);
+
+    // 추가: 특정 사업자등록번호가 특정 상태 목록에 존재하는지 확인하는 메서드
+    boolean existsByBusinessNumberAndStatusIn(String businessNumber, List<SellerApplicationStatus> statuses);
 
 }

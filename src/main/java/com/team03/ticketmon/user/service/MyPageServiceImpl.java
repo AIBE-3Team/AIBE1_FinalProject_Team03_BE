@@ -19,6 +19,7 @@ public class MyPageServiceImpl implements MyPageService {
 
     private final UserEntityService userEntityService;
     private final PasswordEncoder passwordEncoder;
+    private final UserProfileService userProfileService;
 
     @Override
     public UserProfileDTO getUserProfile(Long userId) {
@@ -42,10 +43,19 @@ public class MyPageServiceImpl implements MyPageService {
         UserEntity user = userEntityService.findUserEntityByUserId(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원 정보가 없습니다."));
 
+        if (dto.profileImage() != null && !dto.profileImage().isEmpty()) {
+            // 기존 프로필 이미지가 있으면 저장소에서 삭제
+            if (user.getProfileImage() != null && !user.getProfileImage().isEmpty())
+                userProfileService.deleteProfileImage(user.getProfileImage());
+
+            String profileImageUrl = userProfileService.uploadProfileAndReturnUrl(dto.profileImage());
+            user.setProfileImage(profileImageUrl);
+        }
+
+        user.setName(dto.name());
         user.setNickname(dto.nickname());
         user.setPhone(dto.phone());
         user.setAddress(dto.address());
-        user.setProfileImage(dto.profileImage());
 
         userEntityService.save(user);
         log.info("회원 정보 변경 성공 : userId={}", userId);

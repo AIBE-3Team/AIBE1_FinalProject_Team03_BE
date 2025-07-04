@@ -18,4 +18,5 @@ public interface StorageUploader {
      * @return 업로드된 파일의 URL 또는 경로
      */
     String uploadFile(MultipartFile file, String bucket, String path);
+    void deleteFile(String bucket, String fullPath);
 }

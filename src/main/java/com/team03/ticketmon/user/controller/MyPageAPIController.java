@@ -47,7 +47,7 @@ public class MyPageAPIController {
     @ApiResponse(responseCode = "401", description = "사용자 권한 인증 실패")
     public ResponseEntity<?> updateUserProfile(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Validated @ModelAttribute("user") UpdateUserProfileDTO dto,
+            @Validated @ModelAttribute UpdateUserProfileDTO dto,
             BindingResult bindingResult) {
 
         if (userDetails == null)

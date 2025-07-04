@@ -1,5 +1,6 @@
 package com.team03.ticketmon._global.util;
 
+import java.net.URI;
 import java.util.Map;
 
 public class UploadPathUtil {
@@ -30,5 +31,20 @@ public class UploadPathUtil {
             throw new IllegalArgumentException("지원하지 않는 MIME 타입입니다: " + mimeType);
         }
         return extension;
+    }
+
+    public static String extractPathFromPublicUrl(String bucket, String publicUrl) {
+        if (bucket == null || bucket.isEmpty() || publicUrl == null || publicUrl.isEmpty())
+            return null;
+
+        try {
+            final String marker = "/storage/v1/object/public/" + bucket + "/";
+            URI uri = URI.create(publicUrl);
+            String path = uri.getPath();
+            int idx = path.indexOf(marker);
+            return (idx != -1) ? path.substring(idx + marker.length()) : null;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

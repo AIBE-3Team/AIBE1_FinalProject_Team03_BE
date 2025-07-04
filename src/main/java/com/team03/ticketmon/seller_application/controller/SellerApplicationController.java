@@ -6,9 +6,13 @@ import com.team03.ticketmon._global.exception.BusinessException;
 
 import com.team03.ticketmon.auth.jwt.CustomUserDetails; // 로그인 유저 정보 주입
 
+// import com.team03.ticketmon.user.domain.entity.UserEntity; // 이 줄을 삭제
+// import com.team03.ticketmon.user.repository.UserRepository; // 이 줄을 삭제
+
+import com.team03.ticketmon.seller_application.dto.ApplicantInformationResponseDTO;
 import com.team03.ticketmon.seller_application.dto.SellerApplicationRequestDTO;
 import com.team03.ticketmon.seller_application.dto.SellerApplicationStatusResponseDTO;
-import com.team03.ticketmon.seller_application.service.SellerApplicationService; // SellerApplicationService 주입
+import com.team03.ticketmon.seller_application.service.SellerApplicationService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,6 +42,7 @@ import org.springframework.web.multipart.MultipartFile; // 파일 업로드에 �
 public class SellerApplicationController {
 
     private final SellerApplicationService sellerApplicationService; // 서비스 계층 주입
+    // private final UserRepository userRepository; // UserEntity 조회용
 
     /**
      * API-03-05: 로그인 사용자의 현재 판매자 권한 상태 조회
@@ -124,13 +129,40 @@ public class SellerApplicationController {
     public ResponseEntity<SuccessResponse<Void>> withdrawSellerRole(
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        // Spring Security가 인증 처리중
-        // if (userDetails == null) {
-        //    throw new BusinessException(ErrorCode.AUTHENTICATION_REQUIRED, "로그인이 필요합니다.");
-        // }
         Long userId = userDetails.getUserId();
 
         sellerApplicationService.withdrawSellerRole(userId);
         return ResponseEntity.ok(SuccessResponse.of("판매자 권한이 성공적으로 철회되었습니다.", null));
+    }
+
+    // --- 새로 추가된 엔드포인트 ---
+    /**
+     * API: 현재 로그인된 사용자 신청자 정보 조회(API-03-08)
+     * GET /api/users/me/applicant-info
+     * AuthContext에서 사용할 사용자 상세 정보를 제공합니다.
+     * @param userDetails Spring Security의 인증된 사용자 정보
+     * @return ApplicantInformationResponseDTO를 포함한 성공 응답
+     */
+    @Operation(
+            summary = "현재 사용자 신청자 정보 조회",
+            description = "로그인된 사용자의 신청자 양식에 필요한 상세 프로필 정보를 조회합니다. (AuthContext 업데이트용)"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    @GetMapping("/applicant-info") // 실제 엔드포인트는 /api/users/me/applicant-info가 됨
+    public ResponseEntity<SuccessResponse<ApplicantInformationResponseDTO>> getApplicantInformation(
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        if (userDetails == null) {
+            throw new BusinessException(ErrorCode.AUTHENTICATION_REQUIRED, "로그인이 필요합니다.");
+        }
+
+        // 기존 userRepository 직접 호출 부분을 sellerApplicationService 호출로 변경
+        ApplicantInformationResponseDTO responseDTO = sellerApplicationService.getUserApplicantInfo(userDetails.getUserId());
+
+        return ResponseEntity.ok(SuccessResponse.of("현재 사용자 신청자 정보 조회 성공", responseDTO));
     }
 }

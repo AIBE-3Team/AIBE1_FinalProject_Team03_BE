@@ -30,7 +30,8 @@ public class SellerApplication {
     @Column(nullable = false, length = 100)
     private String companyName; // 업체명 (기회사명/거래처명 등)
 
-    @Column(nullable = false, unique = true, length = 10)
+    // 수정: unique = true 제거
+    @Column(nullable = false, length = 10)
     private String businessNumber; // 사업자등록번호 (하이픈 없이 10자리)
 
     @Column(nullable = false, length = 50)

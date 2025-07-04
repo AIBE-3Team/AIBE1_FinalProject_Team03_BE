@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
  * - Cache-Aside 패턴 추가 (자동 캐시 초기화)
  * - SeatCacheInitService 의존성 추가
  * - 분산 락을 활용한 원자적 좌석 선점 처리
+ * - 사용자별 좌석 선점 개수 제한 (최대 6개) 추가
+ * - 현재 테스트 환경임을 고려하여 선점 개수 제한을 2개로 설정
  */
 @Slf4j
 @Service
@@ -44,6 +46,9 @@ public class SeatStatusService {
 
     // TTL 설정
     private static final long SEAT_RESERVATION_TTL_MINUTES = 5; // 좌석 선점 유지 시간 (분)
+
+    // ✅ 좌석 선점 제한 설정
+    private static final int MAX_SEAT_RESERVATION_COUNT = 2; // 사용자당 최대 선점 가능 좌석 수
 
     /**
      * ✅ 수정된 전체 좌석 상태 조회 - Cache-Aside 패턴 적용
@@ -157,10 +162,43 @@ public class SeatStatusService {
     }
 
     /**
+     * ✅ 사용자별 좌석 선점 개수 검증
+     * Redis에서 현재 사용자가 선점한 좌석 개수를 확인하여 최대 제한을 초과하는지 검증
+     *
+     * @param concertId 콘서트 ID
+     * @param userId 사용자 ID
+     * @param targetSeatId 새로 선점하려는 좌석 ID (동일 좌석 재선점 시 제외용)
+     * @throws SeatReservationException 최대 선점 개수 초과 시
+     */
+    private void validateUserSeatReservationLimit(Long concertId, Long userId, Long targetSeatId) {
+        List<SeatStatus> userReservedSeats = getUserReservedSeats(concertId, userId);
+
+        // 현재 선점하려는 좌석이 이미 해당 사용자에 의해 선점된 상태라면 개수에서 제외
+        // (동일 좌석 재선점의 경우)
+        long currentReservationCount = userReservedSeats.stream()
+                .filter(seat -> !seat.getSeatId().equals(targetSeatId))
+                .count();
+
+        if (currentReservationCount >= MAX_SEAT_RESERVATION_COUNT) {
+            log.warn("사용자 좌석 선점 개수 제한 초과: userId={}, concertId={}, currentCount={}, maxLimit={}",
+                    userId, concertId, currentReservationCount, MAX_SEAT_RESERVATION_COUNT);
+
+            throw new SeatReservationException(
+                    String.format("좌석 선점은 최대 %d개까지만 가능합니다. 현재 선점 좌석: %d개",
+                            MAX_SEAT_RESERVATION_COUNT, currentReservationCount)
+            );
+        }
+
+        log.debug("사용자 좌석 선점 개수 검증 통과: userId={}, concertId={}, currentCount={}, maxLimit={}",
+                userId, concertId, currentReservationCount, MAX_SEAT_RESERVATION_COUNT);
+    }
+
+    /**
      * 좌석 임시 선점 메서드 (4개 매개변수 버전)
      * - 좌석 가용성 확인과 선점 처리를 원자적으로 수행
      * - Race Condition 방지 및 중복 예약 차단
      * - TTL 키 생성으로 자동 만료 처리 지원
+     * - ✅ 사용자별 최대 6개 좌석 선점 제한 추가
      *
      * @param concertId 콘서트 ID
      * @param seatId 좌석 ID (ConcertSeat ID)
@@ -215,7 +253,10 @@ public class SeatStatusService {
                 }
             }
 
-            // 2. 새로운 선점 처리
+            // ✅ 2. 사용자별 좌석 선점 개수 제한 검증 (새로 추가된 로직)
+            validateUserSeatReservationLimit(concertId, userId, seatId);
+
+            // 3. 새로운 선점 처리 (기존 번호 2에서 3으로 변경)
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime expiresAt = now.plusMinutes(SEAT_RESERVATION_TTL_MINUTES);
 
@@ -230,10 +271,10 @@ public class SeatStatusService {
                     .seatInfo(seatInfo)
                     .build();
 
-            // 3. Redis에 저장 및 이벤트 발행
+            // 4. Redis에 저장 및 이벤트 발행 (기존 번호 3에서 4로 변경)
             updateSeatStatus(reserved);
 
-            // 4. TTL 키 생성 (자동 만료 지원)
+            // 5. TTL 키 생성 (자동 만료 지원) (기존 번호 4에서 5로 변경)
             createSeatTTLKey(concertId, seatId);
 
             log.info("좌석 선점 완료: concertId={}, seatId={}, userId={}, expiresAt={}, seatInfo={}",

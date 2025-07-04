@@ -32,5 +32,11 @@ public class S3Uploader implements StorageUploader {
         // TODO: S3 마이그레이션 시 실제 S3 업로드 로직을 구현
         throw new UnsupportedOperationException("아직 S3 업로드는 구현되지 않았습니다.");
     }
+
+    @Override
+    public void deleteFile(String bucket, String fullPath) {
+        // TODO: S3 마이그레이션 시 실제 S3 파일 삭제 로직을 구현
+        throw new UnsupportedOperationException("아직 S3 업로드는 구현되지 않았습니다.");
+    }
 }
 

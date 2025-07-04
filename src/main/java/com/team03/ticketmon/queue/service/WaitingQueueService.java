@@ -88,7 +88,7 @@ public class WaitingQueueService {
 
     /**
      * 타임스탬프와 원자적 시퀀스를 조합하여 유니크한 score를 생성합니다.
-     * 예: (timestamp << 22) | sequence
+     * 예: (timestamp << 21) | sequence
      * @param queueKey queueKey
      * @return 유니크한 score(long)
      */
@@ -108,7 +108,6 @@ public class WaitingQueueService {
             throw new BusinessException(ErrorCode.QUEUE_TOO_MANY_REQUESTS);
         }
 
-        // 타임스탬프를 왼쪽으로 22비트 이동시키고, 시퀀스 번호를 OR 연산으로 합침
         return (timestamp << SEQUENCE_BITS) | currentSequence;
     }
 

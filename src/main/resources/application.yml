@@ -1,6 +1,9 @@
 app:
-  max-active-users: 5 # 예매 페이지에 동시 진입 가능한 최대 사용자 수
-  access-key-ttl-minutes: 1 # 예매 페이지 접근 키의 유효시간 (단위: 분)
+  queue:
+    max-active-users: 5 # 예매 페이지에 동시 진입 가능한 최대 사용자 수
+    access-key-ttl-minutes: 1 # 예매 페이지 접근 키의 유효시간 (단위: 분)
+    top-ranker-count: 1000 #  최상위 대기자 기준 설정
+
   # ✅ 새로 추가: 스케줄러 관련 설정 - [좌석 관리 및 예매 모듈]
   scheduler:
     # 좌석 동기화 스케줄러 설정
@@ -60,11 +63,11 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}  # .env에서 설정한 포트 사용, 기본은 8080
-  ssl:
-    enabled: true # HTTPS 활성화
-    # .pem 파일 직접 사용 시 필요한 설정들
-    certificate: classpath:certs/localhost.pem
-    certificate-private-key: classpath:certs/localhost-key.pem
+#  ssl:
+#    enabled: true # HTTPS 활성화
+#    # .pem 파일 직접 사용 시 필요한 설정들
+#    certificate: classpath:certs/localhost.pem
+#    certificate-private-key: classpath:certs/localhost-key.pem
     # key-store-type을 명시적으로 지정해주는 것이 좋습니다.
     # PEM 파일을 사용할 경우, key-store-type을 비워두거나 특정 타입을 지정하지 않습니다.
     # 하지만 Spring Boot 버전에 따라서는 아래 설정이 필요할 수 있습니다.

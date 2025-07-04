@@ -30,8 +30,11 @@ public class WaitingQueueScheduler {
     private final ConcertRepository concertRepository;
     private final AdmissionService admissionService;
 
-    @Value("${app.max-active-users}")
+    @Value("${app.queue.max-active-users}")
     private long maxActiveUsers; // 시스템이 동시에 수용 가능한 최대 활성 사용자 수
+
+    @Value("${app.queue.top-ranker-count}")
+    private long topRankerCount ; // 최상위 대기자 기준 설정
 
     // --- Redis 키 정의 ---
     /** 분산 락을 위한 키. 이 락을 획득한 인스턴스만이 스케줄러 로직을 실행. */
@@ -93,24 +96,20 @@ public class WaitingQueueScheduler {
     private void processQueueForConcert(Long concertId) {
         log.debug("===== [콘서트 ID: {}] 대기열 처리 시작. =====", concertId);
 
-        // [STEP 3] 입장 가능한 총 빈자리(slot) 계산
         String activeUserCountKey = "active_users_count:concert:" + concertId;
-
         RAtomicLong activeUsersCount = redissonClient.getAtomicLong(activeUserCountKey);
         long currentActiveUsers = activeUsersCount.get();
         // TODO: maxActiveUsers도 콘서트별로 다르게 설정할 수 있도록 DB에서 가져오는 로직 추가 가능 (우선순위: 최하)
-        // 우선은 전역 설정을 그대로 사용
         long availableSlots = maxActiveUsers - currentActiveUsers;
-
-        //log.debug("활성 사용자 현황: {} / {} (빈자리: {})", currentActiveUsers, maxActiveUsers, availableSlots);
-        log.debug("===== [콘서트 ID: {}] 활성 사용자 현황: {} / {} (빈자리: {}) =====", concertId, currentActiveUsers, maxActiveUsers, availableSlots);
 
         if (availableSlots <= 0) {
             log.debug("===== [콘서트 ID: {}] 입장 가능한 자리가 없습니다. 대기열 처리 스킵 =====", concertId);
             return;
         }
 
-        // [STEP 4] 해당 콘서트 대기열에서 빈자리 수만큼 사용자를 원자적으로 추출
+        log.debug("===== [콘서트 ID: {}] 활성 사용자 현황: {} / {} (빈자리: {}) =====", concertId, currentActiveUsers, maxActiveUsers, availableSlots);
+
+        // 해당 콘서트 대기열에서 빈자리 수만큼 사용자를 원자적으로 추출
         List<Long> admittedUserIds = waitingQueueService.poll(concertId, (int) availableSlots);
 
         if (admittedUserIds.isEmpty()) {
@@ -118,8 +117,32 @@ public class WaitingQueueScheduler {
             return;
         }
 
-        // [STEP 5] 추출된 사용자들에게 입장 허가 처리 (AdmissionService에 위임)
-        // 스케줄러에 의한 입장이므로 알림(sendNotification)을 true로 설정
+        // 추출된 사용자들에게 입장 허가 처리
         admissionService.grantAccess(concertId, admittedUserIds, true);
+
+
+        // ==================== 계층적 업데이트 로직 ====================
+//        RScoredSortedSet<Long> queue = waitingQueueService.getQueue(concertId);
+//
+//        // [STEP 6] Tier 1: 최상위 대기자 1,000명의 ID와 순위를 조회
+//        Collection<ScoredEntry<Long>> topRankers = queue.entryRange(0, TOP_RANKER_COUNT - 1);
+//
+//        int rank = 1;
+//        for (ScoredEntry<Long> entry : topRankers) {
+//            Long userId = entry.getValue();
+//            // 개인화된 순위 정보를 1:1 메시지로 전송
+//            notificationService.sendRankUpdate(userId, rank++);
+//        }
+//
+//        // [STEP 7] Tier 2: 중위권 포함 전체 대기자에게 그룹 정보 브로드캐스팅
+//        long totalWaitingCount = queue.size();
+//        notificationService.broadcastQueueStatus(concertId, totalWaitingCount);
+
+        // [STEP 8] Tier 3: 마일스톤 달성자 알림 (심화)
+        // 이전 스케줄 실행 시점의 1001등 사용자와 현재 1000등 사용자를 비교하여
+        // 새로 1000등 안에 진입한 사용자를 찾아내어 별도 알림을 보낼 수 있습니다.
+        // (구현 복잡도를 고려하여 초기에는 생략 가능)
+        // ===============================================================
+
     }
 }

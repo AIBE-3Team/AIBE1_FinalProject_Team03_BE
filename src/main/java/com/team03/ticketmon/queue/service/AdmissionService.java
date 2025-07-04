@@ -24,7 +24,7 @@ public class AdmissionService {
     private final NotificationService notificationService;
     private final RedisKeyGenerator keyGenerator;
 
-    @Value("${app.access-key-ttl-minutes}")
+    @Value("${app.queue.access-key-ttl-minutes}")
     private long accessKeyTtlMinutes; // 발급된 입장 허가 키의 유효 시간 (분)
 
     /**

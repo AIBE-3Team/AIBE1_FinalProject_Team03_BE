@@ -70,12 +70,6 @@ public class MyBookingServiceImpl implements MyBookingService {
         );
     }
 
-    @Override
-    public void cancelBooking(Long userId, Long bookingId) {
-        Booking booking = bookingService.validateCancellableBooking(bookingId, userId);
-        bookingService.finalizeCancellation(booking);
-    }
-
     // 좌석 정보 가져오기
     private List<String> getSeatList(Booking booking) {
         return booking.getTickets().stream()

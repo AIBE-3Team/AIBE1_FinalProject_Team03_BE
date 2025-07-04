@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
+import org.redisson.codec.JsonJacksonCodec;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Redisson 설정 클래스
@@ -44,10 +46,16 @@ public class RedissonConfig {
     public RedissonClient redissonClient() {
         Config config = new Config();
 
+        // 1) JSON 직렬화용 Codec 설정
+        ObjectMapper om = new ObjectMapper();
+        // 필요에 따라 모듈 등록, 옵션 설정…
+        JsonJacksonCodec jsonCodec = new JsonJacksonCodec(om);
+        config.setCodec(jsonCodec);
+
         String protocol = sslEnabled ? "rediss" : "redis";
         String redisUrl = "%s://%s:%d".formatted(protocol, redisHost, redisPort);
 
-        log.info("Redisson Client를 생성합니다. Address: {}", redisUrl);
+        log.debug("Redisson Client를 생성합니다. Address: {}", redisUrl);
 
         // 단일 서버 모드 설정
         SingleServerConfig serverConfig = config.useSingleServer()

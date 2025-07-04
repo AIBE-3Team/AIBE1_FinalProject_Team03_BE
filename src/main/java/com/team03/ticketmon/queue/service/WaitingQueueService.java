@@ -4,10 +4,11 @@ import com.team03.ticketmon._global.exception.BusinessException;
 import com.team03.ticketmon._global.exception.ErrorCode;
 import com.team03.ticketmon._global.util.RedisKeyGenerator;
 import com.team03.ticketmon.concert.service.ConcertService;
-import com.team03.ticketmon.queue.dto.EnterResponse;
+import com.team03.ticketmon.queue.dto.QueueStatusDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RAtomicLong;
+import org.redisson.api.RBucket;
 import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.LongCodec;
@@ -46,7 +47,7 @@ public class WaitingQueueService {
      * @param userId    대기열에 추가할 사용자 ID
      * @return 1부터 시작하는 사용자의 대기 순번
      */
-    public EnterResponse apply(Long concertId, Long userId) {
+    public QueueStatusDto apply(Long concertId, Long userId) {
 
         // [1단계] 콘서트 정보를 조회하여 대기열 활성화 여부 확인
         boolean isQueueActive = concertService.isQueueActive(concertId);
@@ -62,7 +63,7 @@ public class WaitingQueueService {
                 log.warn("[userId: {}] 이미 대기열에 등록된 상태", userId);
                 Integer existingRank = queue.rank(userId);
                 if (existingRank != null) {
-                    return EnterResponse.waiting(existingRank.longValue() + 1);
+                    return QueueStatusDto.waiting(existingRank.longValue() + 1);
                 }
                 throw new BusinessException(ErrorCode.QUEUE_ALREADY_JOINED);
             }
@@ -75,13 +76,13 @@ public class WaitingQueueService {
                 throw new BusinessException(ErrorCode.SERVER_ERROR);
             }
 
-            return EnterResponse.waiting(rankIndex.longValue() + 1);
+            return QueueStatusDto.waiting(rankIndex.longValue() + 1);
 
         } else {
             // [2-2단계] 대기열이 비활성화된 경우: 즉시 입장 처리
             log.debug("[userId: {}] 대기열 비활성 상태. 즉시 입장 처리 시작.", userId);
 
-            return EnterResponse.immediateEntry(admissionService.grantAccess(concertId, userId));
+            return QueueStatusDto.immediateEntry(admissionService.grantAccess(concertId, userId));
         }
 
     }
@@ -130,22 +131,45 @@ public class WaitingQueueService {
     }
 
     /**
-     * 현재 대기열에 남아있는 총인원 수를 반환합니다.
-     * @param concertId 콘서트 ID
-     * @return 대기 인원 수
-     */
-    public Long getWaitingCount(Long concertId) {
-        RScoredSortedSet<String> queue = redissonClient.getScoredSortedSet(generateKey(concertId));
-        return (long) queue.size();
-    }
-
-    /**
-     * 콘서트 ID를 기반으로 Redis에서 사용할 고유 키를 생성합니다.
+     * 콘서트 ID를 기반으로 Redis에서 사용할 대기열의 고유 키를 생성
      *
      * @param concertId 콘서트 ID
      * @return "waitqueue:{concertId}" 형식의 Redis 키
      */
     private String generateKey(Long concertId) {
         return keyGenerator.getWaitQueueKey(concertId);
+    }
+
+    public QueueStatusDto getUserStatus(Long concertId, Long userId) {
+        // 1. AccessKey가 이미 발급되었는지 먼저 확인
+        String redisAccessKey = keyGenerator.getAccessKey(concertId, userId);
+        RBucket<String> accessKeyBucket = redissonClient.getBucket(redisAccessKey);
+        String accessKey = accessKeyBucket.get();
+
+        if (accessKey != null) {
+            return new QueueStatusDto("ADMITTED", null, accessKey, "입장이 허가된 상태입니다.");
+        }
+
+        // 2. 대기열에 있는지 확인
+        String queueKey = keyGenerator.getWaitQueueKey(concertId);
+        RScoredSortedSet<Long> queue = redissonClient.getScoredSortedSet(queueKey, LongCodec.INSTANCE);
+        Integer rank = queue.rank(userId);
+
+        if (rank != null) {
+            return new QueueStatusDto("WAITING", rank.longValue() + 1, null, "현재 대기 중입니다.");
+        }
+
+        // 3. 둘 다 해당 없으면 에러 또는 이탈 상태 반환
+        return new QueueStatusDto("EXPIRED_OR_NOT_IN_QUEUE", null, null, "대기열에 정보가 없거나 만료되었습니다.");
+    }
+
+    /**
+     * 현재 대기열에 남아있는 총인원 수를 반환합니다. (테스트용)
+     * @param concertId 콘서트 ID
+     * @return 대기 인원 수
+     */
+    public Long getWaitingCount(Long concertId) {
+        RScoredSortedSet<String> queue = redissonClient.getScoredSortedSet(generateKey(concertId));
+        return (long) queue.size();
     }
 }

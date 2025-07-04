@@ -6,7 +6,7 @@ import com.team03.ticketmon.auth.Util.CookieUtil;
 import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
 import com.team03.ticketmon.auth.service.RefreshTokenService;
 import com.team03.ticketmon.auth.service.ReissueService;
-import com.team03.ticketmon.queue.dto.EnterResponse;
+import com.team03.ticketmon.queue.dto.QueueStatusDto;
 import com.team03.ticketmon.queue.service.WaitingQueueService;
 import com.team03.ticketmon.support.WithMockCustomUser;
 import com.team03.ticketmon.user.service.SocialUserService;
@@ -53,7 +53,7 @@ class WaitingQueueControllerTest {
         long expectedUserId = 123L;
 
         // waitingQueueService.apply(1L, "123")이 호출되면, 100L을 반환하도록 설정
-        given(waitingQueueService.apply(concertId, expectedUserId)).willReturn(EnterResponse.waiting(expectedRank));
+        given(waitingQueueService.apply(concertId, expectedUserId)).willReturn(QueueStatusDto.waiting(expectedRank));
 
         // WHEN: 실제 HTTP 요청을 시뮬레이션
         mockMvc.perform(post("/api/queue/enter")

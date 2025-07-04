@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * </ul>
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record EnterResponse(
+public record QueueStatusDto(
         String status,     // "WAITING", "IMMEDIATE_ENTRY", "ERROR"
         Long rank,         // status가 "WAITING"일 때만 값을 가짐
         String accessKey,  // status가 "IMMEDIATE_ENTRY"일 때만 값을 가짐
@@ -35,8 +35,8 @@ public record EnterResponse(
      * @param rank 대기열 내 순위
      * @return EnterResponse 객체
      */
-    public static EnterResponse waiting(Long rank) {
-        return new EnterResponse("WAITING", rank, null, "대기열에 정상적으로 등록되었습니다.");
+    public static QueueStatusDto waiting(Long rank) {
+        return new QueueStatusDto("WAITING", rank, null, "대기열에 정상적으로 등록되었습니다.");
     }
 
     /**
@@ -45,8 +45,8 @@ public record EnterResponse(
      * @param accessKey 사용자에게 부여된 접근 키
      * @return EnterResponse 객체
      */
-    public static EnterResponse immediateEntry(String accessKey) {
-        return new EnterResponse("IMMEDIATE_ENTRY", null, accessKey, "즉시 입장이 가능합니다.");
+    public static QueueStatusDto immediateEntry(String accessKey) {
+        return new QueueStatusDto("IMMEDIATE_ENTRY", null, accessKey, "즉시 입장이 가능합니다.");
     }
 
     /**
@@ -55,7 +55,7 @@ public record EnterResponse(
      * @param message 사용자에게 보여줄 에러 메시지
      * @return EnterResponse 객체
      */
-    public static EnterResponse error(String message) {
-        return new EnterResponse("ERROR", null, null, message);
+    public static QueueStatusDto error(String message) {
+        return new QueueStatusDto("ERROR", null, null, message);
     }
 }

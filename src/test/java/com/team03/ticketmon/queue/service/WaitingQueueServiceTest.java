@@ -3,7 +3,7 @@ package com.team03.ticketmon.queue.service;
 import com.team03.ticketmon._global.config.RedissonConfig;
 import com.team03.ticketmon._global.exception.BusinessException;
 import com.team03.ticketmon._global.exception.ErrorCode;
-import com.team03.ticketmon.queue.dto.EnterResponse;
+import com.team03.ticketmon.queue.dto.QueueStatusDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -70,21 +70,21 @@ class WaitingQueueServiceTest {
     @DisplayName("여러 사용자가 순차적으로 진입하면 각자의 순번을 정확히 반환한다.")
     void applyAndGetRank_multipleUsers() {
         // given, when: 3명의 사용자가 순서대로 대기열에 진입
-        EnterResponse enterResponse1 = waitingQueueService.apply(1L, 1L);
-        EnterResponse enterResponse2 = waitingQueueService.apply(1L, 2L);
-        EnterResponse enterResponse3 = waitingQueueService.apply(1L, 3L);
+        QueueStatusDto queueStatusDto1 = waitingQueueService.apply(1L, 1L);
+        QueueStatusDto queueStatusDto2 = waitingQueueService.apply(1L, 2L);
+        QueueStatusDto queueStatusDto3 = waitingQueueService.apply(1L, 3L);
 
         // then: 각자 1, 2, 3등의 순번을 부여받는다.
-        assertThat(enterResponse1.rank()).isEqualTo(1L);
-        assertThat(enterResponse2.rank()).isEqualTo(2L);
-        assertThat(enterResponse3.rank()).isEqualTo(3L);
+        assertThat(queueStatusDto1.rank()).isEqualTo(1L);
+        assertThat(queueStatusDto2.rank()).isEqualTo(2L);
+        assertThat(queueStatusDto3.rank()).isEqualTo(3L);
     }
 
     @Test
     @DisplayName("이미 대기열에 있는 사용자가 다시 진입을 시도해도 순번은 변하지 않는다 (멱등성).")
     void applyAndGetRank_idempotency() throws InterruptedException {
         // given: user-1이 먼저 진입하고, 잠시 후 user-2가 진입
-        EnterResponse enterResponse1 = waitingQueueService.apply(1L, 1L);
+        QueueStatusDto queueStatusDto1 = waitingQueueService.apply(1L, 1L);
         Thread.sleep(10); // 점수(timestamp)를 다르게 하기 위한 지연
         waitingQueueService.apply(1L, 2L);
 
@@ -95,7 +95,7 @@ class WaitingQueueServiceTest {
         );
 
         // then: user-1의 순번은 처음 부여받은 1등에서 변하지 않는다.
-        assertThat(enterResponse1.rank()).isEqualTo(1L);
+        assertThat(queueStatusDto1.rank()).isEqualTo(1L);
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.QUEUE_ALREADY_JOINED);
     }
 
@@ -107,14 +107,14 @@ class WaitingQueueServiceTest {
         long concertIdB = 2L;
 
         // when: 각 콘서트에 사용자들이 신청
-        EnterResponse enterResponse1 = waitingQueueService.apply(concertIdA, 1L);
-        EnterResponse enterResponse2 = waitingQueueService.apply(concertIdB, 2L);
-        EnterResponse enterResponse3 = waitingQueueService.apply(concertIdA, 3L);
+        QueueStatusDto queueStatusDto1 = waitingQueueService.apply(concertIdA, 1L);
+        QueueStatusDto queueStatusDto2 = waitingQueueService.apply(concertIdB, 2L);
+        QueueStatusDto queueStatusDto3 = waitingQueueService.apply(concertIdA, 3L);
 
         // then: 각 콘서트 대기열은 독립적으로 순번을 계산한다.
-        assertThat(enterResponse1.rank()).isEqualTo(1L);
-        assertThat(enterResponse2.rank()).isEqualTo(1L);
-        assertThat(enterResponse3.rank()).isEqualTo(2L);
+        assertThat(queueStatusDto1.rank()).isEqualTo(1L);
+        assertThat(queueStatusDto2.rank()).isEqualTo(1L);
+        assertThat(queueStatusDto3.rank()).isEqualTo(2L);
     }
 
     @Test

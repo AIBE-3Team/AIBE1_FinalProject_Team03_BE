@@ -33,7 +33,7 @@ public class RedisKeyGenerator {
 
     private static final String CONCERT_PREFIX = "concert:";
     private static final String USER_PREFIX = "user:";
-
+    public static final String JWT_RT_PREFIX = "refreshToken:";
     // --- 대기열 관련 키 ---
 
     /** 🔑 `waitqueue:concert:{concertId}`<br>

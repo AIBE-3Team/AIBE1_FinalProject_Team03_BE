@@ -1,10 +1,10 @@
 app:
   queue:
     max-active-users: 1 # 예매 페이지에 동시 진입 가능한 최대 사용자 수
-    access-key-ttl-seconds: 10 # 예매 페이지 접근 키의 유효시간 (단위: 분)
+    access-key-ttl-seconds: 300 # 예매 페이지 접근 키의 유효시간 (단위: 분)
     top-ranker-count: 5 #  최상위 대기자 기준 설정
   websocket:
-    scheduler-health:
+    scheduler-health: # WebSocket 연결 현황을 로깅 주기
       delay-ms: 10000
 seat:
   reservation:

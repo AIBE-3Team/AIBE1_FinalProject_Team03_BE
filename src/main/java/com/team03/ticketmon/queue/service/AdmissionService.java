@@ -72,7 +72,7 @@ public class AdmissionService {
         String activeUserCountKey = keyGenerator.getActiveUsersCountKey(concertId);
 
         long expiryTimestamp = System.currentTimeMillis() + (accessKeyTtlSeconds * 1000);
-        Duration ttl = Duration.ofMinutes(accessKeyTtlSeconds);
+        Duration ttl = Duration.ofSeconds(accessKeyTtlSeconds);
 
         List<String> issuedKeys = new ArrayList<>();
 

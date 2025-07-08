@@ -29,7 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (isEmpty(refreshToken)) {
             if (!isEmpty(accessToken)) {
-                // Access Token이 쿠키에 남아있으면 삭제
+                // Refresh Token이 없고 Access Token만 남아 있으면 삭제
                 ResponseCookie accessCookie = cookieUtil.deleteCookie(jwtTokenProvider.CATEGORY_ACCESS);
                 response.addHeader("Set-Cookie", accessCookie.toString());
             }
@@ -38,39 +38,48 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 만료 여부 확인 및 재발급
+        // Access Token이 유효하다면 그대로 인증 처리
         if (!isEmpty(accessToken) && !jwtTokenProvider.isTokenExpired(accessToken)) {
             setAuthenticationContext(accessToken);
             filterChain.doFilter(request, response);
             return;
         }
 
+        // Access Token이 만료되었고 Refresh Token 유효성 확인 후 재발급
         accessToken = handleTokenReissue(refreshToken, response);
 
-        if (isEmpty(accessToken))
-            return;
+        if (isEmpty(accessToken)) return;
 
-        if (!isAccessToken(accessToken, response))
-            return;
+        if (!isAccessToken(accessToken, response)) return;
 
         setAuthenticationContext(accessToken);
         filterChain.doFilter(request, response);
     }
 
     private String handleTokenReissue(String refreshToken, HttpServletResponse response) throws IOException {
-
-        // Access Token이 만료되었고 Refresh Token 유효성 확인 후 재발급
         log.info("Access Token 만료됨 Refresh Token으로 재발급 시도");
-        String newAccessToken = reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
-        if (isEmpty(newAccessToken)) {
-            log.warn("Refresh Token이 유효하지 않음 재로그인 필요");
+
+        String newAccessToken = null;
+        try {
+            newAccessToken = reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
+
+            if (isEmpty(newAccessToken)) {
+                log.warn("Refresh Token이 유효하지 않음 재로그인 필요");
+                cookieUtil.deleteJwtCookies(response);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Refresh Token이 만료되었거나 유효하지 않습니다.");
+                return null;
+            }
+
+            Long accessExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS);
+            ResponseCookie accessCookie = cookieUtil.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken, accessExp);
+            response.addHeader("Set-Cookie", accessCookie.toString());
+
+        } catch (IllegalArgumentException e) {
+            log.warn("Access Token 재발급 실패: {}", e.getMessage());
+            cookieUtil.deleteJwtCookies(response);
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Refresh Token이 만료되었거나 유효하지 않습니다.");
             return null;
         }
-
-        Long accessExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS);
-        ResponseCookie accessCookie = cookieUtil.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken, accessExp);
-        response.addHeader("Set-Cookie", accessCookie.toString());
         return newAccessToken;
     }
 
@@ -80,6 +89,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return jwtTokenProvider.CATEGORY_ACCESS.equals(category);
         } catch (Exception e) {
             log.error("Access Token 파싱 실패 : {}", e.getMessage());
+            cookieUtil.deleteJwtCookies(response);
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Access Token 파싱에 실패했습니다.");
             return false;
         }

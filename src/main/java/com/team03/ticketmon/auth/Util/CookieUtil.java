@@ -39,8 +39,7 @@ public class CookieUtil {
     }
 
     // Access Token과 Refresh Token 쿠키 삭제 (로그아웃)
-    public void deleteJwtCookies(Long userId, HttpServletResponse response) {
-        refreshTokenService.deleteRefreshToken(userId);
+    public void deleteJwtCookies(HttpServletResponse response) {
         ResponseCookie accessCookie = deleteCookie(jwtTokenProvider.CATEGORY_ACCESS);
         ResponseCookie refreshCookie = deleteCookie(jwtTokenProvider.CATEGORY_REFRESH);
 

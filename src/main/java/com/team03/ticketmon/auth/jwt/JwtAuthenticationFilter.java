@@ -59,9 +59,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private String handleTokenReissue(String refreshToken, HttpServletResponse response) throws IOException {
         log.info("Access Token 만료됨 Refresh Token으로 재발급 시도");
 
-        String newAccessToken = null;
         try {
-            newAccessToken = reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
+            String newAccessToken = reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
 
             if (isEmpty(newAccessToken)) {
                 log.warn("Refresh Token이 유효하지 않음 재로그인 필요");
@@ -73,14 +72,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Long accessExp = jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_ACCESS);
             ResponseCookie accessCookie = cookieUtil.createCookie(jwtTokenProvider.CATEGORY_ACCESS, newAccessToken, accessExp);
             response.addHeader("Set-Cookie", accessCookie.toString());
+            return newAccessToken;
 
-        } catch (IllegalArgumentException e) {
+        } catch (Exception e) {
             log.warn("Access Token 재발급 실패: {}", e.getMessage());
             cookieUtil.deleteJwtCookies(response);
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Refresh Token이 만료되었거나 유효하지 않습니다.");
             return null;
         }
-        return newAccessToken;
     }
 
     private boolean isAccessToken(String token, HttpServletResponse response) throws IOException {

@@ -1,9 +1,15 @@
 package com.team03.ticketmon._global.util;
 
+import com.team03.ticketmon._global.exception.BusinessException;
+import com.team03.ticketmon._global.exception.ErrorCode;
+
 import java.net.URI;
 import java.util.Map;
+import java.util.Optional;
 
 public class UploadPathUtil {
+
+    public static final String SUPABASE_PUBLIC_URL_PREFIX = "/storage/v1/object/public/";
 
     private static final Map<String, String> MIME_TO_EXT = Map.of(
             "image/jpeg", "jpg",
@@ -26,25 +32,24 @@ public class UploadPathUtil {
 
     // MIME 타입 기반 확장자 결정
     public static String getExtensionFromMimeType(String mimeType) {
-        String extension = MIME_TO_EXT.get(mimeType);
-        if (extension == null) {
-            throw new IllegalArgumentException("지원하지 않는 MIME 타입입니다: " + mimeType);
+        if (mimeType == null || !MIME_TO_EXT.containsKey(mimeType)) {
+            throw new BusinessException(ErrorCode.UNSUPPORTED_FILE_TYPE, "지원하지 않는 MIME 타입입니다: " + mimeType);
         }
-        return extension;
+        return MIME_TO_EXT.get(mimeType);
     }
 
-    public static String extractPathFromPublicUrl(String bucket, String publicUrl) {
+    public static Optional<String> extractPathFromPublicUrl(String bucket, String publicUrl) {
         if (bucket == null || bucket.isEmpty() || publicUrl == null || publicUrl.isEmpty())
-            return null;
+            return Optional.empty();
 
         try {
-            final String marker = "/storage/v1/object/public/" + bucket + "/";
+            final String marker = SUPABASE_PUBLIC_URL_PREFIX + bucket + "/";
             URI uri = URI.create(publicUrl);
             String path = uri.getPath();
             int idx = path.indexOf(marker);
-            return (idx != -1) ? path.substring(idx + marker.length()) : null;
+            return (idx != -1) ? Optional.of(path.substring(idx + marker.length())) : Optional.empty();
         } catch (IllegalArgumentException e) {
-            return null;
+            return Optional.empty();
         }
     }
 }

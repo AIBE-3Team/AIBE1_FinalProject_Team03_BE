@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -18,24 +19,15 @@ public class UserProfileServiceImpl implements UserProfileService {
     private final SupabaseProperties supabaseProperties;
 
     @Override
-    public String uploadProfileAndReturnUrl(MultipartFile profileImage) {
-        if (profileImage == null || profileImage.isEmpty()) {
-            return "";
-        }
+    public Optional<String> uploadProfileAndReturnUrl(MultipartFile profileImage) {
+        if (profileImage == null || profileImage.isEmpty())
+            return Optional.empty();
 
         FileValidator.validate(profileImage);
 
-        String fileUUID = UUID.randomUUID().toString();
-        String contentType = profileImage.getContentType();
-        if (contentType == null) {
-            throw new IllegalArgumentException("파일의 Content-Type을 확인할 수 없습니다.");
-        }
-
-        String fileExtension = UploadPathUtil.getExtensionFromMimeType(contentType);
-
-        String filePath = UploadPathUtil.getProfilePath(fileUUID, fileExtension);
-
-        return storageUploader.uploadFile(profileImage, supabaseProperties.getProfileBucket(), filePath);
+        String filePath = buildFilePath(profileImage);
+        String fileUrl = storageUploader.uploadFile(profileImage, supabaseProperties.getProfileBucket(), filePath);
+        return Optional.of(fileUrl);
     }
 
     @Override
@@ -44,5 +36,12 @@ public class UserProfileServiceImpl implements UserProfileService {
             return;
 
         storageUploader.deleteFile(supabaseProperties.getProfileBucket(), profileImageUrl);
+    }
+
+    private String buildFilePath(MultipartFile file) {
+        String fileUUID = UUID.randomUUID().toString();
+        String contentType = file.getContentType();
+        String fileExtension = UploadPathUtil.getExtensionFromMimeType(contentType);
+        return UploadPathUtil.getProfilePath(fileUUID, fileExtension);
     }
 }

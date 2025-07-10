@@ -36,6 +36,7 @@ public enum ErrorCode {
     FILE_UPLOAD_FAILED(500, "F001", "파일 업로드 중 알 수 없는 오류가 발생했습니다."), // 파일 업로드 오류
     FILE_SIZE_LIMIT_EXCEEDED(400, "F002", "요청 파일 크기가 허용된 최대 크기를 초과했습니다."), // FileValidator 관련(파일 크기)
     UNSUPPORTED_FILE_TYPE(400, "F003", "허용되지 않는 파일 형식입니다."), // FileValidator 관련 (파일 형식)
+    FILE_CONTENT_TYPE_NULL(400, "F004", "파일의 Content-Type을 확인할 수 없습니다."),
 
     // Auth & User (인증 및 사용자 관련)
     LOGIN_FAILED(401, "A001", "아이디 또는 비밀번호가 일치하지 않습니다."),

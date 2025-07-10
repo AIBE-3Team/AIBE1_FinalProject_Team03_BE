@@ -4,12 +4,12 @@ import com.team03.ticketmon.auth.oauth2.OAuthAttributes;
 import com.team03.ticketmon.user.dto.RegisterResponseDTO;
 import com.team03.ticketmon.user.dto.RegisterSocialDTO;
 import com.team03.ticketmon.user.dto.RegisterUserEntityDTO;
-import com.team03.ticketmon.user.dto.SocialRegisterDTO;
 import com.team03.ticketmon.user.service.RegisterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -19,14 +19,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "회원가입", description = "유저 회원가입 관련 API입니다.")
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/auth")
 public class RegisterAPIController {
 
     private final RegisterService registerService;
-
-    public RegisterAPIController(RegisterService registerService) {
-        this.registerService = registerService;
-    }
 
     @GetMapping("/register/social")
     @Operation(summary = "소셜 로그인 정보 조회", description = "세션에 저장된 소셜 사용자 정보를 반환합니다.")

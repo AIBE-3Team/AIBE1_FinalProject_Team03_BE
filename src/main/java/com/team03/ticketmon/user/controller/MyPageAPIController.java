@@ -7,7 +7,6 @@ import com.team03.ticketmon.user.service.MyPageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +19,8 @@ import java.util.List;
 
 @Tag(name = "마이페이지")
 @RestController
-@RequestMapping("/api/mypage")
 @RequiredArgsConstructor
+@RequestMapping("/api/mypage")
 public class MyPageAPIController {
 
     private final MyPageService myPageService;
@@ -78,15 +77,8 @@ public class MyPageAPIController {
         if (bindingResult.hasErrors())
             return ResponseEntity.badRequest().body(bindingResult.getAllErrors());
 
-        try {
-            Long userId = userDetails.getUserId();
-            myPageService.updatePassword(userId, dto);
-            return ResponseEntity.ok("비밀번호 변경 성공");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+        myPageService.updatePassword(userDetails.getUserId(), dto);
+        return ResponseEntity.ok("비밀번호 변경 성공");
     }
 
     @GetMapping("/booking")

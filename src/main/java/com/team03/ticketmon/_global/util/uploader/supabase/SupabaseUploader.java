@@ -120,7 +120,7 @@ public class SupabaseUploader implements StorageUploader {
             log.debug("✅ [DEBUG] bucket = {}", bucket);
             log.debug("✅ [DEBUG] fullPath = {}", fullPath);
 
-            String deletePath = UploadPathUtil.extractPathFromPublicUrl(bucket, fullPath);
+            String deletePath = UploadPathUtil.extractPathFromPublicUrl(bucket, fullPath).orElse(null);
             log.debug("✅ [DEBUG] deletePath = {}", deletePath);
 
             if (deletePath == null || deletePath.isEmpty()) {

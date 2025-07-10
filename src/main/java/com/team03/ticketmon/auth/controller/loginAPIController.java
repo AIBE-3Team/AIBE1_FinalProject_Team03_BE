@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -34,16 +33,14 @@ public class loginAPIController {
     }
 
     @GetMapping("/me")
-    @Operation(summary = "로그인된 사용자 인증 정보 전달", description = "현재 로그인된 사용자의 안증 정보를 전달합니다.")
+    @Operation(summary = "로그인된 사용자 인증 정보 전달", description = "현재 로그인된 사용자의 인증 정보를 전달합니다.")
     @ApiResponse(responseCode = "200", description = "사용자 인증 정보 전달 완료")
-    @ApiResponse(responseCode = "401", description = "인증 미통과")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated())
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-        if (!(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+        CustomUserDetails userDetails = extractUserDetails(authentication);
+
+        if (userDetails == null)
+            return ResponseEntity.ok().body(null);
 
         String role = userDetails.getAuthorities().isEmpty() ?
                 "UNKNOWN" : userDetails.getAuthorities().iterator().next().getAuthority();
@@ -56,5 +53,15 @@ public class loginAPIController {
         );
 
         return ResponseEntity.ok(dto);
+    }
+
+    private CustomUserDetails extractUserDetails(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) return null;
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CustomUserDetails userDetails) {
+            return userDetails;
+        }
+        return null;
     }
 }

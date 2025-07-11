@@ -40,11 +40,11 @@ class MyPageServiceImplTest {
     private final Long userId = 1L;
     private UserEntity user;
     private MultipartFile mockFile;
+    private UpdateUserProfileDTO updateUserDTO;
 
     @BeforeEach
     void init() {
         mockFile = mock(MultipartFile.class);
-
 
         user = UserEntity.builder()
                 .id(userId)
@@ -57,6 +57,14 @@ class MyPageServiceImplTest {
                 .address("서울")
                 .profileImage("http://Profile.png")
                 .build();
+
+        updateUserDTO = new UpdateUserProfileDTO(
+                "새로운이름",
+                "새로운닉네임",
+                "010-1111-2222",
+                "서울",
+                mockFile
+        );
     }
 
     @Test
@@ -95,22 +103,15 @@ class MyPageServiceImplTest {
     @Test
     void 마이페이지_정보_수정_정상_테스트() {
         // given
-        UpdateUserProfileDTO dto = new UpdateUserProfileDTO(
-                "새로운닉네임",
-                "010-1111-2222",
-                "서울",
-                "http://image.url/profile.png",
-                null
-        );
         given(userEntityService.findUserEntityByUserId(userId)).willReturn(Optional.of(user));
 
         // when
-        myPageService.updateUserProfile(userId, dto);
+        myPageService.updateUserProfile(userId, updateUserDTO);
 
         // then
-        assertEquals(dto.nickname(), user.getNickname());
-        assertEquals(dto.phone(), user.getPhone());
-        assertEquals(dto.address(), user.getAddress());
+        assertEquals(updateUserDTO.nickname(), user.getNickname());
+        assertEquals(updateUserDTO.phone(), user.getPhone());
+        assertEquals(updateUserDTO.address(), user.getAddress());
 
         verify(userEntityService).save(user);
     }
@@ -120,47 +121,31 @@ class MyPageServiceImplTest {
         // given
         given(mockFile.isEmpty()).willReturn(false);
 
-        UpdateUserProfileDTO dto = new UpdateUserProfileDTO(
-                "새로운닉네임",
-                "010-1111-2222",
-                "서울",
-                "http://image.url/profile.png",
-                mockFile
-        );
-
         given(userEntityService.findUserEntityByUserId(userId)).willReturn(Optional.of(user));
         willDoNothing().given(userProfileService).deleteProfileImage(user.getProfileImage());
         given(userProfileService.uploadProfileAndReturnUrl(mockFile))
                 .willReturn(Optional.of("http://NewProfile.png"));
 
         // when
-        myPageService.updateUserProfile(userId, dto);
+        myPageService.updateUserProfile(userId, updateUserDTO);
 
         // then
         verify(userProfileService).deleteProfileImage("http://Profile.png");
         verify(userProfileService).uploadProfileAndReturnUrl(mockFile);
         verify(userEntityService).save(user);
 
-        assertEquals(dto.name(), user.getName());
+        assertEquals(updateUserDTO.name(), user.getName());
         assertEquals("http://NewProfile.png", user.getProfileImage());
     }
 
     @Test
     void 마이페이지_정보_수정_유저없음_예외_테스트() {
         // given
-        UpdateUserProfileDTO dto = new UpdateUserProfileDTO(
-                "새로운닉네임",
-                "010-1111-2222",
-                "서울",
-                "http://image.url/profile.png",
-                null
-        );
-
         given(userEntityService.findUserEntityByUserId(userId)).willReturn(Optional.empty());
 
         // when
         BusinessException ex = assertThrows(BusinessException.class, () -> {
-            myPageService.updateUserProfile(userId, dto);
+            myPageService.updateUserProfile(userId, updateUserDTO);
         });
 
         // then

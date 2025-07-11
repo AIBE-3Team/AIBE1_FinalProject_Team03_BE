@@ -7,35 +7,42 @@ import com.team03.ticketmon.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 @DisplayName("회원가입 테스트")
 class RegisterServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
-
     @Mock
     private PasswordEncoder passwordEncoder;
+    @Mock
+    private UserProfileService userProfileService;
 
     @InjectMocks
     private RegisterServiceImpl registerService;
 
+    private RegisterUserEntityDTO baseDTO;
+    private MultipartFile mockFile;
+    private UserEntity duplicateUser;
+
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
-    private RegisterUserEntityDTO baseDTO() {
-        return new RegisterUserEntityDTO(
+        mockFile = mock(MultipartFile.class);
+        baseDTO = new RegisterUserEntityDTO(
                 "test@email.com",
                 "test",
                 "1q2w3e4r!",
@@ -49,32 +56,34 @@ class RegisterServiceImplTest {
     @Test
     void 회원가입_정상처리_테스트() {
         // given
-        RegisterUserEntityDTO dto = baseDTO();
-
-        when(passwordEncoder.encode("1q2w3e4r!")).thenReturn("encodedPassword");
+        given(passwordEncoder.encode("1q2w3e4r!")).willReturn("encodedPassword");
+        given(userProfileService.uploadProfileAndReturnUrl(mockFile))
+                .willReturn(Optional.of("http://NewProfile.png"));
 
         // when
-        // registerService.createUser(dto);
+        registerService.createUser(baseDTO, mockFile);
 
         // then
         ArgumentCaptor<UserEntity> userCaptor = ArgumentCaptor.forClass(UserEntity.class); // 실제로 저장되는 객체를 캡처해서 검증
         verify(userRepository).save(userCaptor.capture()); // 특정 메서드가 호출됐는지 검증
 
         UserEntity savedUser = userCaptor.getValue();
-        assertThat(savedUser.getEmail()).isEqualTo(dto.email());
-        assertThat(savedUser.getUsername()).isEqualTo(dto.username());
+        assertThat(savedUser.getEmail()).isEqualTo(baseDTO.email());
+        assertThat(savedUser.getUsername()).isEqualTo(baseDTO.username());
         assertThat(savedUser.getPassword()).isEqualTo("encodedPassword");
         assertThat(savedUser.getRole()).isEqualTo(UserEntity.Role.USER);
         assertThat(savedUser.getAccountStatus()).isEqualTo(UserEntity.AccountStatus.ACTIVE);
+        assertThat(savedUser.getProfileImage()).isEqualTo("http://NewProfile.png");
     }
 
     @Test
-    void 회원가입_유효성검증_테스트() {
+    void 회원가입_유효성검증_성공_테스트() {
         // given
-        RegisterUserEntityDTO dto = baseDTO();
+        given(userRepository.findFirstByUsernameOrEmailOrNickname(any(), any(), any()))
+                .willReturn(Optional.empty());
 
         // when
-        RegisterResponseDTO responseDTO = registerService.validCheck(dto);
+        RegisterResponseDTO responseDTO = registerService.validCheck(baseDTO);
 
         // then
         assertThat(responseDTO.isSuccess()).isTrue();
@@ -82,12 +91,12 @@ class RegisterServiceImplTest {
 
     @Test
     void 회원가입_중복된_아이디이면_false를_반환_테스트() {
-        RegisterUserEntityDTO dto = baseDTO();
-
         // 해당 메서드가 호출되면 무조건 true로 반환
-        when(userRepository.existsByUsername("test")).thenReturn(true);
+        duplicateUser = UserEntity.builder().username("test").email("other@email.com").nickname("other").build();
 
-        RegisterResponseDTO response = registerService.validCheck(dto);
+        given(userRepository.findFirstByUsernameOrEmailOrNickname(baseDTO.username(), baseDTO.email(), baseDTO.nickname())).willReturn(Optional.of(duplicateUser));
+
+        RegisterResponseDTO response = registerService.validCheck(baseDTO);
 
         assertThat(response.isSuccess()).isFalse();
         assertThat(response.type()).isEqualTo("username");
@@ -95,11 +104,11 @@ class RegisterServiceImplTest {
 
     @Test
     void 회원가입_중복된_이메일이면_false를_반환_테스트() {
-        RegisterUserEntityDTO dto = baseDTO();
+        duplicateUser = UserEntity.builder().username("other").email("test@email.com").nickname("other").build();
 
-        when(userRepository.existsByEmail("test@email.com")).thenReturn(true);
+        given(userRepository.findFirstByUsernameOrEmailOrNickname(baseDTO.username(), baseDTO.email(), baseDTO.nickname())).willReturn(Optional.of(duplicateUser));
 
-        RegisterResponseDTO response = registerService.validCheck(dto);
+        RegisterResponseDTO response = registerService.validCheck(baseDTO);
 
         assertThat(response.isSuccess()).isFalse();
         assertThat(response.type()).isEqualTo("email");
@@ -107,11 +116,11 @@ class RegisterServiceImplTest {
 
     @Test
     void 회원가입_중복된_닉네임이면_false를_반환_테스트() {
-        RegisterUserEntityDTO dto = baseDTO();
+        duplicateUser = UserEntity.builder().username("other").email("other@email.com").nickname("testMan").build();
 
-        when(userRepository.existsByNickname("testMan")).thenReturn(true);
+        given(userRepository.findFirstByUsernameOrEmailOrNickname(baseDTO.username(), baseDTO.email(), baseDTO.nickname())).willReturn(Optional.of(duplicateUser));
 
-        RegisterResponseDTO response = registerService.validCheck(dto);
+        RegisterResponseDTO response = registerService.validCheck(baseDTO);
 
         assertThat(response.isSuccess()).isFalse();
         assertThat(response.type()).isEqualTo("nickname");

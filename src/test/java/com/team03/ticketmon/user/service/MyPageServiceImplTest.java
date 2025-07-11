@@ -1,10 +1,11 @@
 package com.team03.ticketmon.user.service;
 
+import com.team03.ticketmon._global.exception.BusinessException;
+import com.team03.ticketmon._global.exception.ErrorCode;
 import com.team03.ticketmon.user.domain.entity.UserEntity;
 import com.team03.ticketmon.user.dto.UpdatePasswordDTO;
 import com.team03.ticketmon.user.dto.UpdateUserProfileDTO;
 import com.team03.ticketmon.user.dto.UserProfileDTO;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,11 +14,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,15 +31,21 @@ class MyPageServiceImplTest {
     private UserEntityService userEntityService;
     @Mock
     private PasswordEncoder passwordEncoder;
+    @Mock
+    private UserProfileService userProfileService;
 
     @InjectMocks
     private MyPageServiceImpl myPageService;
 
     private final Long userId = 1L;
     private UserEntity user;
+    private MultipartFile mockFile;
 
     @BeforeEach
     void init() {
+        mockFile = mock(MultipartFile.class);
+
+
         user = UserEntity.builder()
                 .id(userId)
                 .email("test@test.com")
@@ -46,7 +55,7 @@ class MyPageServiceImplTest {
                 .nickname("길동")
                 .phone("010-1234-5678")
                 .address("서울")
-                .profileImage("http://image.url/profile.png")
+                .profileImage("http://Profile.png")
                 .build();
     }
 
@@ -66,7 +75,7 @@ class MyPageServiceImplTest {
         assertEquals("길동", dto.nickname());
         assertEquals("010-1234-5678", dto.phone());
         assertEquals("서울", dto.address());
-        assertEquals("http://image.url/profile.png", dto.profileImage());
+        assertEquals("http://Profile.png", dto.profileImage());
     }
 
     @Test
@@ -75,12 +84,12 @@ class MyPageServiceImplTest {
         given(userEntityService.findUserEntityByUserId(userId)).willReturn(Optional.empty());
 
         // when
-        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () -> {
+        BusinessException ex = assertThrows(BusinessException.class, () -> {
             myPageService.getUserProfile(userId);
         });
 
         // then
-        assertEquals("회원 정보가 없습니다.", ex.getMessage());
+        assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
     }
 
     @Test
@@ -90,7 +99,8 @@ class MyPageServiceImplTest {
                 "새로운닉네임",
                 "010-1111-2222",
                 "서울",
-                "http://image.url/profile.png"
+                "http://image.url/profile.png",
+                null
         );
         given(userEntityService.findUserEntityByUserId(userId)).willReturn(Optional.of(user));
 
@@ -101,11 +111,40 @@ class MyPageServiceImplTest {
         assertEquals(dto.nickname(), user.getNickname());
         assertEquals(dto.phone(), user.getPhone());
         assertEquals(dto.address(), user.getAddress());
-        assertEquals(dto.profileImage(), user.getProfileImage());
 
         verify(userEntityService).save(user);
     }
-    
+
+    @Test
+    void 마이페이지_정보_수정_이미지변경_정상_테스트() {
+        // given
+        given(mockFile.isEmpty()).willReturn(false);
+
+        UpdateUserProfileDTO dto = new UpdateUserProfileDTO(
+                "새로운닉네임",
+                "010-1111-2222",
+                "서울",
+                "http://image.url/profile.png",
+                mockFile
+        );
+
+        given(userEntityService.findUserEntityByUserId(userId)).willReturn(Optional.of(user));
+        willDoNothing().given(userProfileService).deleteProfileImage(user.getProfileImage());
+        given(userProfileService.uploadProfileAndReturnUrl(mockFile))
+                .willReturn(Optional.of("http://NewProfile.png"));
+
+        // when
+        myPageService.updateUserProfile(userId, dto);
+
+        // then
+        verify(userProfileService).deleteProfileImage("http://Profile.png");
+        verify(userProfileService).uploadProfileAndReturnUrl(mockFile);
+        verify(userEntityService).save(user);
+
+        assertEquals(dto.name(), user.getName());
+        assertEquals("http://NewProfile.png", user.getProfileImage());
+    }
+
     @Test
     void 마이페이지_정보_수정_유저없음_예외_테스트() {
         // given
@@ -113,18 +152,19 @@ class MyPageServiceImplTest {
                 "새로운닉네임",
                 "010-1111-2222",
                 "서울",
-                "http://image.url/profile.png"
+                "http://image.url/profile.png",
+                null
         );
 
         given(userEntityService.findUserEntityByUserId(userId)).willReturn(Optional.empty());
 
         // when
-        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () -> {
+        BusinessException ex = assertThrows(BusinessException.class, () -> {
             myPageService.updateUserProfile(userId, dto);
         });
 
         // then
-        assertEquals("회원 정보가 없습니다.", ex.getMessage());
+        assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
     }
 
     @Test
@@ -153,11 +193,11 @@ class MyPageServiceImplTest {
         given(passwordEncoder.matches(dto.currentPassword(), user.getPassword())).willReturn(false);
 
         // when
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+        BusinessException ex = assertThrows(BusinessException.class, () -> {
             myPageService.updatePassword(userId, dto);
         });
 
         // then
-        assertEquals("비밀번호가 일치하지 않습니다.", ex.getMessage());
+        assertEquals(ErrorCode.INVALID_INPUT, ex.getErrorCode());
     }
 }

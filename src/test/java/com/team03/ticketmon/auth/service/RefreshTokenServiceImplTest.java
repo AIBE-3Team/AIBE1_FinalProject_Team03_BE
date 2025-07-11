@@ -1,18 +1,25 @@
 package com.team03.ticketmon.auth.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.team03.ticketmon._global.exception.BusinessException;
+import com.team03.ticketmon._global.exception.ErrorCode;
+import com.team03.ticketmon._global.util.RedisKeyGenerator;
 import com.team03.ticketmon.auth.domain.entity.RefreshToken;
 import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
-import com.team03.ticketmon.auth.repository.RefreshTokenRepository;
-import com.team03.ticketmon.user.domain.entity.UserEntity;
 import com.team03.ticketmon.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
@@ -23,58 +30,86 @@ import static org.mockito.Mockito.*;
 class RefreshTokenServiceImplTest {
 
     @Mock
-    private RefreshTokenRepository refreshTokenRepository;
-    @Mock
     private JwtTokenProvider jwtTokenProvider;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private RedisTemplate<String, Object> redisTemplate;
+    @Mock
+    private ValueOperations<String, Object> valueOperations;
+    @Mock
+    private ObjectMapper objectMapper;
     @InjectMocks
     private RefreshTokenServiceImpl refreshTokenService;
 
     private final String refreshToken = "refresh-token";
     private final Long userId = 1L;
+    private final Long refreshExpirationMs = 86400000L;
+    private final String redisKey = RedisKeyGenerator.JWT_RT_PREFIX + userId;
+    private RefreshToken storedToken;
+
+    @BeforeEach
+    void setUp() {
+        refreshTokenService = new RefreshTokenServiceImpl(
+                jwtTokenProvider,
+                userRepository,
+                redisTemplate,
+                objectMapper
+        );
+
+        storedToken = RefreshToken.builder().id(userId).token(refreshToken).created_at(LocalDateTime.now()).build();
+
+        // @Value 대체 수동 설정
+        try {
+            java.lang.reflect.Field field = RefreshTokenServiceImpl.class.getDeclaredField("refreshExpirationMs");
+            field.setAccessible(true);
+            field.set(refreshTokenService, refreshExpirationMs);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Test
     void saveRefreshToken_정상작동_테스트() {
         // given
-        Long userId = 1L;
-        String token = "testToken";
-        UserEntity userEntity = UserEntity.builder().id(userId).build();
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
-        when(jwtTokenProvider.getExpirationMs(jwtTokenProvider.CATEGORY_REFRESH)).thenReturn(10000L);
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(userRepository.existsById(userId)).willReturn(true);
 
         // when
-        refreshTokenService.saveRefreshToken(userId, token);
+        refreshTokenService.saveRefreshToken(userId, refreshToken);
 
         // then
-        verify(refreshTokenRepository, times(1)).save(any(RefreshToken.class));
+        verify(userRepository).existsById(userId);
+        verify(redisTemplate.opsForValue()).set(
+                eq(redisKey),
+                any(RefreshToken.class),
+                eq(refreshExpirationMs),
+                eq(TimeUnit.MILLISECONDS)
+        );
     }
 
     @Test
     void saveRefreshToken_유저없으면_예외_테스트() {
         // given
-        Long userId = 1L;
-        String token = "testToken";
-
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        given(userRepository.existsById(userId)).willReturn(false);
 
         // when & then
-        assertThrows(RuntimeException.class, () -> {
-            refreshTokenService.saveRefreshToken(userId, token);
+        BusinessException ex = assertThrows(BusinessException.class, () -> {
+            refreshTokenService.saveRefreshToken(userId, refreshToken);
         });
+
+        assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
     }
 
     @Test
     void deleteRefreshToken_정상작동_테스트() {
         // given
-        Long userId = 1L;
 
         // when
         refreshTokenService.deleteRefreshToken(userId);
 
         // then
-        verify(refreshTokenRepository, times(1)).deleteByUserEntityId(userId);
+        verify(redisTemplate).delete(redisKey);
     }
 
     @Test
@@ -82,8 +117,10 @@ class RefreshTokenServiceImplTest {
         // given
         given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
         given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
-        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
-        given(refreshTokenRepository.existsByUserEntityIdAndToken(userId, refreshToken)).willReturn(true);
+        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(userId);
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(redisTemplate.opsForValue().get(redisKey)).willReturn(storedToken);
+        given(objectMapper.convertValue(storedToken, RefreshToken.class)).willReturn(storedToken);
 
         // when & then
         assertDoesNotThrow(() -> refreshTokenService.validateRefreshToken(refreshToken, true));
@@ -95,11 +132,11 @@ class RefreshTokenServiceImplTest {
         given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_ACCESS);
 
         // when & then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+        BusinessException ex = assertThrows(BusinessException.class, () -> {
             refreshTokenService.validateRefreshToken(refreshToken, true);
         });
 
-        assertEquals("유효하지 않은 카테고리 JWT 토큰입니다.", ex.getMessage());
+        assertEquals(ErrorCode.INVALID_TOKEN, ex.getErrorCode());
     }
 
     @Test
@@ -109,24 +146,28 @@ class RefreshTokenServiceImplTest {
         given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(true);
 
         // when & then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+        BusinessException ex = assertThrows(BusinessException.class, () -> {
             refreshTokenService.validateRefreshToken(refreshToken, true);
         });
 
-        assertEquals("Refresh Token이 만료되었습니다.", ex.getMessage());
+        assertEquals(ErrorCode.INVALID_TOKEN, ex.getErrorCode());
     }
 
     @Test
-    public void validateRefreshToken_DB_존재하지_않음_예외_테스트() {
+    public void validateRefreshToken_저장소_존재하지_않음_예외_테스트() {
         // given
         given(jwtTokenProvider.getCategory(refreshToken)).willReturn(jwtTokenProvider.CATEGORY_REFRESH);
         given(jwtTokenProvider.isTokenExpired(refreshToken)).willReturn(false);
+        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(userId);
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(redisTemplate.opsForValue().get(redisKey)).willReturn(storedToken);
+        given(objectMapper.convertValue(storedToken, RefreshToken.class)).willReturn(null);
 
         // when & then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+        BusinessException ex = assertThrows(BusinessException.class, () -> {
             refreshTokenService.validateRefreshToken(refreshToken, true);
         });
 
-        assertEquals("Refresh Token이 DB에 존재하지 않습니다.", ex.getMessage());
+        assertEquals(ErrorCode.INVALID_TOKEN, ex.getErrorCode());
     }
 }

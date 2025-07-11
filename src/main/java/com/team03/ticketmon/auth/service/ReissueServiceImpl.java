@@ -1,5 +1,7 @@
 package com.team03.ticketmon.auth.service;
 
+import com.team03.ticketmon._global.exception.BusinessException;
+import com.team03.ticketmon._global.exception.ErrorCode;
 import com.team03.ticketmon.auth.Util.CookieUtil;
 import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,7 +34,7 @@ public class ReissueServiceImpl implements ReissueService {
     public void handleReissueToken(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_REFRESH, request);
         if (refreshToken == null || refreshToken.isEmpty())
-            throw new IllegalArgumentException("Refresh Token이 존재하지 않습니다.");
+            throw new BusinessException(ErrorCode.INVALID_TOKEN, "Refresh Token이 존재하지 않습니다.");
 
         Long userId = jwtTokenProvider.getUserId(refreshToken);
         String username = jwtTokenProvider.getUsername(refreshToken);
@@ -48,7 +50,7 @@ public class ReissueServiceImpl implements ReissueService {
     private String extractRole(String token) {
         List<String> roles = jwtTokenProvider.getRoles(token);
         if (roles == null || roles.isEmpty()) {
-            throw new IllegalArgumentException("역할(Role) 정보가 없습니다.");
+            throw new BusinessException(ErrorCode.INVALID_TOKEN, "역할(Role) 정보가 없습니다.");
         }
         return roles.get(0);
     }

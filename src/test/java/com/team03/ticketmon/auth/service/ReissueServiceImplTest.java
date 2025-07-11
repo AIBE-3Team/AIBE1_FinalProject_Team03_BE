@@ -1,5 +1,7 @@
 package com.team03.ticketmon.auth.service;
 
+import com.team03.ticketmon._global.exception.BusinessException;
+import com.team03.ticketmon._global.exception.ErrorCode;
 import com.team03.ticketmon.auth.Util.CookieUtil;
 import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,12 +28,12 @@ class ReissueServiceImplTest {
     @Mock
     private RefreshTokenService refreshTokenService;
     @Mock
-    HttpServletRequest request;
+    private HttpServletRequest request;
     @Mock
-    HttpServletResponse response;
+    private HttpServletResponse response;
 
-    private ReissueServiceImpl reissueService;
     private CookieUtil cookieUtil;
+    private ReissueServiceImpl reissueService;
 
     @BeforeEach
     void setUp() {
@@ -49,7 +51,7 @@ class ReissueServiceImplTest {
     @Test
     void reissueToken_AccessToken_재발급_정상_테스트() {
         // given
-        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
+        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(userId);
         given(jwtTokenProvider.getUsername(refreshToken)).willReturn(username);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
         given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_ACCESS, userId, username, role)).willReturn(newAccessToken);
@@ -65,7 +67,7 @@ class ReissueServiceImplTest {
     @Test
     public void reissueToken_RefreshToken_재발급_정상_테스트() {
         // given
-        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
+        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(userId);
         given(jwtTokenProvider.getUsername(refreshToken)).willReturn(username);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of(role));
         given(jwtTokenProvider.generateToken(jwtTokenProvider.CATEGORY_REFRESH, userId, username, role)).willReturn(newRefreshToken);
@@ -81,15 +83,15 @@ class ReissueServiceImplTest {
     @Test
     void reissueToken_Role추출_예외_테스트() {
         // given
-        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(1L);
+        given(jwtTokenProvider.getUserId(refreshToken)).willReturn(userId);
         given(jwtTokenProvider.getRoles(refreshToken)).willReturn(List.of());
 
         // when & then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+        BusinessException ex = assertThrows(BusinessException.class, () -> {
             reissueService.reissueToken(refreshToken, jwtTokenProvider.CATEGORY_ACCESS, true);
         });
 
-        assertEquals("역할(Role) 정보가 없습니다.", ex.getMessage());
+        assertEquals(ErrorCode.INVALID_TOKEN, ex.getErrorCode());
     }
 
     @Test
@@ -121,10 +123,10 @@ class ReissueServiceImplTest {
         given(jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_REFRESH, request)).willReturn("");
 
         // when & then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+        BusinessException ex = assertThrows(BusinessException.class, () -> {
             reissueService.handleReissueToken(request, response);
         });
-        assertEquals("Refresh Token이 존재하지 않습니다.", ex.getMessage());
+        assertEquals(ErrorCode.INVALID_TOKEN, ex.getErrorCode());
     }
 
     @Test
@@ -137,14 +139,14 @@ class ReissueServiceImplTest {
         doNothing().when(refreshTokenService).validateRefreshToken(refreshToken, true);
 
         // Access Token만 null 반환하도록 설정
-        doThrow(new IllegalArgumentException("Access Token 재발급이 실패했습니다."))
+        doThrow(new BusinessException(ErrorCode.INVALID_TOKEN, "Access Token 재발급이 실패했습니다."))
                 .when(cookieUtil).generateAndSetJwtCookies(eq(userId), eq(username), eq(role), eq(response));
 
         // when & then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+        BusinessException ex = assertThrows(BusinessException.class, () -> {
             reissueService.handleReissueToken(request, response);
         });
 
-        assertEquals("Access Token 재발급이 실패했습니다.", ex.getMessage());
+        assertEquals(ErrorCode.INVALID_TOKEN, ex.getErrorCode());
     }
 }

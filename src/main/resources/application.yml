@@ -1,6 +1,6 @@
 app:
   queue:
-    max-active-users: 1 # 예매 페이지에 동시 진입 가능한 최대 사용자 수
+    max-active-users: 5 # 예매 페이지에 동시 진입 가능한 최대 사용자 수
     access-key-ttl-seconds: 300 # 예매 페이지 접근 키의 유효시간 (단위: 초)
     top-ranker-count: 5 #  최상위 대기자 기준 설정
   websocket:

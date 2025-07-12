@@ -70,17 +70,20 @@ public class RedisKeyGenerator {
     /** 🔒 `lock:cleanupScheduler`<br>
      * 만료 세션 정리 작업용 분산 락 키입니다.
      */
-    public static final String CLEANUP_SCHEDULER_LOCK_KEY = "lock:cleanupScheduler";
+//    public static final String CLEANUP_SCHEDULER_LOCK_KEY = "lock:cleanupScheduler";
+    public static final String CLEANUP_SCHEDULER_LOCK_KEY = "lock:queueScheduler";
 
     /** 🔒 `lock:admissionScheduler`<br>
      * 대기열 입장 처리용 스케줄러 락 키입니다.
      */
-    public static final String ADMISSION_SCHEDULER_LOCK_KEY = "lock:admissionScheduler";
+//    public static final String ADMISSION_SCHEDULER_LOCK_KEY = "lock:admissionScheduler";
+    public static final String ADMISSION_SCHEDULER_LOCK_KEY = "lock:queueScheduler";
 
     /** 🔒 `lock:consistencyCheckScheduler`<br>
      * 정합성 체크 스케줄러 락 키입니다.
      */
-    public static final String CONSISTENCY_CHECK_LOCK_KEY = "lock:consistencyCheckScheduler";
+//    public static final String CONSISTENCY_CHECK_LOCK_KEY = "lock:consistencyCheckScheduler";
+    public static final String CONSISTENCY_CHECK_LOCK_KEY = "lock:queueScheduler";
 
     // --- 🪑 좌석 관리 관련 키 ---
 

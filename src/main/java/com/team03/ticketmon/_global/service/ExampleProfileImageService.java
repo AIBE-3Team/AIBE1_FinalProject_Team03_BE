@@ -12,12 +12,18 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Objects;
 
 @Service
-@RequiredArgsConstructor
 public class ExampleProfileImageService {
 
     @Qualifier("supabaseUploader") // SupabaseUploader를 명확하게 주입
     private final StorageUploader storageUploader;
     private final StoragePathProvider storagePathProvider; // StoragePathProvider 주입
+
+    public ExampleProfileImageService(
+            @Qualifier("supabaseUploader") StorageUploader storageUploader,
+            StoragePathProvider storagePathProvider) {
+        this.storageUploader = storageUploader;
+        this.storagePathProvider = storagePathProvider;
+    }
 
     public UploadResponseDTO uploadProfileImage(String uuid, MultipartFile file) {
         String fileExtension = FileUtil.getExtensionFromMimeType(Objects.requireNonNull(file.getContentType()));

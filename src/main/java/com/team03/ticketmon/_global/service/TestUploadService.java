@@ -3,9 +3,9 @@ package com.team03.ticketmon._global.service;
 import com.team03.ticketmon._global.dto.UploadResponseDTO;
 import com.team03.ticketmon._global.util.uploader.StorageUploader;
 import com.team03.ticketmon._global.util.FileValidator;
-import com.team03.ticketmon._global.util.StoragePathProvider; // StoragePathProvider 임포트
-import com.team03.ticketmon._global.util.FileUtil; // FileUtil 임포트
-import lombok.RequiredArgsConstructor;
+import com.team03.ticketmon._global.util.StoragePathProvider;
+import com.team03.ticketmon._global.util.FileUtil;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,11 +13,17 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class TestUploadService {
 
     private final StorageUploader storageUploader;
-    private final StoragePathProvider storagePathProvider; // StoragePathProvider 주입
+    private final StoragePathProvider storagePathProvider;
+
+    public TestUploadService(
+            @Qualifier("supabaseUploader") StorageUploader storageUploader,
+            StoragePathProvider storagePathProvider) {
+        this.storageUploader = storageUploader;
+        this.storagePathProvider = storagePathProvider;
+    }
 
     public UploadResponseDTO uploadTestFile(MultipartFile file) {
         // 파일 유효성 검사 추가: 파일 업로드 전에 FileValidator를 호출하여 유효성 검사(크기, 형식)를 수행합니다.

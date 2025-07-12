@@ -23,7 +23,7 @@ public class CleanupScheduler {
     private final ConcertRepository concertRepository;
     private final QueueRedisAdapter queueRedisAdapter;
 
-    @Scheduled(fixedDelay = 10000)
+    @Scheduled(fixedDelay = 7100)
     public void cleanupExpiredSessions() {
         RLock lock = queueRedisAdapter.getCleanupSchedulerLock();
 

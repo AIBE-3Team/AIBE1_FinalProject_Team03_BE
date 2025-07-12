@@ -25,7 +25,7 @@ public class ConsistencyCheckScheduler {
      * 1분마다 실행되어 활성 사용자 수와 실제 세션 수의 정합성을 체크하고 보정합니다.
      * TODO: 설정(cron, lock 타임아웃 등) application.yml 분리
      */
-    @Scheduled(fixedDelay = 60000)
+    @Scheduled(fixedDelay = 67000)
     public void checkAndSyncCounts() {
         RLock lock = queueRedisAdapter.getConsistencyCheckLock();
 

@@ -114,7 +114,7 @@ public class WaitingQueueScheduler {
         }
 
         // 추출된 사용자들에게 입장 허가 처리
-        admissionService.grantAccess(concertId, admittedUserIds, true);
+        admissionService.grantAccess(concertId, admittedUserIds, true, true);
 
         // ==================== 2. 알림 로직 실행 ====================
         RScoredSortedSet<Long> queue = queueRedisAdapter.getQueue(concertId);

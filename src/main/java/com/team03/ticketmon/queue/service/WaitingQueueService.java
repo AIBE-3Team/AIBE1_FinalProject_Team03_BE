@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBucket;
 import org.redisson.api.RScoredSortedSet;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -37,9 +36,10 @@ public class WaitingQueueService {
      * @return 1부터 시작하는 사용자의 대기 순번
      */
     public QueueStatusDto apply(Long concertId, Long userId) {
+        RScoredSortedSet<Long> queue = queueRedisAdapter.getQueue(concertId);
 
         // 1. 원자적 슬롯 점유 시도
-        if (admissionService.tryClaimSlot(concertId)) {
+        if (queue.isEmpty() && admissionService.tryClaimSlot(concertId)) {
             log.debug("[userId: {}] 즉시 입장 처리 시작.", userId);
             String accessKey = admissionService.grantAccess(concertId, userId);
             return QueueStatusDto.immediateEntry(accessKey);
@@ -47,7 +47,6 @@ public class WaitingQueueService {
 
         // 2. 슬롯이 꽉 찼거나, 점유 시도에 실패(경쟁에서 밀림)하면 대기열로 진입
         log.debug("사용자 {} 대기열 진입 처리 시작.", userId);
-        RScoredSortedSet<Long> queue = queueRedisAdapter.getQueue(concertId);
         long uniqueScore = queueRedisAdapter.generateQueueScore(concertId);
 
         if (!queue.addIfAbsent(uniqueScore, userId)) {

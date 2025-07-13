@@ -1,5 +1,6 @@
 package com.team03.ticketmon.user.service;
 
+import com.team03.ticketmon._global.service.UrlConversionService;
 import com.team03.ticketmon._global.util.FileUtil;
 import com.team03.ticketmon._global.util.FileValidator;
 import com.team03.ticketmon._global.util.StoragePathProvider;
@@ -17,6 +18,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     private final StorageUploader storageUploader;
     private final StoragePathProvider storagePathProvider;
+    private final UrlConversionService urlConversionService;
 
     @Override
     public Optional<String> uploadProfileAndReturnUrl(MultipartFile profileImage) {
@@ -27,7 +29,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 
         String filePath = buildFilePath(profileImage);
         String fileUrl = storageUploader.uploadFile(profileImage, storagePathProvider.getProfileBucketName(), filePath);
-        return Optional.of(fileUrl);
+
+        String convertedUrl = urlConversionService.convertToCloudFrontUrl(fileUrl);
+
+        return Optional.of(convertedUrl);
     }
 
     @Override

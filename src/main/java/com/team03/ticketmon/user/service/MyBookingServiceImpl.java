@@ -47,8 +47,8 @@ public class MyBookingServiceImpl implements MyBookingService {
                 .map(ticket -> {
                     var concertSeat = ticket.getConcertSeat();
                     var seat = concertSeat.getSeat();
-                    return String.format("%s석 %s열 %d번",
-                            concertSeat.getGrade().name(),
+                    return String.format("%s구역 %s열 %d번",
+                            seat.getSection(),
                             seat.getSeatRow(),
                             seat.getSeatNumber()
                     );

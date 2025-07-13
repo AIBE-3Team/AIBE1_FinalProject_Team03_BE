@@ -2,6 +2,7 @@ package com.team03.ticketmon.user.service;
 
 import com.team03.ticketmon._global.exception.BusinessException;
 import com.team03.ticketmon._global.exception.ErrorCode;
+import com.team03.ticketmon._global.service.UrlConversionService;
 import com.team03.ticketmon.user.domain.entity.UserEntity;
 import com.team03.ticketmon.user.dto.UpdatePasswordDTO;
 import com.team03.ticketmon.user.dto.UpdateUserProfileDTO;
@@ -21,10 +22,13 @@ public class MyPageServiceImpl implements MyPageService {
     private final UserEntityService userEntityService;
     private final PasswordEncoder passwordEncoder;
     private final UserProfileService userProfileService;
+    private final UrlConversionService urlConversionService;
 
     @Override
     public UserProfileDTO getUserProfile(Long userId) {
         UserEntity user = findUserOrThrow(userId);
+
+        String convertedProfileImageUrl = urlConversionService.convertToCloudFrontUrl(user.getProfileImage());
 
         return new UserProfileDTO(
                 user.getEmail(),
@@ -33,7 +37,7 @@ public class MyPageServiceImpl implements MyPageService {
                 user.getNickname(),
                 user.getPhone(),
                 user.getAddress(),
-                user.getProfileImage()
+                convertedProfileImageUrl
         );
     }
 

@@ -58,6 +58,6 @@ public class CustomLogoutFilter extends GenericFilterBean {
         String requestUri = request.getRequestURI();
         String requestMethod = request.getMethod();
 
-        return "/auth/logout".equals(requestUri) && "POST".equals(requestMethod);
+        return "/api/auth/logout".equals(requestUri) && "POST".equals(requestMethod);
     }
 }

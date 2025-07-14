@@ -49,6 +49,12 @@ public class RegisterServiceImpl implements RegisterService {
 
     @Override
     public RegisterResponseDTO validCheck(RegisterUserEntityDTO dto) {
+        if (!Boolean.TRUE.equals(dto.isSocialUser())) {
+            if (dto.password() == null || !dto.password().matches("^(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+=-])[A-Za-z\\d!@#$%^&*()_+=-]{8,}$")) {
+                throw new BusinessException(ErrorCode.INVALID_INPUT, "비밀번호는 최소 8자 이상이며, 소문자, 숫자, 특수문자를 포함해야 합니다.");
+            }
+        }
+
         return userRepository.findFirstByUsernameOrEmailOrNickname(dto.username(), dto.email(), dto.nickname())
                 .map(user -> {
                     if (user.getUsername().equals(dto.username()))

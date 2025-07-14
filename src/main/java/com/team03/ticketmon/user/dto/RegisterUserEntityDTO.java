@@ -9,10 +9,6 @@ public record RegisterUserEntityDTO(
         String email,
         @NotBlank(message = "사용자 아이디는 필수입니다.")
         String username,
-        @Pattern(
-                regexp = "^(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+=-])[A-Za-z\\d!@#$%^&*()_+=-]{8,}$",
-                message = "비밀번호는 최소 8자 이상이며, 소문자, 숫자, 특수문자를 포함해야 합니다."
-        )
         String password,
         @NotBlank(message = "사용자 이름은 필수입니다.")
         String name,
@@ -24,6 +20,7 @@ public record RegisterUserEntityDTO(
         // 휴대폰 번호 형식: 010 또는 011/016~019로 시작하며, 가운데는 3~4자리, 마지막은 4자리 숫자
         String phone,
         @NotBlank(message = "사용자 주소는 필수입니다.")
-        String address
+        String address,
+        Boolean isSocialUser // 소셜 유저 여부
 ) {
 }

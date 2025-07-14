@@ -1,15 +1,12 @@
 package com.team03.ticketmon.auth.oauth2;
 
+import com.team03.ticketmon._global.config.AppProperties;
 import com.team03.ticketmon.auth.Util.CookieUtil;
-import com.team03.ticketmon.auth.jwt.JwtTokenProvider;
-import com.team03.ticketmon.auth.service.RefreshTokenService;
 import com.team03.ticketmon.user.domain.entity.UserEntity;
 import com.team03.ticketmon.user.service.UserEntityService;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -21,8 +18,7 @@ import java.util.Collection;
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
-    @Value("${app.frontend.url:http://localhost:5173}")
-    private String frontendUrl;
+    private final AppProperties appProperties;
     private final UserEntityService userEntityService;
     private final CookieUtil cookieUtil;
 
@@ -47,6 +43,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         cookieUtil.generateAndSetJwtCookies(userId, username, role, response);
 
+        String frontendUrl = appProperties.frontBaseUrl();
         response.setStatus(HttpServletResponse.SC_OK);
         response.sendRedirect(frontendUrl);
     }

@@ -67,6 +67,7 @@ public class SecurityConfig {
 	private final CookieUtil cookieUtil;
 	private final CorsProperties corsProperties;
 	private final QueueRedisAdapter queueRedisAdapter;
+	private final AppProperties appProperties;
 
 	/**
 	 * <b>AuthenticationManager 빈 설정</b> <br>
@@ -261,7 +262,7 @@ public class SecurityConfig {
 	 */
 	@Bean
 	public OAuth2LoginSuccessHandler oAuth2SuccessHandler() {
-		return new OAuth2LoginSuccessHandler(userEntityService, cookieUtil);
+		return new OAuth2LoginSuccessHandler(appProperties, userEntityService, cookieUtil);
 	}
 
 	/**
@@ -270,7 +271,7 @@ public class SecurityConfig {
 	 */
 	@Bean
 	public OAuth2LoginFailureHandler oAuth2LoginFailureHandler() {
-		return new OAuth2LoginFailureHandler();
+		return new OAuth2LoginFailureHandler(appProperties);
 	}
 
 }

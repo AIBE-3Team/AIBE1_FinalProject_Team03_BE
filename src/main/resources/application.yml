@@ -1,7 +1,7 @@
 app:
   queue:
     max-active-users: 20 # 예매 페이지에 동시 진입 가능한 최대 사용자 수
-    top-ranker-count: 20 #  최상위 대기자 기준 설정
+    top-ranker-count: 40 #  최상위 대기자 기준 설정
     access-key-ttl-seconds: 120
     access-key-max-ttl-seconds: 480
     access-key-extend-seconds: 120

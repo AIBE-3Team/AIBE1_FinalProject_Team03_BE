@@ -91,8 +91,9 @@ jobs:
           file: ./Dockerfile # Dockerfile 경로
           push: true # GHCR로 푸시
           tags: ghcr.io/${{ env.REPO_LOWERCASE }}:latest # 이미지 태그 (예: ghcr.io/your-org/your-repo:latest)
-          cache-from: type=gha # GitHub Actions 캐시 사용 (선택 사항, 빌드 속도 향상)
-          cache-to: type=gha,mode=max # GitHub Actions 캐시 저장 (선택 사항, 빌드 속도 향상)
+          # cache-from: type=gha # GitHub Actions 캐시 사용 (선택 사항, 빌드 속도 향상)
+          # cache-to: type=gha,mode=max # GitHub Actions 캐시 저장 (선택 사항, 빌드 속도 향상)
+          no-cache: true
           build-args: |
             GH_PACKAGES_USER=${{ secrets.GH_PACKAGES_USER }}
             GH_PACKAGES_TOKEN=${{ secrets.GH_PACKAGES_TOKEN }}

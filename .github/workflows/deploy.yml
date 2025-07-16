@@ -31,6 +31,17 @@ jobs:
             docker stop ticketmon-backend || true
             docker rm ticketmon-backend || true
 
+            echo "🗑️ 이전 Docker 이미지 삭제 중..."
+            # 주의: 이 명령은 'ticketmon-backend'와 관련된 이미지만 삭제합니다.
+            # 모든 이미지를 삭제하려면 'docker rmi $(docker images -q)'를 사용하지만, 이는 다른 서비스에 영향을 줄 수 있으니 주의
+            IMAGE_ID=$(docker images -q ghcr.io/${{ secrets.DOCKER_IMAGE_REPO }}:latest)
+            if [ -n "$IMAGE_ID" ]; then
+              docker rmi $IMAGE_ID || true
+              echo "✅ 이전 이미지 삭제 완료: $IMAGE_ID"
+            else
+              echo "ℹ️ 삭제할 이전 이미지가 없습니다."
+            fi
+            
             echo "🔐 GHCR 로그인 중..."
             # GHCR 로그인 (GitHub Actions 기본 토큰 사용)
             # DOCKER_USERNAME 대신 github.actor를 사용하는 것이 일반적입니다.

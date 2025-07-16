@@ -34,7 +34,6 @@ public class RedisKeyGenerator {
     private static final String CONCERT_PREFIX = "concert:";
     private static final String USER_PREFIX = "user:";
     public static final String JWT_RT_PREFIX = "refreshToken:";
-    // --- 대기열 관련 키 ---
 
     /** 🔑 `waitqueue:concert:{concertId}`<br>
      * 콘서트별 대기열 정보를 담는 Sorted Set 키입니다.<br>
@@ -42,8 +41,6 @@ public class RedisKeyGenerator {
      * - value: userId
      */
     private static final String WAIT_QUEUE_KEY_PREFIX = "waitqueue:";
-
-    // --- 활성 사용자 관련 키 ---
 
     /** 🔑 `active_sessions:concert:{concertId}`<br>
      * 콘서트별 활성 사용자의 세션 정보를 저장하는 Sorted Set 키입니다.<br>
@@ -57,13 +54,17 @@ public class RedisKeyGenerator {
      */
     private static final String ACTIVE_USERS_COUNT_KEY_PREFIX = "active_users_count:";
 
-    // --- 접근 제어 관련 키 ---
-
     /** 🔑 `accesskey:concert:{concertId}:user:{userId}`<br>
      * 입장 허가(AccessKey)를 저장하는 사용자별 String(Bucket) 키입니다.<br>
      * TTL 기반으로 자동 만료되며, 입장 검증 필터에서 사용됩니다.
      */
     private static final String ACCESS_KEY_PREFIX = "accesskey:";
+
+    /** * 🔑 `final_expiry:concert:{concertId}:user:{userId}`<br>
+     * 세션의 절대적인 최종 만료 시각(timestamp)을 저장하는 키입니다.<br>
+     * 이 키의 값은 연장되지 않으며, 세션의 최대 수명을 제한하는 기준으로 사용됩니다.
+     */
+    private static final String FINAL_EXPIRY_KEY_PREFIX = "final_expiry:";
 
     // --- 스케줄러 락 키 ---
 
@@ -162,4 +163,13 @@ public class RedisKeyGenerator {
         return ACCESS_KEY_PREFIX + CONCERT_PREFIX + concertId + ":" + USER_PREFIX + userId;
     }
 
+    /**
+     * 🎯 사용자별 최종 만료 시각 키 생성
+     * @param concertId 콘서트 ID
+     * @param userId 사용자 ID
+     * @return Redis 키: `final_expiry:concert:{concertId}:user:{userId}`
+     */
+    public String getFinalExpiryKey(Long concertId, Long userId) {
+        return FINAL_EXPIRY_KEY_PREFIX + CONCERT_PREFIX + concertId + ":" + USER_PREFIX + userId;
+    }
 }

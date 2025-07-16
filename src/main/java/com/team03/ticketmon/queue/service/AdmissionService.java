@@ -31,10 +31,11 @@ import java.util.UUID;
 public class AdmissionService {
     private final RedissonClient redissonClient;
     private final RedisKeyGenerator keyGenerator;
-
     private final NotificationService notificationService;
     private final QueueRedisAdapter queueRedisAdapter;
 
+    @Value("${app.queue.access-key-max-ttl-seconds}") // 예: 600 (10분)
+    private long accessKeyMaxTtlSeconds;
     @Value("${app.queue.access-key-ttl-seconds}")
     private long accessKeyTtlSeconds; // 발급된 입장 허가 키의 유효 시간 (분)
     @Value("${app.queue.max-active-users}")
@@ -73,6 +74,8 @@ public class AdmissionService {
 
         long expiryTimestamp = System.currentTimeMillis() + (accessKeyTtlSeconds * 1000);
         Duration ttl = Duration.ofSeconds(accessKeyTtlSeconds);
+        long finalExpiryTimestamp = System.currentTimeMillis() + (accessKeyMaxTtlSeconds * 1000);
+
 
         List<String> issuedKeys = new ArrayList<>();
 
@@ -89,6 +92,11 @@ public class AdmissionService {
 
             // 2. 만료 시간 관리를 위해 active_sessions Sorted Set에 추가 (Score: 만료시간, Value: userId)
             batch.getScoredSortedSet(activeSessionsKey, LongCodec.INSTANCE).addAsync(expiryTimestamp, userId);
+
+            String finalExpiryKey = keyGenerator.getFinalExpiryKey(concertId, userId);
+            Duration finalKeyTtl = Duration.ofSeconds(finalExpiryTimestamp + 60);
+            batch.getBucket(finalExpiryKey).setAsync(finalExpiryTimestamp, finalKeyTtl);
+
 
             // 3. 알림이 필요한 경우 (스케줄러에 의해 호출될 때) 알림 전송
             if (sendNotification) {

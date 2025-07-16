@@ -89,6 +89,17 @@ public class QueueRedisAdapter {
         return redissonClient.getBucket(accessKey);
     }
 
+    /**
+     * 사용자의 특정 콘서트의 최종 만료 시각(Bucket) 객체를 반환
+     * @param concertId 조회할 콘서트 ID
+     * @param userId 조회할 사용자 ID
+     * @return 최종 만료 시각(Long)을 담는 RBucket 객체
+     */
+    public RBucket<Long> getFinalExpiryBucket(Long concertId, Long userId) {
+        String finalExpiryKey = keyGenerator.getFinalExpiryKey(concertId, userId);
+        return redissonClient.getBucket(finalExpiryKey);
+    }
+
     public RLock getAdmissionSchedulerLock() {
         String key = RedisKeyGenerator.ADMISSION_SCHEDULER_LOCK_KEY;
         return redissonClient.getLock(key);

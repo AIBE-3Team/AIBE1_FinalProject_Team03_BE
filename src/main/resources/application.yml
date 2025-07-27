@@ -1,20 +1,20 @@
 app:
   queue:
-    max-active-users: 100 # 예매 페이지에 동시 진입 가능한 최대 사용자 수
-    top-ranker-count: 50 #  최상위 대기자 기준 설정
+    max-active-users: 200 # 예매 페이지에 동시 진입 가능한 최대 사용자 수
+    top-ranker-count: 100 #  최상위 대기자 기준 설정
     access-key-ttl-seconds: 300
     access-key-max-ttl-seconds: 300
     access-key-extend-seconds: 180
     scheduler:
       interval-seconds: 0.5      # 10초 → 2초 (5배 빠르게 처리)
-      batch-size: 50            # 한 번에 25명씩 처리
+      batch-size: 100            # 한 번에 25명씩 처리
   websocket:
     scheduler-health: # WebSocket 연결 현황을 로깅 주기
       delay-ms: 10000
     connection:
       max-idle-time: 300000     # 3분 idle 타임아웃
       ping-interval: 30000      # 10초마다 ping
-      max-connections: 1000
+      max-connections: 2000
 seat:
   reservation:
     ttl-minutes: 5 # 좌석 선점 유지 시간 (분)
@@ -77,13 +77,13 @@ spring:
     scheduling:
       enabled: true  # 스케줄러 활성화 (기본값: true)
       pool:
-        size: 10     # 스케줄러 스레드 풀 크기
+        size: 20     # 스케줄러 스레드 풀 크기
       thread-name-prefix: "ticket-scheduler-"  # 스레드 이름 접두사
     execution:
       pool:
-        core-size: 20      # 비동기 작업 스레드 풀 코어 크기
-        max-size: 40      # 비동기 작업 스레드 풀 최대 크기
-        queue-capacity: 200  # 대기 큐 크기
+        core-size: 40      # 비동기 작업 스레드 풀 코어 크기
+        max-size: 80      # 비동기 작업 스레드 풀 최대 크기
+        queue-capacity: 400  # 대기 큐 크기
         keep-alive: "30s"      # 유휴 스레드 정리
 
 server:
@@ -94,7 +94,7 @@ server:
     #    certificate: classpath:certs/localhost.pem
     #    certificate-private-key: classpath:certs/localhost-key.pem
     # key-store-type을 명시적으로 지정해주는 것이 좋습니다.
-  # PEM 파일을 사용할 경우, key-store-type을 비워두거나 특정 타입을 지정하지 않습니다.
+    # PEM 파일을 사용할 경우, key-store-type을 비워두거나 특정 타입을 지정하지 않습니다.
   # 하지만 Spring Boot 버전에 따라서는 아래 설정이 필요할 수 있습니다.
   # key-store-type: PKCS12 # 또는 JKS. PEM을 직접 사용할 때는 보통 이 줄이 필요 없습니다.
 

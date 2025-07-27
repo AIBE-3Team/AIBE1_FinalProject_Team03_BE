@@ -94,7 +94,7 @@ server:
     #    certificate: classpath:certs/localhost.pem
     #    certificate-private-key: classpath:certs/localhost-key.pem
     # key-store-type을 명시적으로 지정해주는 것이 좋습니다.
-  # PEM 파일을 사용할 경우, key-store-type을 비워두거나 특정 타입을 지정하지 않습니다.
+    # PEM 파일을 사용할 경우, key-store-type을 비워두거나 특정 타입을 지정하지 않습니다.
   # 하지만 Spring Boot 버전에 따라서는 아래 설정이 필요할 수 있습니다.
   # key-store-type: PKCS12 # 또는 JKS. PEM을 직접 사용할 때는 보통 이 줄이 필요 없습니다.
 

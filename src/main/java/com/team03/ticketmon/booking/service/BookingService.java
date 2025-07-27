@@ -114,7 +114,7 @@ public class BookingService {
                         "존재하지 않는 예매 ID: " + bookingId));
 
         Long concertId = booking.getConcert().getConcertId();
-        
+
         // 이제 tickets 컬렉션이 session 안에서 안전하게 초기화됩니다.
         // [좌석 반환] 예매된 좌석들을 다시 'AVAILABLE' 상태로 변경하는 로직 추가
         booking.getTickets().forEach(ticket -> {
@@ -129,7 +129,8 @@ public class BookingService {
         });
 
         // 예약 상태를 반드시 CANCELED로 변경하고 저장
-        booking.cancel();  // 또는 booking.setStatus(CANCELED);
+        booking.cancel();
+        booking.getPayment().cancel();
 
         // 히스토리 테이블로 이관하는 로직 호출
         archiveBookingAndTickets(booking);
@@ -258,29 +259,3 @@ public class BookingService {
         return booking;
     }
 }
-
-// * 예매와 관련된 내부 상태를 '취소'로 최종 처리
-// * 이 메서드는 외부 시스템(결제)과의 연동이 성공한 후 호출되어야 한다.
-// *
-// * @param booking 취소할 Booking 엔티티
-// */
-//@Transactional
-//public void finalizeCancellation(Booking booking) {
-//    // 1. 예매 상태를 CANCELED로 변경
-//    booking.cancel();
-//
-//    // [좌석 반환] 예매된 좌석들을 다시 'AVAILABLE' 상태로 변경하는 로직 추가
-//    booking.getTickets().forEach(ticket ->
-//            seatStatusService.releaseSeat(
-//                    booking.getConcert().getConcertId(),
-//                    ticket.getConcertSeat().getConcertSeatId(),
-//                    booking.getUserId()
-//            )
-//    );
-//
-//    // 히스토리 테이블로 이관하는 로직 호출
-//    archiveBookingAndTickets(booking);
-//
-//    bookingRepository.save(booking);
-//    log.info("예매가 성공적으로 취소(삭제)되었습니다. Booking ID: {}", booking.getBookingId());
-//}

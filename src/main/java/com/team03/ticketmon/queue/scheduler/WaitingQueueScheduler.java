@@ -1,5 +1,6 @@
 package com.team03.ticketmon.queue.scheduler;
 
+import com.team03.ticketmon._global.util.RedisKeyGenerator;
 import com.team03.ticketmon.concert.domain.enums.ConcertStatus;
 import com.team03.ticketmon.concert.repository.ConcertRepository;
 import com.team03.ticketmon.queue.adapter.QueueRedisAdapter;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -31,6 +33,7 @@ public class WaitingQueueScheduler {
     private final AdmissionService admissionService;
     private final QueueRedisAdapter queueRedisAdapter;
     private final PersonalizedRankStrategy personalizedRankStrategy;
+    private final RedisKeyGenerator keyGenerator;
 
     @Value("${app.queue.max-active-users}")
     private long maxActiveUsers; // 시스템이 동시에 수용 가능한 최대 활성 사용자 수
@@ -92,10 +95,27 @@ public class WaitingQueueScheduler {
     private void processQueueForConcert(Long concertId) {
         log.debug("===== [콘서트 ID: {}] 대기열 처리 시작. =====", concertId);
 
+        String activeUsersKey = "active_users_count:concert:" + concertId;
+        log.info("Redis Key: {}", activeUsersKey);
+
         // ==================== 1. 입장 처리 로직 ====================
         RAtomicLong activeUsersCount = queueRedisAdapter.getActiveUserCounter(concertId);
+
+        // 키가 존재하는지 확인
+        boolean exists = activeUsersCount.isExists();
+        log.info("Key exists: {}", exists);
+
         long currentActiveUsers = activeUsersCount.get();
         // TODO: maxActiveUsers도 콘서트별로 다르게 설정할 수 있도록 DB에서 가져오는 로직 추가 가능 (우선순위: 최하)
+        log.info("Current active users: {}, Max active users: {}", currentActiveUsers, maxActiveUsers);
+
+        // 만약 키가 없는데도 값이 0이 아니라면 강제로 0으로 설정
+        if (!exists && currentActiveUsers != 0) {
+            log.warn("키가 존재하지 않는데 값이 {}입니다. 0으로 초기화합니다.", currentActiveUsers);
+            activeUsersCount.set(0);
+            currentActiveUsers = 0;
+        }
+
         long availableSlots = maxActiveUsers - currentActiveUsers;
 
         if (availableSlots <= 0) {

@@ -1,5 +1,6 @@
 package com.team03.ticketmon.auth.jwt;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,19 +31,42 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
         }
         HttpServletRequest httpReq = servletRequest.getServletRequest();
 
+        // 디버깅: 모든 쿠키 출력
+        log.debug("=== WebSocket 핸드셰이크 시작 ===");
+        log.debug("요청 URL: {}", httpReq.getRequestURL());
+        log.debug("쿼리 스트링: {}", httpReq.getQueryString());
+
+        Cookie[] cookies = httpReq.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                log.debug("쿠키 - name: {}, value: {}", cookie.getName(), cookie.getValue());
+            }
+        } else {
+            log.debug("쿠키가 없습니다!");
+        }
+
         // 1. 쿠키에서 Access Token Get
         String accessToken = jwtTokenProvider.getTokenFromCookies(jwtTokenProvider.CATEGORY_ACCESS, httpReq);
+        log.debug("추출된 Access Token: {}", accessToken != null ? "존재함" : "null");
 
-        if (accessToken == null || jwtTokenProvider.isTokenExpired(accessToken)) {
-            log.warn("WebSocket handshake 거부: 유효하지 않은 Access Token");
+        if (accessToken == null) {
+            log.warn("WebSocket handshake 거부: Access Token이 없습니다");
+            return false;
+        }
+
+        if (jwtTokenProvider.isTokenExpired(accessToken)) {
+            log.warn("WebSocket handshake 거부: Access Token이 만료되었습니다");
             return false;
         }
 
         Long userId = jwtTokenProvider.getUserId(accessToken);
+        log.debug("추출된 userId: {}", userId);
         attributes.put("userId", userId);
 
         // 2. 쿼리 파라미터에서 concertId 추출 (신규 로직)
         String concertIdStr = httpReq.getParameter("concertId");
+        log.debug("concertId 파라미터: {}", concertIdStr);
+
         if (concertIdStr == null) {
             log.warn("WebSocket handshake 거부: concertId 파라미터가 없습니다.");
             return false;
@@ -51,17 +75,21 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
         try {
             Long concertId = Long.parseLong(concertIdStr);
             attributes.put("concertId", concertId);
+            log.info("WebSocket 핸드셰이크 성공 - userId: {}, concertId: {}", userId, concertId);
+            return true;
         } catch (NumberFormatException e) {
             log.warn("WebSocket handshake 거부: 유효하지 않은 concertId 형식 - {}", concertIdStr);
             return false;
         }
-
-        return true; // 핸드셰이크 성공, 연결 허용
     }
 
     @Override
     public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                WebSocketHandler wsHandler, Exception exception) {
-        log.info("WebSocket 핸드셰이크 완료");
+        if (exception != null) {
+            log.error("WebSocket 핸드셰이크 후 에러 발생", exception);
+        } else {
+            log.info("WebSocket 핸드셰이크 완료");
+        }
     }
 }

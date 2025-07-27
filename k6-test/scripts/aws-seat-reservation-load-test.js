@@ -39,25 +39,13 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        // 매우 천천히 램프업 (5분)
-        { duration: '2m', target: 50 },      // 여유있게 시작
-        { duration: '1m', target: 100 },     // 중간 지점
-        { duration: '2m', target: 150 },     // 천천히 상승
-
-        // 임계점 근처 세밀 관찰 (8분)
-        { duration: '1m', target: 180 },     // 180명
-        { duration: '2m', target: 180 },     // 안정화 대기
-        { duration: '1m', target: 190 },     // 190명
-        { duration: '2m', target: 190 },     // 안정화 대기
-        { duration: '30s', target: 195 },    // 195명
-        { duration: '1m30s', target: 195 },  // 관찰
-
-        // 임계점 통과 (5분)
-        { duration: '30s', target: 200 },    // 임계점
-        { duration: '2m', target: 200 },     // 충분한 관찰
-
-        // 점진적 종료 (3분)
-        { duration: '3m', target: 0 },
+        { duration: '2m', target: 30 },    // 2분에 걸쳐 30명까지 천천히 증가
+        { duration: '2m', target: 30 },    // 30명 유지 (안정성 확인)
+        { duration: '2m', target: 40 },    // 2분에 걸쳐 40명까지 증가
+        { duration: '3m', target: 40 },    // 40명 유지
+        { duration: '1m', target: 50 },    // 1분에 걸쳐 50명까지 증가
+        { duration: '3m', target: 50 },    // 50명 유지 (절반 부하)
+        { duration: '2m', target: 0 },     // 2분에 걸쳐 종료
       ],
       gracefulRampDown: '60s',
     }

@@ -508,42 +508,42 @@ public class SeatStatusService {
     public Map<String, Object> backupCacheToDatabase(Long concertId) {
         try {
             log.info("캐시 상태 확인 시작: concertId={}", concertId);
-
+            
             // Redis에서 모든 좌석 상태 조회
             RMap<String, SeatStatus> seatMap = redissonClient.getMap(SEAT_STATUS_KEY_PREFIX + concertId);
             Collection<SeatStatus> allSeats = seatMap.readAllValues();
-
+            
             if (allSeats.isEmpty()) {
                 log.warn("확인할 캐시 데이터가 없습니다: concertId={}", concertId);
                 return Map.of(
-                        "message", "캐시 데이터 없음",
-                        "processedSeats", 0,
-                        "timestamp", LocalDateTime.now()
+                    "message", "캐시 데이터 없음",
+                    "processedSeats", 0,
+                    "timestamp", LocalDateTime.now()
                 );
             }
-
+            
             // 상태별 통계 생성
             Map<SeatStatusEnum, Long> statusCounts = allSeats.stream()
-                    .collect(Collectors.groupingBy(
-                            SeatStatus::getStatus,
-                            Collectors.counting()
-                    ));
-
-            log.info("캐시 상태 확인 완료: concertId={}, totalSeats={}, breakdown={}",
-                    concertId, allSeats.size(), statusCounts);
-
+                .collect(Collectors.groupingBy(
+                    SeatStatus::getStatus,
+                    Collectors.counting()
+                ));
+            
+            log.info("캐시 상태 확인 완료: concertId={}, totalSeats={}, breakdown={}", 
+                concertId, allSeats.size(), statusCounts);
+            
             return Map.of(
-                    "message", "캐시 상태 확인 완료",
-                    "processedSeats", allSeats.size(),
-                    "statusBreakdown", statusCounts.entrySet().stream()
-                            .collect(Collectors.toMap(
-                                    entry -> entry.getKey().toString(),
-                                    entry -> entry.getValue().intValue()
-                            )),
-                    "note", "DB 구조상 캐시 상태를 직접 백업할 수 없습니다. 상태 확인만 수행됩니다.",
-                    "timestamp", LocalDateTime.now()
+                "message", "캐시 상태 확인 완료",
+                "processedSeats", allSeats.size(),
+                "statusBreakdown", statusCounts.entrySet().stream()
+                    .collect(Collectors.toMap(
+                        entry -> entry.getKey().toString(),
+                        entry -> entry.getValue().intValue()
+                    )),
+                "note", "DB 구조상 캐시 상태를 직접 백업할 수 없습니다. 상태 확인만 수행됩니다.",
+                "timestamp", LocalDateTime.now()
             );
-
+            
         } catch (Exception e) {
             log.error("캐시 상태 확인 중 오류: concertId={}", concertId, e);
             throw new RuntimeException("상태 확인 실패: " + e.getMessage(), e);
@@ -558,19 +558,19 @@ public class SeatStatusService {
     public Map<String, Object> resetAllSeatsToAvailable(Long concertId) {
         try {
             log.info("좌석 상태 초기화 시작: concertId={}", concertId);
-
+            
             // DB에서 모든 좌석을 AVAILABLE로 업데이트
             int updatedCount = concertSeatRepository.bulkUpdateAllSeatsToAvailable(concertId);
-
+            
             log.info("좌석 상태 초기화 완료: concertId={}, updatedSeats={}", concertId, updatedCount);
-
+            
             return Map.of(
-                    "message", "초기화 완료",
-                    "processedSeats", updatedCount,
-                    "newStatus", "AVAILABLE",
-                    "timestamp", LocalDateTime.now()
+                "message", "초기화 완료",
+                "processedSeats", updatedCount,
+                "newStatus", "AVAILABLE",
+                "timestamp", LocalDateTime.now()
             );
-
+            
         } catch (Exception e) {
             log.error("좌석 상태 초기화 중 오류: concertId={}", concertId, e);
             throw new RuntimeException("초기화 실패: " + e.getMessage(), e);

@@ -18,8 +18,8 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      maximum-pool-size: 100              # 최대 연결 수 (dev: 50 → prod: 100)
-      minimum-idle: 30                    # 최소 유휴 연결 (dev: 20 → prod: 30)
+      maximum-pool-size: 30              # 최대 연결 수 (dev: 50 → prod: 30)
+      minimum-idle: 10                    # 최소 유휴 연결 (dev: 20 → prod: 10)
       connection-timeout: 30000           # 연결 타임아웃 30초 (dev: 20초)
       idle-timeout: 600000                # 유휴 연결 타임아웃 10분 (dev: 5분)
       max-lifetime: 1800000               # 연결 최대 수명 30분 (dev: 15분)
@@ -103,14 +103,14 @@ app:
   front-base-url: ${FRONT_BASE_URL}
   # 대기열 설정
   queue:
-    max-active-users: 500            # 운영: 동시 예매 가능 사용자 (dev: 200)
-    top-ranker-count: 200            # 운영: 최상위 대기자 (dev: 100)
+    max-active-users: 200            # 운영: 동시 예매 가능 사용자 (dev: 200)
+    top-ranker-count: 100            # 운영: 최상위 대기자 (dev: 100)
     access-key-ttl-seconds: 600      # 운영: 10분 (dev: 5분)
     access-key-max-ttl-seconds: 600
     access-key-extend-seconds: 300   # 운영: 5분 (dev: 3분)
     scheduler:
       interval-seconds: 0.3          # 운영: 더 빠른 처리 (dev: 0.5초)
-      batch-size: 150                # 운영: 더 많은 배치 (dev: 100)
+      batch-size: 100                # dev: 100
 
   # 🆕 WebSocket 설정 추가 (운영 환경 필수!)
   websocket:
@@ -119,7 +119,7 @@ app:
     connection:
       max-idle-time: 600000          # 10분 idle 타임아웃 (dev: 5분)
       ping-interval: 60000           # 1분마다 ping (dev: 30초)
-      max-connections: 5000          # 최대 5000 연결 (dev: 2000)
+      max-connections: 2000          # 최대 2000 연결 (dev: 2000)
       # 추가 운영 설정
       buffer-size: 8192              # 버퍼 크기 8KB
       max-text-message-size: 65536  # 최대 메시지 64KB
@@ -131,7 +131,7 @@ app:
       ttl-minutes: 10                # 운영: 10분 (dev: 5분)
       max-seat-count: 4              # 운영: 4석 (dev: 2석)
     session:
-      max-sessions-per-concert: 5000 # 운영: 5000 (dev: 2000)
+      max-sessions-per-concert: 2000 # 운영: 2000 (dev: 2000)
 # ☁️ AWS S3 관련 설정
 # 's3' 프로필이 활성화될 때 이 설정이 로드
 # 실제 AWS Access Key, Secret Key는 환경 변수 또는 보안 저장소에서 주입받아야 함

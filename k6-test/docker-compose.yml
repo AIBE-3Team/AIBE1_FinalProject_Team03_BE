@@ -69,18 +69,18 @@ services:
       --batch-per-host=20
       /scripts/aws-seat-reservation-load-test.js
     environment:
-      - TOTAL_USERS=100
-      - CONCURRENT_USERS=100
+      - TOTAL_USERS=50
+      - CONCURRENT_USERS=50
       - CONCERT_ID=113
       - SEAT_COUNT=60
       - BASE_URL=http://${AWS_EC2_PUBLIC_IP}:8080/api
       - WS_BASE_URL=ws://${AWS_EC2_PUBLIC_IP}:8080
       - K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
       - K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true
-      - K6_PROMETHEUS_RW_PUSH_INTERVAL=10s
+      - K6_PROMETHEUS_RW_PUSH_INTERVAL=15s
       - K6_PROMETHEUS_RW_STALE_MARKERS=true
       - K6_NO_CONNECTION_REUSE=true
-      - K6_BATCH_SIZE=30                    # 배치 크기 명시
+      - K6_BATCH_SIZE=20                    # 배치 크기 명시
       - REDIS_URL=rediss://valkey-114f18b1-testube604-6eea.l.aivencloud.com:24955
     ulimits:
       nofile:
@@ -89,8 +89,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4G
-          cpus: '2.0'
+          memory: 2G
+          cpus: '1.0'
     depends_on:
       - prometheus
     networks:

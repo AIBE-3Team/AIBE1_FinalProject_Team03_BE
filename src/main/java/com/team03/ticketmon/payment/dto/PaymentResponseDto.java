@@ -16,6 +16,8 @@ public class PaymentResponseDto {
     private final double totalAmount;
     private final String concertDateTime;
     private final List<String> seatLabels;
+    private final String paymentStatus;   // DONE, CANCELED 등
+    private final String paymentMethod;   // "카드" 또는 "간편결제"
 
     public PaymentResponseDto(Booking booking) {
         this.bookingNumber = booking.getBookingNumber();
@@ -37,5 +39,8 @@ public class PaymentResponseDto {
                             + "-" + s.getSeatNumber();
                 })
                 .toList();
+
+        this.paymentStatus = booking.getPayment().getStatus().name();
+        this.paymentMethod = booking.getPayment().getPaymentMethod();
     }
 }

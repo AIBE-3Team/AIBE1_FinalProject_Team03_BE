@@ -64,11 +64,11 @@ public class Payment {
     )
     private PaymentCancelHistory cancelHistory;
 
-    
-    // 취소 시 호출될 수 있는 헬퍼
-    public void setCancelHistory(PaymentCancelHistory history) {
-        this.cancelHistory = history;
-        history.setPayment(this);
+    /**
+     * 클라이언트가 선택한 결제수단 ("카드" 또는 "간편결제")
+     */
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     @PrePersist
@@ -102,5 +102,6 @@ public class Payment {
 
     public void cancel() {
         this.status = PaymentStatus.CANCELED;
+        this.updatedAt = LocalDateTime.now();
     }
 }

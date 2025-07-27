@@ -52,10 +52,11 @@ public class PaymentApiController {
     public DeferredResult<String> handlePaymentSuccess(
             @RequestParam String paymentKey,
             @RequestParam String orderId,
-            @RequestParam BigDecimal amount
+            @RequestParam BigDecimal amount,
+            @RequestParam(name = "originalMethod", required = false, defaultValue = "카드") String originalMethod
     ) {
-        log.info("결제 성공 콜백 수신: paymentKey={}, orderId={}, amount={}",
-                paymentKey, orderId, amount);
+        log.info("결제 성공 콜백 수신: paymentKey={}, orderId={}, amount={}, originalMethod={}",
+                paymentKey, orderId, amount, originalMethod);
 
         // 1) DeferredResult 생성 (서블릿 쓰레드 즉시 반환)
         DeferredResult<String> dr = new DeferredResult<>(TIMEOUT_MS);
@@ -65,6 +66,7 @@ public class PaymentApiController {
                 .paymentKey(paymentKey)
                 .orderId(orderId)
                 .amount(amount)
+                .originalMethod(originalMethod)
                 .build();
 
         // 3) Reactive 흐름으로 기존 비즈니스 로직 실행

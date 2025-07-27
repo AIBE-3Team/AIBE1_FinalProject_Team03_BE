@@ -163,6 +163,9 @@ public class PaymentService {
                     // 파싱
                     LocalDateTime approvedAt = parseDateTime(resp.get("approvedAt"));
 
+                    // ① 클라이언트가 선택한 결제수단을 먼저 저장
+                    payment.setPaymentMethod(req.getOriginalMethod());
+
                     // 4) 영속성 작업
                     return Mono.fromRunnable(() -> {
                                 // 결제 상태 갱신

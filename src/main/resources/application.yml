@@ -1,34 +1,27 @@
 app:
   queue:
-    max-active-users: 200 # 예매 페이지에 동시 진입 가능한 최대 사용자 수
-    top-ranker-count: 100 #  최상위 대기자 기준 설정
-    access-key-ttl-seconds: 300
-    access-key-max-ttl-seconds: 300
-    access-key-extend-seconds: 180
-    scheduler:
-      interval-seconds: 0.5      # 10초 → 2초 (5배 빠르게 처리)
-      batch-size: 100            # 한 번에 25명씩 처리
+    max-active-users: 20 # 예매 페이지에 동시 진입 가능한 최대 사용자 수
+    top-ranker-count: 40 #  최상위 대기자 기준 설정
+    access-key-ttl-seconds: 120
+    access-key-max-ttl-seconds: 480
+    access-key-extend-seconds: 120
   websocket:
     scheduler-health: # WebSocket 연결 현황을 로깅 주기
       delay-ms: 10000
-    connection:
-      max-idle-time: 300000     # 3분 idle 타임아웃
-      ping-interval: 30000      # 10초마다 ping
-      max-connections: 2000
 seat:
   reservation:
     ttl-minutes: 5 # 좌석 선점 유지 시간 (분)
     max-seat-count: 2 # 사용자당 최대 선점 가능 좌석 수
     last-update-ttl-hours: 1 # 마지막 업데이트 시간 캐시 TTL (시간)
   polling:
-    default-timeout-ms: 15000 # 기본 폴링 타임아웃 (ms)
-    max-timeout-ms: 30000 # 최대 폴링 타임아웃 (ms)
-    min-timeout-ms: 2000 # 최소 폴링 타임아웃 (ms)
+    default-timeout-ms: 30000 # 기본 폴링 타임아웃 (ms)
+    max-timeout-ms: 60000 # 최대 폴링 타임아웃 (ms)
+    min-timeout-ms: 5000 # 최소 폴링 타임아웃 (ms)
   session:
-    max-sessions-per-concert: 2000 # 콘서트당 최대 세션 수
-    cleanup-minutes: 3 # 세션 정리 간격 (분)
+    max-sessions-per-concert: 1000 # 콘서트당 최대 세션 수
+    cleanup-minutes: 5 # 세션 정리 간격 (분)
   lock:
-    wait-time-seconds: 5 # 락 획득 대기 시간 (초)
+    wait-time-seconds: 3 # 락 획득 대기 시간 (초)
     lease-time-seconds: 10 # 락 보유 시간 (초)
   cache:
     warmup-minutes-before: 10 # 캐시 워밍업 시작 시간 (분 전)
@@ -43,15 +36,13 @@ seat:
       lock-lease-seconds: 300  # 분산 락 유지 시간
     waiting-queue:
       enabled: true          # 대기열 스케줄러 활성화 (기존)
-      interval-seconds: 5       # 10 → 5 (2배만 증가)
-      batch-size: 35           # 50 → 35 (처리량 유지)
-      adaptive-scheduling: true # 대기자 수에 따른 동적 조절
+      interval-seconds: 10   # 실행 주기 (초)
 
 spring:
   application:
     name: ticketmon-go
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}  # 환경 변수 'SPRING_PROFILES_ACTIVE' 값(.env) 사용, 없으면 'dev'를 기본값으로 설정
+    active: ${SPRING_PROFILES_ACTIVE:prod}  # 환경 변수 'SPRING_PROFILES_ACTIVE' 값(.env) 사용, 없으면 'dev'를 기본값으로 설정
     # 로컬 개발 시 'dev' 프로필이 기본으로 활성화됩니다. 배포 시에도 변경 X -> .env에서 SPRING_PROFILES_ACTIVE를 prod로 변경
     # include: supabase # 'supabase' 관련 빈(StorageUploader, StorageClient)을 활성화된 프로필과 함께 로드
   config:
@@ -77,14 +68,13 @@ spring:
     scheduling:
       enabled: true  # 스케줄러 활성화 (기본값: true)
       pool:
-        size: 20     # 스케줄러 스레드 풀 크기
+        size: 10     # 스케줄러 스레드 풀 크기
       thread-name-prefix: "ticket-scheduler-"  # 스레드 이름 접두사
     execution:
       pool:
-        core-size: 40      # 비동기 작업 스레드 풀 코어 크기
-        max-size: 80      # 비동기 작업 스레드 풀 최대 크기
-        queue-capacity: 400  # 대기 큐 크기
-        keep-alive: "30s"      # 유휴 스레드 정리
+        core-size: 8      # 비동기 작업 스레드 풀 코어 크기
+        max-size: 20      # 비동기 작업 스레드 풀 최대 크기
+        queue-capacity: 500  # 대기 큐 크기
 
 server:
   port: ${SERVER_PORT:8080}  # .env에서 설정한 포트 사용, 기본은 8080
@@ -104,8 +94,6 @@ logging:
     com.team03.ticketmon.seat.service.SeatSyncService: DEBUG
     com.team03.ticketmon.seat.scheduler.SeatSyncScheduler: INFO
     com.team03.ticketmon.seat.controller.SeatSyncController: INFO
-    com.team03.ticketmon.queue.service.NotificationService: DEBUG
-    com.team03.ticketmon.websocket: DEBUG
 
 toss:
   api:

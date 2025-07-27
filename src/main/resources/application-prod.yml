@@ -17,6 +17,18 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 100              # 최대 연결 수 (dev: 50 → prod: 100)
+      minimum-idle: 30                    # 최소 유휴 연결 (dev: 20 → prod: 30)
+      connection-timeout: 30000           # 연결 타임아웃 30초 (dev: 20초)
+      idle-timeout: 600000                # 유휴 연결 타임아웃 10분 (dev: 5분)
+      max-lifetime: 1800000               # 연결 최대 수명 30분 (dev: 15분)
+      leak-detection-threshold: 60000     # 연결 누수 감지 1분
+      connection-test-query: SELECT 1     # MySQL 헬스체크 쿼리
+      pool-name: "TicketmonHikariCP"      # 풀 이름 (모니터링용)
+      # 운영 환경 추가 옵션
+      validation-timeout: 5000            # 연결 검증 타임아웃 5초
+      register-mbeans: true               # JMX 모니터링 활성화
 
   # JPA (Hibernate) 관련 설정
   jpa:
@@ -89,6 +101,37 @@ spring:
 app:
   base-url: ${BASE_URL:https://d123456789.cloudfront.net}  # 환경변수 우선, 기본값은 예시 도메인
   front-base-url: ${FRONT_BASE_URL}
+  # 대기열 설정
+  queue:
+    max-active-users: 500            # 운영: 동시 예매 가능 사용자 (dev: 200)
+    top-ranker-count: 200            # 운영: 최상위 대기자 (dev: 100)
+    access-key-ttl-seconds: 600      # 운영: 10분 (dev: 5분)
+    access-key-max-ttl-seconds: 600
+    access-key-extend-seconds: 300   # 운영: 5분 (dev: 3분)
+    scheduler:
+      interval-seconds: 0.3          # 운영: 더 빠른 처리 (dev: 0.5초)
+      batch-size: 150                # 운영: 더 많은 배치 (dev: 100)
+
+  # 🆕 WebSocket 설정 추가 (운영 환경 필수!)
+  websocket:
+    scheduler-health:
+      delay-ms: 30000                # 운영: 30초마다 헬스체크 (dev: 10초)
+    connection:
+      max-idle-time: 600000          # 10분 idle 타임아웃 (dev: 5분)
+      ping-interval: 60000           # 1분마다 ping (dev: 30초)
+      max-connections: 5000          # 최대 5000 연결 (dev: 2000)
+      # 추가 운영 설정
+      buffer-size: 8192              # 버퍼 크기 8KB
+      max-text-message-size: 65536  # 최대 메시지 64KB
+      close-timeout: 30000           # 종료 타임아웃 30초
+
+  # 좌석 예약 설정도 운영에 맞게 조정
+  seat:
+    reservation:
+      ttl-minutes: 10                # 운영: 10분 (dev: 5분)
+      max-seat-count: 4              # 운영: 4석 (dev: 2석)
+    session:
+      max-sessions-per-concert: 5000 # 운영: 5000 (dev: 2000)
 # ☁️ AWS S3 관련 설정
 # 's3' 프로필이 활성화될 때 이 설정이 로드
 # 실제 AWS Access Key, Secret Key는 환경 변수 또는 보안 저장소에서 주입받아야 함
@@ -155,8 +198,23 @@ ai:
 # 🌍 CORS 설정
 cors:
   allowed-origins:
-    - "https://ticket-mon.o-r.kr"          # 프론트엔드 도메인
-    - "https://api.ticket-mon.o-r.kr"      # API 도메인
+    # 기존 프로덕션 도메인
+    - "https://ticket-mon.o-r.kr"
+    - "https://api.ticket-mon.o-r.kr"
+
+    # AWS EC2 테스트용 추가
+    - "http://${AWS_EC2_PUBLIC_IP}:8080"
+    - "https://${AWS_EC2_PUBLIC_IP}:8080"
+    - "ws://${AWS_EC2_PUBLIC_IP}:8080"
+    - "wss://${AWS_EC2_PUBLIC_IP}:8080"
+
+    # 로컬에서 AWS로 테스트할 때
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+
+    # K6 Docker 컨테이너에서 접근
+    - "http://host.docker.internal:8080"
+    - "ws://host.docker.internal:8080"
 
 onesignal:
   app-id: ${ONESIGNAL_APP_ID}        # 운영 환경에서 환경 변수로 관리

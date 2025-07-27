@@ -51,7 +51,7 @@ spring:
   application:
     name: ticketmon-go
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}  # 환경 변수 'SPRING_PROFILES_ACTIVE' 값(.env) 사용, 없으면 'dev'를 기본값으로 설정
+    active: ${SPRING_PROFILES_ACTIVE:prod}  # 환경 변수 'SPRING_PROFILES_ACTIVE' 값(.env) 사용, 없으면 'dev'를 기본값으로 설정
     # 로컬 개발 시 'dev' 프로필이 기본으로 활성화됩니다. 배포 시에도 변경 X -> .env에서 SPRING_PROFILES_ACTIVE를 prod로 변경
     # include: supabase # 'supabase' 관련 빈(StorageUploader, StorageClient)을 활성화된 프로필과 함께 로드
   config:

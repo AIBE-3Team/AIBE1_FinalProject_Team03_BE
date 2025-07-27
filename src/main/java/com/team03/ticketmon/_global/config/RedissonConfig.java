@@ -76,6 +76,17 @@ public class RedissonConfig {
             serverConfig.setPassword(redisPassword);
         }
 
-        return Redisson.create(config);
+        RedissonClient client = Redisson.create(config);
+
+        try {
+            client.getBucket("connection-test").set("connected");
+            String testValue = (String) client.getBucket("connection-test").get();
+            client.getBucket("connection-test").delete();
+            log.info("✅ Redisson이 Redis에 성공적으로 연결되었습니다! Test value: {}", testValue);
+        } catch (Exception e) {
+            log.error("❌ Redisson Redis 연결 실패!", e);
+        }
+
+        return client;
     }
 }

@@ -1,0 +1,56 @@
+# prometheus.yml (완전한 서버 설정 - 기존 설정 기반)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+# - "first_rules.yml"
+# - "second_rules.yml"
+
+scrape_configs:
+  # 🎯 Spring Boot 애플리케이션 모니터링 (가장 중요!)
+  - job_name: 'ticketing-app'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8080']  # Windows/Mac에서 host 접근
+    # Linux라면 아래 사용:
+    # - targets: ['172.17.0.1:8080']
+
+  # 📊 Prometheus 자체 모니터링
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 🚀 k6 메트릭은 --out experimental-prometheus-rw로 직접 전송됨
+  # 별도 scrape_config 불필요
+
+  # 🔴 Redis 모니터링
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-cache:6379']
+    scrape_interval: 30s
+    # redis_exporter가 별도로 필요하면 추가
+
+  # 📈 Grafana 모니터링
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+# 🎯 수집되는 메트릭 유형:
+# [Spring Boot 앱]
+# - http_server_requests_seconds: API 응답시간
+# - jvm_memory_used_bytes: JVM 메모리 사용량
+# - hikaricp_connections: DB 커넥션 풀
+# - custom_concert_booking_total: 커스텀 비즈니스 메트릭
+#
+# [k6 테스트]
+# - k6_http_req_duration: HTTP 요청 응답시간
+# - k6_websocket_connection_success_rate: WebSocket 연결 성공률
+# - k6_queue_wait_duration: 대기열 대기시간
+# - 기타 커스텀 메트릭들
+#
+# [인프라]
+# - redis 성능, grafana 상태 등

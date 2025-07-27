@@ -1,0 +1,726 @@
+{
+  "id": null,
+  "title": "🎫 좌석 선점 부하테스트 모니터링 (개별 지표 분리)",
+  "tags": ["seat", "reservation", "load-test", "k6", "performance", "session", "queue"],
+  "timezone": "Asia/Seoul",
+  "refresh": "30s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "1️⃣ 좌석 예약 응답시간 95P (ms)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(k6_seat_reservation_duration[30s])) by (le))",
+          "legendFormat": "예약 응답시간 95P",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "ms",
+          "decimals": 0,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 2000 },
+              { "color": "red", "value": 5000 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "textMode": "value_and_name",
+        "text": { "valueSize": 36 }
+      }
+    },
+    {
+      "id": 2,
+      "title": "2️⃣ 대기열 진입 성공 수/분",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(k6_queue_entry_success_total[1m])) * 60",
+          "legendFormat": "대기열 진입/분",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "short",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 10 },
+              { "color": "green", "value": 20 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "textMode": "value_and_name",
+        "text": { "valueSize": 36 }
+      }
+    },
+    {
+      "id": 3,
+      "title": "3️⃣ 동시 사용자수 (VU)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        {
+          "expr": "k6_vus",
+          "legendFormat": "현재 VU",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "short",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 30 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "textMode": "value_and_name",
+        "text": { "valueSize": 36 }
+      }
+    },
+    {
+      "id": 4,
+      "title": "4️⃣ WebSocket 연결 성공률 (%)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "expr": "avg(k6_checks_rate{check=\"WebSocket 핸드셰이크 성공\"}) * 100",
+          "legendFormat": "WS 성공률",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 90 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "textMode": "value_and_name",
+        "text": { "valueSize": 36 }
+      }
+    },
+    {
+      "id": 5,
+      "title": "5️⃣ 평균 재시도 횟수",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 6 },
+      "targets": [
+        {
+          "expr": "avg(k6_seat_retry_count)",
+          "legendFormat": "평균 재시도",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "short",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 2 },
+              { "color": "red", "value": 3 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "textMode": "value_and_name",
+        "text": { "valueSize": 36 }
+      }
+    },
+    {
+      "id": 6,
+      "title": "6️⃣ 좌석 예약 성공률 (%)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 6 },
+      "targets": [
+        {
+          "expr": "(sum(k6_seat_reservation_success_total) / sum(k6_queue_entry_success_total)) * 100",
+          "legendFormat": "예약 성공률",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 40 },
+              { "color": "green", "value": 60 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "textMode": "value_and_name",
+        "text": { "valueSize": 36 }
+      }
+    },
+    {
+      "id": 7,
+      "title": "📈 좌석 예약 응답시간 P95 추이",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(k6_seat_reservation_duration[30s])) by (le))",
+          "legendFormat": "좌석 예약 P95 응답시간 (ms)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "pointSize": 5
+          },
+          "unit": "ms",
+          "min": 0,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 2000 },
+              { "color": "red", "value": 5000 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max", "mean"]
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "🚀 대기열 진입 처리량 (/분)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "sum(rate(k6_queue_entry_success_total[1m])) * 60",
+          "legendFormat": "대기열 진입 성공/분",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "fillOpacity": 30,
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "pointSize": 5
+          },
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 30 },
+              { "color": "green", "value": 60 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max", "mean"]
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "👥 동시 사용자 수 (VU) 변화",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "expr": "k6_vus",
+          "legendFormat": "현재 가상 사용자 수",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "purple" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "fillOpacity": 25,
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "pointSize": 6
+          },
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max", "mean"]
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "🎯 좌석 예약 성공률 추이 (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "targets": [
+        {
+          "expr": "(sum(rate(k6_seat_reservation_success_total[30s])) / sum(rate(k6_queue_entry_success_total[30s]))) * 100",
+          "legendFormat": "실시간 좌석 예약 성공률 (%)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "fillOpacity": 25,
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "pointSize": 5
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 30 },
+              { "color": "green", "value": 50 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max", "mean"]
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "📡 WebSocket 연결 성공률 추이 (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "targets": [
+        {
+          "expr": "avg(k6_checks_rate{check=\"WebSocket 핸드셰이크 성공\"}) * 100",
+          "legendFormat": "WebSocket 연결 성공률 (%)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "cyan" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "pointSize": 5
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 90 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "min", "mean"]
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "📊 대기열 시스템 분석",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "targets": [
+        {
+          "expr": "k6_queue_entry_success_total",
+          "legendFormat": "대기열 진입 성공 (누적)",
+          "refId": "A"
+        },
+        {
+          "expr": "k6_queue_immediate_entry_total",
+          "legendFormat": "즉시 입장 (누적)",
+          "refId": "B"
+        },
+        {
+          "expr": "k6_ws_connection_success_total",
+          "legendFormat": "WebSocket 연결 성공 (누적)",
+          "refId": "C"
+        },
+        {
+          "expr": "(k6_queue_immediate_entry_total / k6_queue_entry_success_total) * 100",
+          "legendFormat": "즉시 입장률 (%)",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 20
+          },
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "즉시 입장률 (%)" },
+            "properties": [{ "id": "unit", "value": "percent" }]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 13,
+      "title": "🎯 좌석 예약 성능",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+      "targets": [
+        {
+          "expr": "k6_seat_reservation_success_total",
+          "legendFormat": "예약 성공 (누적)",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(k6_seat_reservation_success_total[1m])) * 60",
+          "legendFormat": "예약 성공/분",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "unit": "short",
+          "min": 0
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 14,
+      "title": "🔄 좌석 예약/해제 응답시간",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 44 },
+      "targets": [
+        {
+          "expr": "avg(k6_seat_reservation_duration)",
+          "legendFormat": "평균 예약 응답시간 (ms)",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(k6_seat_reservation_duration[30s])) by (le))",
+          "legendFormat": "P95 예약 응답시간 (ms)",
+          "refId": "B"
+        },
+        {
+          "expr": "avg(k6_seat_release_duration)",
+          "legendFormat": "평균 해제 응답시간 (ms)",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(k6_seat_release_duration[30s])) by (le))",
+          "legendFormat": "P95 해제 응답시간 (ms)",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "unit": "ms",
+          "min": 0
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "🚨 HTTP 요청 모니터링",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 44 },
+      "targets": [
+        {
+          "expr": "sum(rate(k6_http_reqs_total[1m])) * 60",
+          "legendFormat": "HTTP 요청/분",
+          "refId": "A"
+        },
+        {
+          "expr": "avg(k6_http_req_failed_rate) * 100",
+          "legendFormat": "HTTP 실패율 (%)",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(k6_http_req_duration_seconds[30s])) by (le)) * 1000",
+          "legendFormat": "HTTP P95 응답시간 (ms)",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "HTTP 실패율 (%)" },
+            "properties": [{ "id": "unit", "value": "percent" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "HTTP P95 응답시간 (ms)" },
+            "properties": [{ "id": "unit", "value": "ms" }]
+          }
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "title": "📡 WebSocket 연결 분석",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 50 },
+      "targets": [
+        {
+          "expr": "k6_ws_sessions_total",
+          "legendFormat": "총 WebSocket 세션",
+          "refId": "A"
+        },
+        {
+          "expr": "avg(k6_ws_connecting_seconds) * 1000",
+          "legendFormat": "평균 WS 연결시간 (ms)",
+          "refId": "B"
+        },
+        {
+          "expr": "avg(k6_ws_session_duration_seconds)",
+          "legendFormat": "평균 WS 세션 지속시간 (s)",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "평균 WS 연결시간 (ms)" },
+            "properties": [{ "id": "unit", "value": "ms" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "평균 WS 세션 지속시간 (s)" },
+            "properties": [{ "id": "unit", "value": "s" }]
+          }
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "title": "📊 테스트 현황 요약",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 50 },
+      "text": {
+        "valueSize": 14,
+        "titleSize": 14
+      },
+      "targets": [
+        {
+          "expr": "k6_queue_entry_success_total",
+          "legendFormat": "대기열 진입 성공",
+          "refId": "A"
+        },
+        {
+          "expr": "k6_queue_immediate_entry_total",
+          "legendFormat": "즉시 입장",
+          "refId": "B"
+        },
+        {
+          "expr": "k6_ws_connection_success_total",
+          "legendFormat": "WebSocket 연결",
+          "refId": "C"
+        },
+        {
+          "expr": "k6_seat_reservation_success_total",
+          "legendFormat": "좌석 예약 성공",
+          "refId": "D"
+        },
+        {
+          "expr": "sum(k6_http_reqs_total)",
+          "legendFormat": "총 HTTP 요청",
+          "refId": "E"
+        },
+        {
+          "expr": "k6_vus_max",
+          "legendFormat": "최대 VU",
+          "refId": "F"
+        },
+        {
+          "expr": "k6_iterations_total",
+          "legendFormat": "완료된 반복",
+          "refId": "G"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short",
+          "decimals": 0
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "textMode": "value_and_name",
+        "orientation": "horizontal"
+      }
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "name": "🚨 좌석 예약 응답시간 5초 초과",
+        "datasource": "Prometheus",
+        "enable": true,
+        "expr": "histogram_quantile(0.95, sum(rate(k6_seat_reservation_duration[30s])) by (le)) > 5000",
+        "iconColor": "red",
+        "titleFormat": "좌석 예약 P95 응답시간이 5초 초과!"
+      },
+      {
+        "name": "⚠️ WebSocket 연결 실패율 5% 초과",
+        "datasource": "Prometheus",
+        "enable": true,
+        "expr": "avg(k6_checks_rate{check=\"WebSocket 핸드셰이크 성공\"}) < 0.95",
+        "iconColor": "orange",
+        "titleFormat": "WebSocket 연결 실패율 5% 초과"
+      },
+      {
+        "name": "🎯 좌석 예약 성공률 60% 달성",
+        "datasource": "Prometheus",
+        "enable": true,
+        "expr": "(sum(k6_seat_reservation_success_total) / sum(k6_queue_entry_success_total)) * 100 > 60",
+        "iconColor": "green",
+        "titleFormat": "좌석 예약 성공률 60% 달성!"
+      }
+    ]
+  }
+}
